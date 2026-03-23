@@ -227,7 +227,7 @@ document.addEventListener("click", async (event) => {
   const noticeInsertTrigger = event.target.closest("button[data-notice-insert]");
   const noticeTableActionTrigger = event.target.closest("button[data-notice-table-action]");
   const noticeOpenImageTrigger = event.target.closest("button[data-notice-open-image]");
-  const noticeTableInsertPanelTrigger = event.target.closest("#loginNoticeTableInsertPanel");
+  const tableInsertPopoverTrigger = event.target.closest(".template-toolbar-table-insert-popover");
   const fontSizeComboTrigger = event.target.closest(".template-toolbar-font-size-combo");
   const fontSizeToggleTrigger = event.target.closest("[data-editor-font-size-toggle]");
   const fontSizeOptionTrigger = event.target.closest("[data-editor-font-size-option]");
@@ -271,7 +271,6 @@ document.addEventListener("click", async (event) => {
   const templateTableActionTrigger = event.target.closest("[data-template-table-action]");
   const templateTableSizeTrigger = event.target.closest("[data-template-table-size]");
   const templateInsertTrigger = event.target.closest("[data-template-insert]");
-  const templateTableInsertPanelTrigger = event.target.closest("#templateEditorTableInsertPanel");
   const templateTagTrigger = event.target.closest("[data-template-tag]");
   const templateOpenImageTrigger = event.target.closest("[data-template-open-image]");
   const templateSaveTrigger = event.target.closest("[data-save-template-editor]");
@@ -295,24 +294,8 @@ document.addEventListener("click", async (event) => {
   const examineeDetailResetTrigger = event.target.closest("[data-examinee-detail-reset]");
   const examineeDetailPhotoUploadTrigger = event.target.closest("[data-examinee-detail-photo-upload]");
 
-  if (
-    templateEditorTableInsertPanel &&
-    !templateInsertTrigger &&
-    !templateTableInsertPanelTrigger &&
-    !templateEditorTableInsertPanel.classList.contains("hidden")
-  ) {
-    setTemplateEditorTableInsertPanelVisibility(false);
-  }
-
-  const noticeTableInsertPanel = getLoginNoticeTableInsertPanel?.();
-
-  if (
-    noticeTableInsertPanel &&
-    !noticeInsertTrigger &&
-    !noticeTableInsertPanelTrigger &&
-    !noticeTableInsertPanel.classList.contains("hidden")
-  ) {
-    setLoginNoticeTableInsertPanelVisibility(false);
+  if (!tableInsertPopoverTrigger) {
+    closeAllEditorToolbarTableInsertPanels();
   }
 
   if (!fontSizeComboTrigger) {
@@ -925,6 +908,11 @@ document.addEventListener("keydown", async (event) => {
     return;
   }
 
+  if (event.key === "Escape" && closeAllEditorToolbarTableInsertPanels()) {
+    event.preventDefault();
+    return;
+  }
+
   if (event.key === "Escape" && closeAllHeaderCombos()) {
     event.preventDefault();
     return;
@@ -995,7 +983,7 @@ document.addEventListener("pointerdown", (event) => {
     ".login-notice-editor-toolbar [data-editor-font-size-toggle], .login-notice-editor-toolbar [data-editor-font-size-option]",
   );
   const noticeToolbarSelectionControl = event.target.closest(
-    "#loginNoticeFontFamily, #loginNoticeFontSize, #loginNoticeTextColor, #loginNoticeTextShading, #loginNoticeCellShading",
+    "#loginNoticeFontFamily, #loginNoticeFontSize, #loginNoticeTextColor, #loginNoticeTextShading, #loginNoticeCellShading, #loginNoticeTableRows, #loginNoticeTableColumns",
   );
 
   if (noticeToolbarTrigger || noticeFontSizeTrigger) {
@@ -1022,7 +1010,7 @@ document.addEventListener("pointerdown", (event) => {
     "#templateEditorModal [data-editor-font-size-toggle], #templateEditorModal [data-editor-font-size-option]",
   );
   const toolbarSelectionControl = event.target.closest(
-    "#templateEditorBlockType, #templateEditorFontFamily, #templateEditorFontSize, #templateEditorTextColor, #templateEditorTextShading, #templateEditorCellShading",
+    "#templateEditorBlockType, #templateEditorFontFamily, #templateEditorFontSize, #templateEditorTextColor, #templateEditorTextShading, #templateEditorCellShading, #templateEditorTableRows, #templateEditorTableColumns",
   );
 
   if (toolbarTrigger || templateFontSizeTrigger) {

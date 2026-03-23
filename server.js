@@ -58,7 +58,7 @@ const TEMPLATE_GENERATED_OBJECT_ALT_SUFFIX = Object.freeze({
 });
 
 const examineeTemplateColumns = [
-  { header: "시험일자", key: "date", width: 16, sample: "2026-03-28" },
+  { header: "시험날짜", key: "date", width: 16, sample: "2026-03-28" },
   { header: "시간", key: "time", width: 12, sample: "08:40" },
   { header: "모집시기", key: "track", width: 16, sample: "수시" },
   { header: "전형", key: "admission", width: 18, sample: "음악특기자" },
@@ -73,6 +73,7 @@ const examineeTemplateColumns = [
 ];
 const optionalExamineeTemplateColumnKeys = new Set(["major", "group"]);
 const legacyExamineeTemplateHeaders = Object.freeze({
+  date: "시험일자",
   time: "교시",
   track: "전형",
   admission: "시험",
@@ -402,7 +403,7 @@ function normalizeExamineeInput(examineeInput, index) {
   const rowNumber = index + 2;
 
   return normalizeExamineeRecord({
-    date: normalizeDate(examineeInput.date, "시험일자", rowNumber),
+    date: normalizeDate(examineeInput.date, "시험날짜", rowNumber),
     group: normalizeOptionalText(examineeInput.group),
     time: normalizeTime(examineeInput.time ?? examineeInput.session, "시간", rowNumber),
     track: normalizeText(examineeInput.track, "모집시기", rowNumber),
@@ -572,7 +573,7 @@ async function buildExamineeTemplateBuffer() {
 }
 
 const printHistoryExportColumns = Object.freeze([
-  Object.freeze({ header: "날짜", key: "date", width: 14, text: true }),
+  Object.freeze({ header: "시험날짜", key: "date", width: 14, text: true }),
   Object.freeze({ header: "시간", key: "time", width: 10, text: true }),
   Object.freeze({ header: "모집시기", key: "track", width: 14, text: true }),
   Object.freeze({ header: "전형", key: "admission", width: 18, text: true }),
@@ -588,8 +589,9 @@ const printHistoryExportColumns = Object.freeze([
 ]);
 
 const examineeExportColumns = Object.freeze([
-  ...printHistoryExportColumns.slice(0, -1),
-  Object.freeze({ header: "사진", key: "hasPhoto", width: 12, text: true }),
+  ...printHistoryExportColumns
+    .slice(0, -1)
+    .map((column) => (column.key === "date" ? { ...column, header: "시험날짜" } : column)),
 ]);
 
 const printHistorySummaryExportColumns = Object.freeze([
@@ -613,7 +615,6 @@ function normalizeExamineeExportRow(record = {}) {
     examineeNo: normalizedRecord.examineeNo,
     name: String(record.name ?? "").trim(),
     birth: String(record.birth ?? "").trim(),
-    hasPhoto: record.hasPhoto ? "등록" : "미등록",
   };
 }
 
@@ -760,18 +761,15 @@ async function parseExamineeWorkbook(fileContentBase64) {
     { length: Math.max(worksheet.columnCount, examineeTemplateColumns.length) },
     (_, offset) => getExcelCellText(headerRow.getCell(offset + 1)),
   );
-  const isLegacyHeaderMode = headerTexts.includes(legacyExamineeTemplateHeaders.time)
-    || headerTexts.includes(legacyExamineeTemplateHeaders.admission);
   const columnIndexes = examineeTemplateColumns.reduce((indexes, column) => {
-    const expectedHeader =
-      isLegacyHeaderMode && legacyExamineeTemplateHeaders[column.key]
-        ? legacyExamineeTemplateHeaders[column.key]
-        : column.header;
+    const expectedHeaders = [column.header, legacyExamineeTemplateHeaders[column.key]]
+      .filter(Boolean)
+      .filter((header, index, headers) => headers.indexOf(header) === index);
 
     const matchedColumnIndex = headerRow.actualCellCount === 0
       ? -1
       : Array.from({ length: Math.max(worksheet.columnCount, examineeTemplateColumns.length) }, (_, offset) => offset + 1)
-          .find((columnIndex) => getExcelCellText(headerRow.getCell(columnIndex)) === expectedHeader) ?? -1;
+          .find((columnIndex) => expectedHeaders.includes(getExcelCellText(headerRow.getCell(columnIndex)))) ?? -1;
 
     if (matchedColumnIndex === -1) {
       if (optionalExamineeTemplateColumnKeys.has(column.key)) {

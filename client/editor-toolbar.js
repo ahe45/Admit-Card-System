@@ -517,10 +517,68 @@ function setEditorToolbarColorPanelVisibility(colorInputId = "", nextVisible = f
 
   if (nextVisible) {
     closeAllEditorToolbarColorPanels(colorInputId);
+    closeAllEditorToolbarTableInsertPanels();
   }
 
   panelElement.classList.toggle("hidden", !nextVisible);
   pickerElement.classList.toggle("open", nextVisible);
+  toggleElement?.setAttribute("aria-expanded", nextVisible ? "true" : "false");
+  return true;
+}
+
+function getEditorToolbarTableInsertPopoverElements(panelId = "") {
+  const normalizedPanelId = String(panelId || "").trim();
+  const panelElement = normalizedPanelId ? document.getElementById(normalizedPanelId) : null;
+  const popoverElement =
+    panelElement?.closest(".template-toolbar-table-insert-popover") ||
+    (normalizedPanelId
+      ? document.querySelector(`.template-toolbar-table-insert-popover[data-editor-table-insert-popover="${normalizedPanelId}"]`)
+      : null);
+  const toggleElement = popoverElement?.querySelector("[data-editor-table-insert-toggle]") || null;
+
+  return { panelElement, popoverElement, toggleElement };
+}
+
+function closeAllEditorToolbarTableInsertPanels(exceptPanelId = "") {
+  let closedAnyPanel = false;
+
+  Array.from(document.querySelectorAll(".template-toolbar-table-insert-popover")).forEach((popoverElement) => {
+    const panelElement = popoverElement.querySelector(".template-table-insert-panel");
+    const toggleElement = popoverElement.querySelector("[data-editor-table-insert-toggle]");
+    const shouldKeepOpen =
+      exceptPanelId &&
+      panelElement?.id === exceptPanelId &&
+      panelElement &&
+      !panelElement.classList.contains("hidden");
+
+    if (!panelElement || shouldKeepOpen || panelElement.classList.contains("hidden")) {
+      return;
+    }
+
+    panelElement.classList.add("hidden");
+    popoverElement.classList.remove("open");
+    toggleElement?.setAttribute("aria-expanded", "false");
+    closedAnyPanel = true;
+  });
+
+  return closedAnyPanel;
+}
+
+function setEditorToolbarTableInsertPanelVisibility(panelId = "", nextVisible = false) {
+  const { panelElement, popoverElement, toggleElement } = getEditorToolbarTableInsertPopoverElements(panelId);
+
+  if (!panelElement || !popoverElement) {
+    return false;
+  }
+
+  if (nextVisible) {
+    closeAllEditorToolbarTableInsertPanels(panelId);
+    closeAllEditorToolbarColorPanels();
+    closeAllEditorToolbarFontSizeMenus();
+  }
+
+  panelElement.classList.toggle("hidden", !nextVisible);
+  popoverElement.classList.toggle("open", nextVisible);
   toggleElement?.setAttribute("aria-expanded", nextVisible ? "true" : "false");
   return true;
 }
@@ -741,6 +799,7 @@ function setEditorToolbarFontSizeMenuVisibility(fontSizeInputId = "", nextVisibl
   if (nextVisible) {
     closeAllEditorToolbarFontSizeMenus(fontSizeInputId);
     syncEditorToolbarFontSizeMenuSelection(inputElement, inputElement.value);
+    closeAllEditorToolbarTableInsertPanels();
   }
 
   menuElement.classList.toggle("hidden", !nextVisible);
@@ -882,6 +941,50 @@ function renderEditorToolbarColorPickerSection({
             />
           </div>
         </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderEditorToolbarTableInsertPopover({
+  insertAttr = "",
+  panelId = "",
+  rowsId = "",
+  columnsId = "",
+} = {}) {
+  return `
+    <div
+      class="template-toolbar-table-insert-popover"
+      data-editor-table-insert-popover="${escapeEditorToolbarAttribute(panelId)}"
+    >
+      <button
+        class="template-tool-button icon-only template-toolbar-table-insert-toggle"
+        ${renderEditorToolbarAttribute(insertAttr, "table")}
+        ${renderEditorToolbarAttribute("data-editor-table-insert-toggle", panelId)}
+        type="button"
+        aria-label="표 삽입"
+        title="표 삽입"
+        aria-expanded="false"
+        aria-controls="${escapeEditorToolbarAttribute(panelId)}"
+      >
+        ${EDITOR_TOOLBAR_ICON_MARKUP.insertTable}
+        <span class="sr-only">표 삽입</span>
+      </button>
+      <div
+        class="template-table-insert-panel hidden"
+        id="${escapeEditorToolbarAttribute(panelId)}"
+        role="group"
+        aria-label="표 삽입 설정"
+      >
+        <label class="template-toolbar-subfield" for="${escapeEditorToolbarAttribute(rowsId)}">
+          <span>행</span>
+          <input class="template-toolbar-number" id="${escapeEditorToolbarAttribute(rowsId)}" type="number" min="1" max="20" step="1" value="3" />
+        </label>
+        <label class="template-toolbar-subfield" for="${escapeEditorToolbarAttribute(columnsId)}">
+          <span>열</span>
+          <input class="template-toolbar-number" id="${escapeEditorToolbarAttribute(columnsId)}" type="number" min="1" max="8" step="1" value="2" />
+        </label>
+        <button class="template-tool-button"${renderEditorToolbarAttribute(insertAttr, "table-confirm")} type="button">표 추가</button>
       </div>
     </div>
   `;
@@ -1134,11 +1237,11 @@ function renderEditorToolbarInner({
       <div class="template-toolbar-section">
         <span class="template-toolbar-section-label">개체</span>
         <div class="template-toolbar-group-controls">
-          ${renderEditorToolbarIconButton({
-            attributeName: insertAttr,
-            attributeValue: "table",
-            label: "표 삽입",
-            iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.insertTable,
+          ${renderEditorToolbarTableInsertPopover({
+            insertAttr,
+            panelId: tableInsertPanelId,
+            rowsId: tableRowsId,
+            columnsId: tableColumnsId,
           })}
           ${renderEditorToolbarIconButton({
             attributeName: openImageAttr,
@@ -1164,17 +1267,6 @@ function renderEditorToolbarInner({
             label: "구분선",
             iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.rule,
           })}
-        </div>
-        <div class="template-table-insert-panel hidden" id="${escapeEditorToolbarAttribute(tableInsertPanelId)}">
-          <label class="template-toolbar-subfield" for="${escapeEditorToolbarAttribute(tableRowsId)}">
-            <span>행</span>
-            <input class="template-toolbar-number" id="${escapeEditorToolbarAttribute(tableRowsId)}" type="number" min="1" max="20" step="1" value="3" />
-          </label>
-          <label class="template-toolbar-subfield" for="${escapeEditorToolbarAttribute(tableColumnsId)}">
-            <span>열</span>
-            <input class="template-toolbar-number" id="${escapeEditorToolbarAttribute(tableColumnsId)}" type="number" min="1" max="8" step="1" value="2" />
-          </label>
-          <button class="template-tool-button"${renderEditorToolbarAttribute(insertAttr, "table-confirm")} type="button">표 추가</button>
         </div>
       </div>
     </div>

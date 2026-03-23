@@ -1097,6 +1097,11 @@ function applyTemplateEditorTableSelectionFontSize(fontSize) {
 }
 
 function setTemplateEditorTableInsertPanelVisibility(isVisible) {
+  if (typeof setEditorToolbarTableInsertPanelVisibility === "function") {
+    setEditorToolbarTableInsertPanelVisibility("templateEditorTableInsertPanel", Boolean(isVisible));
+    return;
+  }
+
   templateEditorTableInsertPanel?.classList.toggle("hidden", !isVisible);
 }
 

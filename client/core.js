@@ -595,9 +595,23 @@ const resultGridColumns = [
   { key: "name", label: "이름", sortable: true, filterable: true },
   { key: "birth", label: "생년월일", sortable: true, filterable: true },
 ];
+const admitCardLookupGridColumns = resultGridColumns.map((column) => (
+  column.key === "date"
+    ? { ...column, label: "시험날짜" }
+    : column
+));
+const examineeRegistrationGridColumns = resultGridColumns.map((column) => (
+  column.key === "date"
+    ? { ...column, label: "시험날짜" }
+    : column
+));
 const examineePhotoColumn = { key: "hasPhoto", label: "사진", sortable: true, filterable: true };
 const printHistoryGridColumns = [
-  ...resultGridColumns,
+  ...resultGridColumns.map((column) => (
+    column.key === "date"
+      ? { ...column, label: "시험날짜" }
+      : column
+  )),
   { key: "printedAt", label: "출력시각", sortable: true, filterable: true },
 ];
 const accountGridColumns = [

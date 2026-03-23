@@ -719,6 +719,11 @@ function syncLoginNoticeEditorDraft({ forceHistory = false } = {}) {
 }
 
 function setLoginNoticeTableInsertPanelVisibility(isVisible) {
+  if (typeof setEditorToolbarTableInsertPanelVisibility === "function") {
+    setEditorToolbarTableInsertPanelVisibility("loginNoticeTableInsertPanel", Boolean(isVisible));
+    return;
+  }
+
   getLoginNoticeTableInsertPanel()?.classList.toggle("hidden", !isVisible);
 }
 
@@ -2121,15 +2126,11 @@ function renderAdmitCardLookup() {
           <div>
             <h3>수험표 출력</h3>
           </div>
-          <div class="inline-actions">
-            ${renderBatchPrintButton()}
-            <button class="outline-button" data-reset-lookup="true" type="button">초기화</button>
-          </div>
         </div>
 
         <div class="search-grid four">
           <div class="field">
-            <label for="searchDate">날짜</label>
+            <label for="searchDate">시험날짜</label>
             <select id="searchDate">
               ${buildOptionMarkup(optionMap.date, filters.date)}
             </select>
@@ -2181,7 +2182,7 @@ function renderAdmitCardLookup() {
           </div>
         </div>
 
-        <div class="search-grid two">
+        <div class="search-grid four lookup-search-grid-actions">
           <div class="field">
             <label for="searchExamineeNo">수험번호</label>
             <input
@@ -2197,6 +2198,10 @@ function renderAdmitCardLookup() {
               value="${escapeAttribute(filters.examineeName)}"
               placeholder="이름 전체 또는 일부를 입력하세요"
             />
+          </div>
+          <div class="lookup-filter-actions" aria-label="수험표 출력 작업">
+            ${renderBatchPrintButton()}
+            <button class="outline-button" data-reset-lookup="true" type="button">초기화</button>
           </div>
         </div>
       </article>
@@ -2716,7 +2721,9 @@ function getGridColumns(gridKey) {
       : gridKey === "accountManagementGrid"
         ? accountGridColumns
         : gridKey === "examineeRegistrationGrid"
-        ? [...resultGridColumns, examineePhotoColumn]
+        ? [...examineeRegistrationGridColumns, examineePhotoColumn]
+        : gridKey === "admitCardLookupGrid"
+        ? admitCardLookupGridColumns
         : resultGridColumns;
   const allowFilters =
     gridKey === "examineeRegistrationGrid" ||
@@ -3203,14 +3210,6 @@ function renderGridHeaderActions({ gridKey, includeBatchPrint = false }) {
 
 function renderUploadHeaderAction() {
   return `
-    <button class="primary-button" data-open-modal="uploadModal" type="button">
-      <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 16V4"></path>
-        <path d="M7.5 8.5 12 4l4.5 4.5"></path>
-        <path d="M4 20h16"></path>
-      </svg>
-      <span>데이터 업로드</span>
-    </button>
     <button class="outline-button" data-download-examinees="true" type="button">
       <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path d="M12 4v10"></path>
@@ -3218,6 +3217,14 @@ function renderUploadHeaderAction() {
         <path d="M4 20h16"></path>
       </svg>
       <span>다운로드</span>
+    </button>
+    <button class="primary-button" data-open-modal="uploadModal" type="button">
+      <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 16V4"></path>
+        <path d="M7.5 8.5 12 4l4.5 4.5"></path>
+        <path d="M4 20h16"></path>
+      </svg>
+      <span>데이터 업로드</span>
     </button>
   `;
 }

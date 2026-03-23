@@ -145,7 +145,7 @@
               </select>
             </div>
             <div class="header-chip">
-              <label class="header-chip-label" for="headerExamDate">시험일자</label>
+              <label class="header-chip-label" for="headerExamDate">시험날짜</label>
               <select class="header-chip-select" id="headerExamDate">
                 <option selected>전체</option>
                 <option>2026-03-28</option>
@@ -176,7 +176,14 @@
               <span id="currentUserRole">로그인 필요</span>
               <strong id="currentUserId">-</strong>
             </div>
-            <button class="ghost-button" data-auth-logout="true" id="logoutButton" type="button">로그아웃</button>
+            <button class="ghost-button topbar-logout-button" data-auth-logout="true" id="logoutButton" type="button">
+              <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M14 7.5V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5a2 2 0 0 0 2-2v-1.5"></path>
+                <path d="M10 12h9"></path>
+                <path d="m16 8 4 4-4 4"></path>
+              </svg>
+              <span>로그아웃</span>
+            </button>
           </div>
         </header>
 
@@ -197,32 +204,28 @@
         <div class="modal-body upload-modal-body">
           <div class="upload-grid">
             <article class="upload-card">
-              <p class="upload-card-label">수험생 데이터</p>
-              <h4>XLSX 업로드</h4>
-              <p>수험생 정보는 제공된 XLSX 양식 기준으로 업로드하며 시간은 hh:mm 형식으로 입력합니다.</p>
-              <button class="ghost-button upload-template-button" data-download-template="examinee-grid" type="button">양식 다운로드</button>
+              <h4>수험생 데이터 업로드</h4>
+              <p>제공된 양식에 수험생 정보를 입력하여 업로드합니다.</p>
               <div class="upload-dropzone">
                 <input class="upload-file-input" id="uploadFileInput" type="file" accept=".xlsx" />
                 <label class="secondary-button upload-select-button" for="uploadFileInput">파일 선택</label>
                 <strong id="uploadFileName">선택된 데이터 파일이 없습니다.</strong>
-                <p>업로드 양식 기준의 XLSX 파일 1개를 선택합니다. 전공과 조는 비워도 됩니다.</p>
               </div>
             </article>
 
             <article class="upload-card">
-              <p class="upload-card-label">사진 업로드</p>
-              <h4>사진 ZIP 업로드</h4>
-              <p>`수험번호.jpg`, `수험번호.jpeg`, `수험번호.png` 형식의 파일을 ZIP으로 묶어 업로드합니다.</p>
+              <h4>수험생 사진 업로드</h4>
+              <p>수험번호.jpg 형식의 파일을 ZIP으로 묶어서 업로드합니다.</p>
               <div class="upload-dropzone secondary">
                 <input class="upload-file-input" id="uploadPhotoArchiveInput" type="file" accept=".zip" />
                 <label class="secondary-button upload-select-button" for="uploadPhotoArchiveInput">파일 선택</label>
                 <strong id="uploadPhotoArchiveName">선택된 사진 ZIP이 없습니다.</strong>
-                <p>ZIP 내부 파일명은 수험번호와 동일해야 자동 매칭됩니다.</p>
               </div>
             </article>
           </div>
 
           <div class="upload-panel-footer">
+            <button class="ghost-button upload-template-button" data-download-template="examinee-grid" type="button">양식 다운로드</button>
             <div class="upload-actions">
               <button class="ghost-button" data-close-modal="true" type="button">닫기</button>
               <button class="primary-button" data-upload-examinees="true" type="button">업로드 실행</button>
