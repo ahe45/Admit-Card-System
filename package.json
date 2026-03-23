@@ -1,0 +1,22 @@
+{
+  "name": "AdmitCard",
+  "version": "1.0.0",
+  "description": "Admit Card System UI",
+  "main": "server.js",
+  "scripts": {
+    "db:setup": "node scripts/setup-db.js",
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "echo \"No tests configured\""
+  },
+  "private": true,
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "bwip-js": "^4.8.0",
+    "dotenv": "^17.3.1",
+    "exceljs": "^4.4.0",
+    "mysql2": "^3.20.0",
+    "puppeteer-core": "^24.40.0",
+    "qrcode": "^1.5.4"
+  }
+}
