@@ -1214,14 +1214,30 @@ function applyLoginNoticeEditorCommand(command, value = "") {
   });
 }
 
-function saveLoginNoticeContent() {
+async function saveLoginNoticeContent() {
   syncLoginNoticeEditorDraft();
-  state.loginNotice.savedHtml = state.loginNotice.draftHtml;
-  persistLoginNoticeHtml();
-  showToast("로그인화면 공지사항을 저장했습니다.");
+
+  try {
+    const payload = await apiRequest("/api/login-notice", {
+      method: "PUT",
+      body: JSON.stringify({
+        html: state.loginNotice.draftHtml,
+      }),
+    });
+
+    applyLoginNoticePayload(payload.html || payload.loginNoticeHtml || state.loginNotice.draftHtml);
+    renderView();
+    showToast("로그인화면 공지사항을 저장했습니다.");
+  } catch (error) {
+    if (handleAuthenticationFailure(error)) {
+      return;
+    }
+
+    setLoginNoticeEditorStatus(error.message, "warning");
+  }
 }
 
-function handleLoginNoticeAction(action) {
+async function handleLoginNoticeAction(action) {
   if (action === "link") {
     const url = window.prompt("링크 주소를 입력하세요.", "https://");
 
@@ -1234,7 +1250,7 @@ function handleLoginNoticeAction(action) {
   }
 
   if (action === "save") {
-    saveLoginNoticeContent();
+    await saveLoginNoticeContent();
   }
 }
 

@@ -1,5 +1,4 @@
 ﻿const HEADER_FILTER_STORAGE_KEY = "admitcard.headerFilters";
-const LOGIN_NOTICE_STORAGE_KEY = "admitcard.loginNoticeHtml";
 const FLASH_TOAST_STORAGE_KEY = "admitcard.flashToast";
 const DEFAULT_SYSTEM_INITIAL_PASSWORD = "1111";
 const DEFAULT_SYSTEM_AUTO_LOGOUT_MINUTES = 0;
@@ -271,18 +270,13 @@ function getDefaultLoginNoticeHtml(initialPassword = DEFAULT_SYSTEM_INITIAL_PASS
   ].join("");
 }
 
-function loadStoredLoginNoticeHtml() {
-  try {
-    const storedValue = window.localStorage.getItem(LOGIN_NOTICE_STORAGE_KEY);
-
-    return storedValue !== null ? String(storedValue) : getDefaultLoginNoticeHtml();
-  } catch (error) {
-    return getDefaultLoginNoticeHtml();
-  }
+function normalizeLoginNoticeHtml(html = "") {
+  const normalizedHtml = String(html || "");
+  return normalizedHtml.trim() ? normalizedHtml : getDefaultLoginNoticeHtml(getSystemInitialPassword());
 }
 
-function createLoginNoticeState() {
-  const storedHtml = loadStoredLoginNoticeHtml();
+function createLoginNoticeState(initialHtml = getDefaultLoginNoticeHtml()) {
+  const storedHtml = normalizeLoginNoticeHtml(initialHtml);
 
   return {
     savedHtml: storedHtml,
@@ -299,6 +293,10 @@ function createLoginNoticeState() {
     statusMessage: "로그인화면 공지사항을 편집 중입니다.",
     statusType: "",
   };
+}
+
+function applyLoginNoticePayload(html = "") {
+  state.loginNotice = createLoginNoticeState(html);
 }
 
 function getCurrentRoutePath() {
@@ -632,7 +630,7 @@ function getApiBaseUrl() {
 
   const currentOrigin = window.location.origin;
 
-  if (currentOrigin === "http://localhost:3000" || currentOrigin === "http://127.0.0.1:3000") {
+  if (/^https?:\/\//i.test(currentOrigin)) {
     return currentOrigin;
   }
 
@@ -1853,6 +1851,7 @@ function handleAuthenticationFailure(error) {
 
   if (!isLoginPage()) {
     navigateToLogin({ replace: true });
+    void loadLoginNoticeData();
   }
 
   return true;
@@ -1861,6 +1860,7 @@ function handleAuthenticationFailure(error) {
 async function loadAuthSession() {
   clearAutoLogoutTimer();
   syncCurrentViewFromLocation();
+  const loginNoticePromise = isLoginPage() ? loadLoginNoticeData({ render: false }) : Promise.resolve();
   let didNavigate = false;
   state.auth.status = "loading";
   state.auth.error = "";
@@ -1904,6 +1904,7 @@ async function loadAuthSession() {
       return;
     }
   } finally {
+    await loginNoticePromise;
     updateAuthChrome();
     renderView();
 
@@ -2045,6 +2046,7 @@ async function logoutCurrentUser() {
   updateAuthChrome();
   renderView();
   navigateToLogin({ replace: true });
+  void loadLoginNoticeData();
 }
 
 function loadStoredHeaderFilters() {
@@ -2106,11 +2108,16 @@ function syncNavigationVisibility() {
   });
 }
 
-function persistLoginNoticeHtml() {
+async function loadLoginNoticeData({ render = true } = {}) {
   try {
-    window.localStorage.setItem(LOGIN_NOTICE_STORAGE_KEY, state.loginNotice.savedHtml);
+    const payload = await apiRequest("/api/login-notice");
+    applyLoginNoticePayload(payload.html || payload.loginNoticeHtml || "");
   } catch (error) {
-    // Ignore storage failures and keep the in-memory state.
+    // Keep the default in-memory notice when the server payload cannot be loaded.
+  } finally {
+    if (render) {
+      renderView();
+    }
   }
 }
 
@@ -2246,6 +2253,7 @@ function reconcileExamineeDetailState() {
 
 function applyBootstrapPayload(payload) {
   applySystemSettingsPayload(payload.systemSettings);
+  applyLoginNoticePayload(payload.loginNoticeHtml);
   examineeGridRows = Array.isArray(payload.examinees) ? payload.examinees.map(normalizeExamineeRecord) : [];
   printHistoryRows = Array.isArray(payload.printHistory) ? payload.printHistory.map(normalizeExamineeRecord) : [];
   accountGridRows = Array.isArray(payload.accounts) ? payload.accounts.map(normalizeAccountRecord) : [];

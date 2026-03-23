@@ -57,6 +57,15 @@ const TEMPLATE_GENERATED_OBJECT_ALT_SUFFIX = Object.freeze({
   qrcode: "QR코드",
 });
 
+function getDefaultLoginNoticeHtml(initialPassword = DEFAULT_INITIAL_PASSWORD) {
+  return [
+    '<p><span style="display:inline-flex;padding:3px 8px;border-radius:6px;background:#2f63c8;color:#fff;font-weight:800;">계정 안내</span></p>',
+    "<p><strong>ID : 계정 관리에 등록된 계정 ID</strong></p>",
+    `<p><strong>PW : ${initialPassword}(초기 비밀번호)</strong></p>`,
+    "<p>최초 로그인 시 비밀번호를 변경해야 서비스를 사용할 수 있습니다.</p>",
+  ].join("");
+}
+
 const examineeTemplateColumns = [
   { header: "시험날짜", key: "date", width: 16, sample: "2026-03-28" },
   { header: "시간", key: "time", width: 12, sample: "08:40" },
@@ -1302,10 +1311,16 @@ async function ensureSystemSettingsSchema() {
   await query(`
     CREATE TABLE IF NOT EXISTS system_settings (
       setting_key VARCHAR(100) NOT NULL PRIMARY KEY,
-      setting_value VARCHAR(255) NOT NULL,
+      setting_value MEDIUMTEXT NOT NULL,
       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
   `);
+
+  const [settingValueColumn] = await query(`SHOW COLUMNS FROM system_settings LIKE 'setting_value'`);
+
+  if (!String(settingValueColumn?.Type || "").toLowerCase().includes("text")) {
+    await query(`ALTER TABLE system_settings MODIFY COLUMN setting_value MEDIUMTEXT NOT NULL`);
+  }
 
   await query(
     `
@@ -1418,6 +1433,11 @@ function normalizeSystemSettingsRows(rows) {
   };
 }
 
+function parseLoginNoticeHtml(value, initialPassword = DEFAULT_INITIAL_PASSWORD) {
+  const normalizedValue = String(value ?? "");
+  return normalizedValue.trim() ? normalizedValue : getDefaultLoginNoticeHtml(initialPassword);
+}
+
 function normalizeSystemSettingsPayload(payload = {}) {
   const initialPassword = String(payload.initialPassword ?? "").trim();
   const autoLogoutMinutes = Math.round(Number(payload.autoLogoutMinutes));
@@ -1460,6 +1480,45 @@ async function getSystemSettings() {
   );
 
   return normalizeSystemSettingsRows(rows);
+}
+
+async function getLoginNoticeHtml() {
+  const rows = await query(
+    `
+      SELECT
+        setting_key AS settingKey,
+        setting_value AS settingValue
+      FROM system_settings
+      WHERE setting_key IN ('initialPassword', 'loginNoticeHtml')
+    `,
+  );
+  const rowsByKey = new Map((Array.isArray(rows) ? rows : []).map((row) => [String(row.settingKey || ""), row.settingValue]));
+  const initialPassword = parseSystemInitialPassword(rowsByKey.get("initialPassword"));
+  return parseLoginNoticeHtml(rowsByKey.get("loginNoticeHtml"), initialPassword);
+}
+
+function normalizeLoginNoticePayload(payload = {}) {
+  return {
+    html: String(payload.html ?? payload.loginNoticeHtml ?? ""),
+  };
+}
+
+async function updateLoginNoticeHtml(payload) {
+  const nextNotice = normalizeLoginNoticePayload(payload);
+
+  await query(
+    `
+      INSERT INTO system_settings (setting_key, setting_value)
+      VALUES ('loginNoticeHtml', ?)
+      ON DUPLICATE KEY UPDATE
+        setting_value = VALUES(setting_value)
+    `,
+    [nextNotice.html],
+  );
+
+  return {
+    html: await getLoginNoticeHtml(),
+  };
 }
 
 async function updateSystemSettings(payload) {
@@ -1689,13 +1748,14 @@ async function getSummary() {
 }
 
 async function getBootstrapPayload() {
-  const [examinees, printHistory, templates, accounts, summary, systemSettings] = await Promise.all([
+  const [examinees, printHistory, templates, accounts, summary, systemSettings, loginNoticeHtml] = await Promise.all([
     getExaminees(),
     getPrintHistory(),
     getTemplates(),
     getAccounts(),
     getSummary(),
     getSystemSettings(),
+    getLoginNoticeHtml(),
   ]);
 
   return {
@@ -1705,6 +1765,7 @@ async function getBootstrapPayload() {
     accounts,
     summary,
     systemSettings,
+    loginNoticeHtml,
     serverDate: formatDateAsYmd(new Date()),
   };
 }
@@ -3449,6 +3510,12 @@ async function handleApiRequest(request, response, requestUrl) {
     return sendJson(response, 200, logoutAccount(request, response));
   }
 
+  if (request.method === "GET" && pathname === "/api/login-notice") {
+    return sendJson(response, 200, {
+      html: await getLoginNoticeHtml(),
+    });
+  }
+
   const { account: authenticatedAccount } = await getAuthenticatedAccountFromRequest(request);
 
   if (request.method === "GET" && pathname === "/api/examinees/template.xlsx") {
@@ -3616,6 +3683,11 @@ async function handleApiRequest(request, response, requestUrl) {
 
   if (request.method === "GET" && pathname === "/api/system-settings") {
     return sendJson(response, 200, await getSystemSettings());
+  }
+
+  if (request.method === "PUT" && pathname === "/api/login-notice") {
+    const body = await readJsonBody(request);
+    return sendJson(response, 200, await updateLoginNoticeHtml(body));
   }
 
   if (request.method === "PUT" && pathname === "/api/system-settings") {

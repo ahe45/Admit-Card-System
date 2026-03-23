@@ -346,7 +346,7 @@ document.addEventListener("click", async (event) => {
   }
 
   if (noticeActionTrigger) {
-    handleLoginNoticeAction(noticeActionTrigger.dataset.noticeAction);
+    await handleLoginNoticeAction(noticeActionTrigger.dataset.noticeAction);
     return;
   }
 
