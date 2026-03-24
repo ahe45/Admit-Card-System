@@ -645,12 +645,26 @@ function buildApiUrl(resource) {
   return new URL(resource, `${getApiBaseUrl()}/`).toString();
 }
 
+function shouldApplyJsonContentType(body, headers = {}) {
+  if (!body) {
+    return false;
+  }
+
+  const hasContentTypeHeader = Object.keys(headers || {}).some((headerName) => String(headerName).toLowerCase() === "content-type");
+
+  if (hasContentTypeHeader) {
+    return false;
+  }
+
+  return typeof body === "string";
+}
+
 async function apiRequest(resource, options = {}) {
   const requestOptions = {
     credentials: "same-origin",
     ...options,
     headers: {
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(shouldApplyJsonContentType(options.body, options.headers) ? { "Content-Type": "application/json" } : {}),
       ...(options.headers || {}),
     },
   };
@@ -680,7 +694,7 @@ function apiRequestWithUploadProgress(resource, options = {}, callbacks = {}) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     const requestHeaders = {
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(shouldApplyJsonContentType(options.body, options.headers) ? { "Content-Type": "application/json" } : {}),
       ...(options.headers || {}),
     };
     const requestUrl = buildApiUrl(resource);
@@ -755,7 +769,7 @@ function apiRequestForBlobWithProgress(resource, options = {}, callbacks = {}) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     const requestHeaders = {
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(shouldApplyJsonContentType(options.body, options.headers) ? { "Content-Type": "application/json" } : {}),
       ...(options.headers || {}),
     };
     const requestUrl = buildApiUrl(resource);
@@ -2475,6 +2489,50 @@ function buildUploadSummaryMessage(result = {}, { hasPhotoArchive = false } = {}
   return messages.join(" ") || "업로드를 완료했습니다.";
 }
 
+function mergeUploadResult(target = {}, source = {}) {
+  return {
+    processed: Number(target.processed || 0) + Number(source.processed || 0),
+    photoUploaded: Number(target.photoUploaded || 0) + Number(source.photoUploaded || 0),
+    photoSkipped: Number(target.photoSkipped || 0) + Number(source.photoSkipped || 0),
+  };
+}
+
+async function uploadPhotoArchiveFile(photoArchiveFile) {
+  setUploadOverlayState({
+    isActive: true,
+    message: "사진 ZIP을 서버로 전송하고 있습니다.",
+    progressMode: "determinate",
+    progressValue: 0,
+    progressLabel: "사진 ZIP 전송",
+  });
+
+  return apiRequestWithUploadProgress("/api/examinees/photo-archive", {
+    method: "POST",
+    body: photoArchiveFile,
+    headers: {
+      "Content-Type": "application/zip",
+    },
+  }, {
+    onProgress: ({ percent }) => {
+      setUploadOverlayState({
+        isActive: true,
+        message: "사진 ZIP을 서버로 전송하고 있습니다.",
+        progressMode: "determinate",
+        progressValue: percent,
+        progressLabel: "사진 ZIP 전송",
+      });
+    },
+    onUploadComplete: () => {
+      setUploadOverlayState({
+        isActive: true,
+        message: "사진 데이터를 수험생 데이터와 매칭합니다.",
+        progressMode: "indeterminate",
+        progressLabel: "사진 매칭 및 저장",
+      });
+    },
+  });
+}
+
 async function downloadExamineeTemplate() {
   try {
     const response = await fetch(buildApiUrl("/api/examinees/template.xlsx"));
@@ -2619,61 +2677,62 @@ async function uploadSelectedExamineeFile() {
   try {
     const hasXlsx = Boolean(file);
     const hasPhotoArchive = Boolean(photoArchiveFile);
-    const fileContentBase64 = file
-      ? await readUploadFileAsBase64(file, {
-          readingMessage: "XLSX 파일을 읽는 중입니다.",
-          encodingMessage: "XLSX 파일을 업로드 형식으로 준비하고 있습니다.",
-          progressLabel: "XLSX 읽기",
-          encodingProgressLabel: "XLSX 준비",
-        })
-      : "";
-    const photoArchiveContentBase64 = photoArchiveFile
-      ? await readUploadFileAsBase64(photoArchiveFile, {
-          readingMessage: "사진 ZIP을 읽는 중입니다.",
-          encodingMessage: "사진 ZIP을 업로드 형식으로 준비하고 있습니다.",
-          progressLabel: "사진 ZIP 읽기",
-          encodingProgressLabel: "사진 ZIP 준비",
-        })
-      : "";
-    const requestBody = JSON.stringify({
-      fileName: file?.name || "",
-      fileContentBase64,
-      photoArchiveName: photoArchiveFile?.name || "",
-      photoArchiveContentBase64,
-    });
-    const uploadProgressLabel = hasPhotoArchive ? "사진 ZIP 전송" : "업로드 전송";
-    const serverProcessingLabel = hasPhotoArchive ? "사진 매칭 및 저장" : "수험생 데이터 저장";
+    let result = {
+      processed: 0,
+      photoUploaded: 0,
+      photoSkipped: 0,
+    };
 
-    setUploadOverlayState({
-      isActive: true,
-      message: "업로드 파일을 서버로 전송하고 있습니다.",
-      progressMode: "determinate",
-      progressValue: 0,
-      progressLabel: uploadProgressLabel,
-    });
+    if (hasXlsx) {
+      const fileContentBase64 = await readUploadFileAsBase64(file, {
+        readingMessage: "XLSX 파일을 읽는 중입니다.",
+        encodingMessage: "XLSX 파일을 업로드 형식으로 준비하고 있습니다.",
+        progressLabel: "XLSX 읽기",
+        encodingProgressLabel: "XLSX 준비",
+      });
+      const requestBody = JSON.stringify({
+        fileName: file?.name || "",
+        fileContentBase64,
+      });
 
-    const result = await apiRequestWithUploadProgress("/api/examinees/import", {
-      method: "POST",
-      body: requestBody,
-    }, {
-      onProgress: ({ percent }) => {
-        setUploadOverlayState({
-          isActive: true,
-          message: "업로드 파일을 서버로 전송하고 있습니다.",
-          progressMode: "determinate",
-          progressValue: percent,
-          progressLabel: uploadProgressLabel,
-        });
-      },
-      onUploadComplete: () => {
-        setUploadOverlayState({
-          isActive: true,
-          message: "업로드 데이터를 MariaDB에 반영하고 있습니다.",
-          progressMode: "indeterminate",
-          progressLabel: serverProcessingLabel,
-        });
-      },
-    });
+      setUploadOverlayState({
+        isActive: true,
+        message: "수험생 데이터를 서버로 전송하고 있습니다.",
+        progressMode: "determinate",
+        progressValue: 0,
+        progressLabel: "XLSX 전송",
+      });
+
+      const workbookResult = await apiRequestWithUploadProgress("/api/examinees/import", {
+        method: "POST",
+        body: requestBody,
+      }, {
+        onProgress: ({ percent }) => {
+          setUploadOverlayState({
+            isActive: true,
+            message: "수험생 데이터를 서버로 전송하고 있습니다.",
+            progressMode: "determinate",
+            progressValue: percent,
+            progressLabel: "XLSX 전송",
+          });
+        },
+        onUploadComplete: () => {
+          setUploadOverlayState({
+            isActive: true,
+            message: "수험생 데이터를 MariaDB에 반영하고 있습니다.",
+            progressMode: "indeterminate",
+            progressLabel: "수험생 데이터 저장",
+          });
+        },
+      });
+
+      result = mergeUploadResult(result, workbookResult);
+    }
+
+    if (hasPhotoArchive) {
+      const photoResult = await uploadPhotoArchiveFile(photoArchiveFile);
+      result = mergeUploadResult(result, photoResult);
+    }
 
     setUploadOverlayState({
       isActive: true,

@@ -837,6 +837,16 @@ async function readJsonBody(request) {
   }
 }
 
+async function readBinaryBody(request) {
+  const chunks = [];
+
+  for await (const chunk of request) {
+    chunks.push(chunk);
+  }
+
+  return chunks.length > 0 ? Buffer.concat(chunks) : Buffer.alloc(0);
+}
+
 async function getExaminees() {
   const rows = await query(`
     SELECT
@@ -1927,21 +1937,22 @@ async function updateExaminee(examineeNo, payload = {}) {
   }
 }
 
-function parseExamineePhotoArchive(fileContentBase64) {
-  if (!fileContentBase64) {
+function parseExamineePhotoArchiveBuffer(fileBuffer) {
+  if (!Buffer.isBuffer(fileBuffer) || fileBuffer.length === 0) {
     throw createHttpError(400, "사진 ZIP 파일 데이터가 없습니다.");
   }
 
   let zip;
 
   try {
-    zip = new AdmZip(Buffer.from(fileContentBase64, "base64"));
+    zip = new AdmZip(fileBuffer);
   } catch (error) {
     throw createHttpError(400, "사진 ZIP 파일을 해석할 수 없습니다.");
   }
 
   const examineePhotos = new Map();
   let skippedEntries = 0;
+  const invalidEntryNames = [];
 
   zip.getEntries().forEach((entry) => {
     if (entry.isDirectory) {
@@ -1953,11 +1964,23 @@ function parseExamineePhotoArchive(fileContentBase64) {
       examineePhotos.set(photo.examineeNo, photo);
     } catch (error) {
       skippedEntries += 1;
+      const invalidEntryName = path.basename(String(entry.entryName || "").trim());
+
+      if (invalidEntryName && invalidEntryNames.length < 3) {
+        invalidEntryNames.push(invalidEntryName);
+      }
     }
   });
 
   if (examineePhotos.size === 0) {
-    throw createHttpError(400, "ZIP 파일에서 업로드 가능한 수험생 사진을 찾을 수 없습니다.");
+    const invalidEntryMessage =
+      invalidEntryNames.length > 0
+        ? ` 확인된 파일 예시: ${invalidEntryNames.join(", ")}`
+        : "";
+    throw createHttpError(
+      400,
+      `ZIP 파일에서 업로드 가능한 수험생 사진을 찾을 수 없습니다. 파일명은 수험번호.jpg, 수험번호.jpeg, 수험번호.png 형식이어야 합니다.${invalidEntryMessage}`,
+    );
   }
 
   return {
@@ -1966,8 +1989,15 @@ function parseExamineePhotoArchive(fileContentBase64) {
   };
 }
 
-async function saveExamineePhotoArchive(fileContentBase64) {
-  const { photos, skippedEntries } = parseExamineePhotoArchive(fileContentBase64);
+function parseExamineePhotoArchive(fileContentBase64) {
+  if (!fileContentBase64) {
+    throw createHttpError(400, "사진 ZIP 파일 데이터가 없습니다.");
+  }
+
+  return parseExamineePhotoArchiveBuffer(Buffer.from(fileContentBase64, "base64"));
+}
+
+async function saveParsedExamineePhotos({ photos, skippedEntries }) {
   const examineeNos = photos.map((photo) => photo.examineeNo);
   const existingRows =
     examineeNos.length > 0
@@ -2010,6 +2040,14 @@ async function saveExamineePhotoArchive(fileContentBase64) {
     photoUploaded: matchedPhotos.length,
     photoSkipped: unmatchedPhotos + skippedEntries,
   };
+}
+
+async function saveExamineePhotoArchiveBuffer(fileBuffer) {
+  return saveParsedExamineePhotos(parseExamineePhotoArchiveBuffer(fileBuffer));
+}
+
+async function saveExamineePhotoArchive(fileContentBase64) {
+  return saveParsedExamineePhotos(parseExamineePhotoArchive(fileContentBase64));
 }
 
 async function saveExamineePhoto(examineeNo, payload = {}) {
@@ -3703,6 +3741,11 @@ async function handleApiRequest(request, response, requestUrl) {
   if (request.method === "POST" && pathname === "/api/examinees/import") {
     const body = await readJsonBody(request);
     return sendJson(response, 200, await importExaminees(body));
+  }
+
+  if (request.method === "POST" && pathname === "/api/examinees/photo-archive") {
+    const body = await readBinaryBody(request);
+    return sendJson(response, 200, await saveExamineePhotoArchiveBuffer(body));
   }
 
   if (request.method === "PUT" && /^\/api\/examinees\/[^/]+$/.test(pathname)) {
