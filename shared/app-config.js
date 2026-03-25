@@ -143,12 +143,13 @@
       legacyTokens: ["@{시험}"],
       legacyTags: ["@시험"],
     }),
+    createTemplateTagDefinition({ label: "계열", examineeKey: "series" }),
     createTemplateTagDefinition({ label: "모집단위", examineeKey: "unit" }),
     createTemplateTagDefinition({ label: "전공", examineeKey: "major" }),
     createTemplateTagDefinition({ label: "고사건물", examineeKey: "building" }),
     createTemplateTagDefinition({ label: "고사실", examineeKey: "room" }),
     createTemplateTagDefinition({ label: "수험생사진", examineeKey: "examineePhoto" }),
-  ]);
+  ].sort((left, right) => String(left?.label || "").localeCompare(String(right?.label || ""), "ko-KR")));
 
   return {
     accountRoleOptions,

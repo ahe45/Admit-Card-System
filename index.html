@@ -11,7 +11,11 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="./styles/base.css" />
+    <link rel="stylesheet" href="./styles/features/auth.css" />
+    <link rel="stylesheet" href="./styles/surfaces.css" />
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles/features/template-editor.css" />
   </head>
   <body>
     <div class="app-shell auth-locked" id="appShell">
@@ -142,6 +146,15 @@
                 <option>음악특기자</option>
                 <option>실기우수자</option>
                 <option>일반학생</option>
+              </select>
+            </div>
+            <div class="header-chip">
+              <label class="header-chip-label" for="headerSeries">계열</label>
+              <select class="header-chip-select" id="headerSeries">
+                <option selected>전체</option>
+                <option>인문</option>
+                <option>자연</option>
+                <option>예체능</option>
               </select>
             </div>
             <div class="header-chip">
@@ -403,22 +416,7 @@
 
           <div class="template-tag-panel">
             <p class="template-tag-caption">수험생 데이터 태그</p>
-            <div class="template-tag-strip">
-              <button class="template-tag-button" data-template-tag="#수험번호" type="button">#수험번호</button>
-              <button class="template-tag-button" data-template-tag="#이름" type="button">#이름</button>
-              <button class="template-tag-button" data-template-tag="#생년월일" type="button">#생년월일</button>
-              <button class="template-tag-button" data-template-tag="#현재날짜" type="button">#현재날짜</button>
-              <button class="template-tag-button" data-template-tag="#시험날짜" type="button">#시험날짜</button>
-              <button class="template-tag-button" data-template-tag="#조" type="button">#조</button>
-              <button class="template-tag-button" data-template-tag="#시간" type="button">#시간</button>
-              <button class="template-tag-button" data-template-tag="#모집시기" type="button">#모집시기</button>
-              <button class="template-tag-button" data-template-tag="#전형" type="button">#전형</button>
-              <button class="template-tag-button" data-template-tag="#모집단위" type="button">#모집단위</button>
-              <button class="template-tag-button" data-template-tag="#전공" type="button">#전공</button>
-              <button class="template-tag-button" data-template-tag="#고사건물" type="button">#고사건물</button>
-              <button class="template-tag-button" data-template-tag="#고사실" type="button">#고사실</button>
-              <button class="template-tag-button" data-template-tag="#수험생사진" type="button">#수험생사진</button>
-            </div>
+            <div class="template-tag-strip" id="templateTagStrip"></div>
           </div>
 
           <div class="template-editor-page">
@@ -467,11 +465,104 @@
     </div>
     <div class="table-cell-tooltip hidden" id="tableCellTooltip" role="tooltip" aria-hidden="true"></div>
 
+    <script src="./shared/domain/examinee-fields.js"></script>
     <script src="./shared/app-config.js"></script>
+    <script src="./client/features/examinees/config.js"></script>
+    <script src="./client/app/state-factories.js"></script>
+    <script src="./client/app/api-client.js"></script>
+    <script src="./client/app/dom-elements.js"></script>
+    <script src="./client/app/app-state.js"></script>
+    <script src="./client/app/html-utils.js"></script>
+    <script src="./client/app/grid-row-store.js"></script>
+    <script src="./client/app/bootstrap-data.js"></script>
+    <script src="./client/app/bootstrap-loader.js"></script>
+    <script src="./client/features/app/busy-overlays.js"></script>
+    <script src="./client/features/auth/account-state.js"></script>
+    <script src="./client/features/auth/ui-state.js"></script>
+    <script src="./client/features/auth/session.js"></script>
+    <script src="./client/features/admit-cards/workflow.js"></script>
+    <script src="./client/features/examinees/file-transfer.js"></script>
+    <script src="./client/features/examinees/photo-utils.js"></script>
+    <script src="./client/features/examinees/upload-workflow.js"></script>
+    <script src="./client/features/accounts/create-modal.js"></script>
+    <script src="./client/features/system/settings.js"></script>
+    <script src="./client/app/account-system-runtime.js"></script>
+    <script src="./client/app/workflow-runtime.js"></script>
+    <script src="./client/app/navigation.js"></script>
+    <script src="./client/features/auth/auto-logout.js"></script>
     <script src="./client/core.js"></script>
+    <script src="./client/features/editor/content-shared.js"></script>
+    <script src="./client/features/editor/formatting-state.js"></script>
+    <script src="./client/features/editor/shared-commands.js"></script>
+    <script src="./client/features/editor/table-utils.js"></script>
+    <script src="./client/features/editor/toolbar-markup.js"></script>
+    <script src="./client/features/editor/toolbar-ui.js"></script>
     <script src="./client/editor-toolbar.js"></script>
+    <script src="./client/features/templates/cards.js"></script>
+    <script src="./client/features/template-editor/generated-objects.js"></script>
+    <script src="./client/features/template-editor/preview.js"></script>
+    <script src="./client/features/template-editor/image-selection.js"></script>
+    <script src="./client/features/template-editor/image-session.js"></script>
+    <script src="./client/features/template-editor/image-tools.js"></script>
+    <script src="./client/features/template-editor/commands.js"></script>
+    <script src="./client/features/template-editor/token-content.js"></script>
+    <script src="./client/features/template-editor/selection-range.js"></script>
+    <script src="./client/features/template-editor/selection-tokens.js"></script>
+    <script src="./client/features/template-editor/selection-state.js"></script>
+    <script src="./client/features/template-editor/selection-history.js"></script>
+    <script src="./client/features/template-editor/selection.js"></script>
+    <script src="./client/features/template-editor/lifecycle.js"></script>
+    <script src="./client/features/template-editor/runtime.js"></script>
+    <script src="./client/features/template-editor/table-selection.js"></script>
+    <script src="./client/features/template-editor/table-resize.js"></script>
+    <script src="./client/features/template-editor/table-structure.js"></script>
+    <script src="./client/features/template-editor/table-sizing.js"></script>
+    <script src="./client/features/template-editor/table-actions.js"></script>
+    <script src="./client/features/template-editor/table-interaction.js"></script>
+    <script src="./client/features/template-editor/table-tools.js"></script>
+    <script src="./client/features/template-editor/table-formatting.js"></script>
+    <script src="./client/features/template-editor/toolbar-state.js"></script>
     <script src="./client/template-editor.js"></script>
+    <script src="./client/features/auth/renderers.js"></script>
+    <script src="./client/features/accounts/actions.js"></script>
+    <script src="./client/features/modals/controller.js"></script>
+    <script src="./client/features/system/login-notice-selection-range.js"></script>
+    <script src="./client/features/system/login-notice-selection-history.js"></script>
+    <script src="./client/features/system/login-notice-selection.js"></script>
+    <script src="./client/features/system/login-notice-table-structure.js"></script>
+    <script src="./client/features/system/login-notice-table-formatting.js"></script>
+    <script src="./client/features/system/login-notice-table-actions.js"></script>
+    <script src="./client/features/system/login-notice-commands.js"></script>
+    <script src="./client/features/system/login-notice-editor.js"></script>
+    <script src="./client/features/system/login-notice-events.js"></script>
+    <script src="./client/features/system/renderers.js"></script>
+    <script src="./client/features/accounts/renderers.js"></script>
+    <script src="./client/features/examinees/renderers.js"></script>
+    <script src="./client/features/examinees/detail-modal-rendering.js"></script>
+    <script src="./client/features/examinees/detail-modal.js"></script>
+    <script src="./client/features/examinees/detail-modal-events.js"></script>
+    <script src="./client/features/print-history/renderers.js"></script>
+    <script src="./client/features/templates/renderers.js"></script>
+    <script src="./client/features/template-editor/tag-panel.js"></script>
+    <script src="./client/features/template-editor/events.js"></script>
+    <script src="./client/features/app/grid-document-events.js"></script>
+    <script src="./client/features/app/auth-document-events.js"></script>
+    <script src="./client/features/app/editor-toolbar-document-events.js"></script>
+    <script src="./client/features/app/document-events.js"></script>
+    <script src="./client/features/dashboard/renderers.js"></script>
+    <script src="./client/app/view-shell.js"></script>
+    <script src="./client/features/grids/rendering.js"></script>
+    <script src="./client/features/grids/table-settings.js"></script>
+    <script src="./client/features/grids/filtering.js"></script>
+    <script src="./client/features/grids/selection.js"></script>
+    <script src="./client/features/grids/state.js"></script>
+    <script src="./client/features/grids/filter-menu.js"></script>
+    <script src="./client/features/grids/table-cells.js"></script>
+    <script src="./client/features/grids/table-controls.js"></script>
+    <script src="./client/features/grids/table-ui.js"></script>
+    <script src="./client/features/grids/runtime.js"></script>
     <script src="./client/renderers.js"></script>
+    <script src="./client/features/grids/interaction.js"></script>
     <script src="./client/events.js"></script>
   </body>
 </html>
