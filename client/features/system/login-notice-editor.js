@@ -1,14 +1,20 @@
 (function (globalScope, factory) {
   if (typeof module === "object" && module.exports) {
-    module.exports = factory();
+    module.exports = factory({
+      loginNoticeCommandModule: require("./login-notice-commands"),
+      loginNoticeSelectionModule: require("./login-notice-selection"),
+    });
     return;
   }
 
-  globalScope.AdmitCardLoginNoticeEditor = factory();
-})(typeof globalThis !== "undefined" ? globalThis : this, () => {
-  const loginNoticeCommandModule = globalThis.AdmitCardLoginNoticeCommands;
-  const loginNoticeSelectionModule = globalThis.AdmitCardLoginNoticeSelection;
-
+  globalScope.AdmitCardLoginNoticeEditor = factory({
+    loginNoticeCommandModule: globalScope.AdmitCardLoginNoticeCommands,
+    loginNoticeSelectionModule: globalScope.AdmitCardLoginNoticeSelection,
+  });
+})(typeof globalThis !== "undefined" ? globalThis : this, ({
+  loginNoticeCommandModule,
+  loginNoticeSelectionModule,
+}) => {
   if (!loginNoticeCommandModule?.createLoginNoticeCommandController) {
     throw new Error("client/features/system/login-notice-commands.js must be loaded before login-notice-editor.js.");
   }
@@ -97,6 +103,14 @@
 
     function getLoginNoticeCellShadingElement() {
       return document.getElementById("loginNoticeCellShading");
+    }
+
+    function getLoginNoticeCellSplitPanel() {
+      return document.getElementById("loginNoticeCellSplitPanel");
+    }
+
+    function getLoginNoticeCellSplitCountElement() {
+      return document.getElementById("loginNoticeCellSplitCount");
     }
 
     function getLoginNoticeImageInputElement() {
@@ -189,6 +203,8 @@
       escapeAttribute,
       focusLoginNoticeEditorCell,
       getLoginNoticeCellShadingElement,
+      getLoginNoticeCellSplitCountElement,
+      getLoginNoticeCellSplitPanel,
       getLoginNoticeDefaultFontFamily,
       getLoginNoticeDefaultFontSize,
       getLoginNoticeEditorElement,
@@ -226,17 +242,21 @@
 
     const {
       applyLoginNoticeEditorCommand,
+      getLoginNoticeCellSplitConfig,
       handleLoginNoticeAction,
       handleLoginNoticeInsert,
       handleLoginNoticeTableAction,
       insertLoginNoticeImage,
       saveLoginNoticeContent,
+      setLoginNoticeCellSplitPanelVisibility,
+      setLoginNoticeTableInsertPanelVisibility,
     } = loginNoticeCommandController;
 
     return Object.freeze({
       applyLoginNoticeEditorCommand,
       buildLoginNoticeEditorMarkup,
       captureLoginNoticeEditorSelection,
+      getLoginNoticeCellSplitConfig,
       getLoginNoticeDefaultFontFamily,
       getLoginNoticeDefaultFontSize,
       getLoginNoticeEditorElement,
@@ -248,6 +268,8 @@
       redoLoginNoticeEditorHistory,
       restoreLoginNoticeEditorSelection,
       saveLoginNoticeContent,
+      setLoginNoticeCellSplitPanelVisibility,
+      setLoginNoticeTableInsertPanelVisibility,
       syncLoginNoticeEditorDraft,
       undoLoginNoticeEditorHistory,
       updateLoginNoticeEditorActiveCell,

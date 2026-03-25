@@ -1,17 +1,30 @@
 (function (globalScope, factory) {
   if (typeof module === "object" && module.exports) {
-    module.exports = factory();
+    module.exports = factory({
+      loginNoticeTableActionModule: require("./login-notice-table-actions"),
+      toolbarControlsModule: require("../editor/toolbar-controls"),
+    });
     return;
   }
 
-  globalScope.AdmitCardLoginNoticeCommands = factory();
-})(typeof globalThis !== "undefined" ? globalThis : this, () => {
-  const loginNoticeTableActionModule = globalThis.AdmitCardLoginNoticeTableActions;
+  globalScope.AdmitCardLoginNoticeCommands = factory({
+    loginNoticeTableActionModule: globalScope.AdmitCardLoginNoticeTableActions,
+    toolbarControlsModule: globalScope.AdmitCardEditorToolbarControls,
+  });
+})(typeof globalThis !== "undefined" ? globalThis : this, ({ loginNoticeTableActionModule, toolbarControlsModule }) => {
+  if (!toolbarControlsModule) {
+    throw new Error("client/features/editor/toolbar-controls.js must be loaded before login-notice-commands.js.");
+  }
 
   if (!loginNoticeTableActionModule?.createLoginNoticeTableActionController) {
     throw new Error("client/features/system/login-notice-table-actions.js must be loaded before login-notice-commands.js.");
   }
 
+  const {
+    getEditorToolbarCellSplitConfig,
+    getEditorToolbarTableInsertConfig,
+    setEditorToolbarManagedPanelVisibility,
+  } = toolbarControlsModule;
   const { createLoginNoticeTableActionController } = loginNoticeTableActionModule;
 
   function createLoginNoticeCommandController({
@@ -28,6 +41,8 @@
     escapeAttribute,
     focusLoginNoticeEditorCell,
     getLoginNoticeCellShadingElement,
+    getLoginNoticeCellSplitCountElement,
+    getLoginNoticeCellSplitPanel,
     getLoginNoticeDefaultFontFamily,
     getLoginNoticeDefaultFontSize,
     getLoginNoticeEditorElement,
@@ -73,7 +88,6 @@
       getLoginNoticeSelectedCell,
       getLoginNoticeSelectedCells,
       getLoginNoticeTableColumnsElement,
-      getLoginNoticeTableInsertPanel,
       getLoginNoticeTableRowsElement,
       getTemplateEditorMedianValue,
       getTemplateEditorTableLogicalColumnWidth,
@@ -89,11 +103,42 @@
       syncLoginNoticeEditorDraft,
       syncTemplateEditorTableWidth,
     });
-    const {
-      getLoginNoticeTableInsertConfig,
-      handleLoginNoticeTableAction,
-      setLoginNoticeTableInsertPanelVisibility,
-    } = loginNoticeTableActionController;
+    const { handleLoginNoticeTableAction } = loginNoticeTableActionController;
+
+    function setLoginNoticeTableInsertPanelVisibility(isVisible) {
+      setEditorToolbarManagedPanelVisibility({
+        panelId: "loginNoticeTableInsertPanel",
+        isVisible,
+        getPanelElement: getLoginNoticeTableInsertPanel,
+        setEditorToolbarTableInsertPanelVisibility,
+      });
+    }
+
+    function setLoginNoticeCellSplitPanelVisibility(isVisible) {
+      setEditorToolbarManagedPanelVisibility({
+        panelId: "loginNoticeCellSplitPanel",
+        isVisible,
+        getPanelElement: getLoginNoticeCellSplitPanel,
+        setEditorToolbarTableInsertPanelVisibility,
+      });
+    }
+
+    function getLoginNoticeTableInsertConfig() {
+      return getEditorToolbarTableInsertConfig({
+        rowInputElement: getLoginNoticeTableRowsElement(),
+        columnInputElement: getLoginNoticeTableColumnsElement(),
+        setStatus: setLoginNoticeEditorStatus,
+      });
+    }
+
+    function getLoginNoticeCellSplitConfig() {
+      return getEditorToolbarCellSplitConfig({
+        countInputElement: getLoginNoticeCellSplitCountElement(),
+        axisName: "loginNoticeCellSplitAxis",
+        axisFallbackId: "loginNoticeCellSplitAxisColumn",
+        setStatus: setLoginNoticeEditorStatus,
+      });
+    }
 
     function insertLoginNoticeHtml(markup) {
       const noticeEditor = getLoginNoticeEditorElement();
@@ -244,11 +289,14 @@
 
     return Object.freeze({
       applyLoginNoticeEditorCommand,
+      getLoginNoticeCellSplitConfig,
       handleLoginNoticeAction,
       handleLoginNoticeInsert,
       handleLoginNoticeTableAction,
       insertLoginNoticeImage,
       saveLoginNoticeContent,
+      setLoginNoticeCellSplitPanelVisibility,
+      setLoginNoticeTableInsertPanelVisibility,
     });
   }
 

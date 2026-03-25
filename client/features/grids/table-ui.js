@@ -94,6 +94,7 @@
       renderLeadingGridCells,
       renderLeadingGridHeaders,
       renderTableFilterStrip,
+      renderUploadHeaderAction,
     } = gridTableControlController;
 
     function renderExamineeResultTable({

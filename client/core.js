@@ -182,6 +182,7 @@ const normalizeSystemAutoLogoutMinutes = (value) =>
     defaultValue: DEFAULT_SYSTEM_AUTO_LOGOUT_MINUTES,
     maxValue: MAX_SYSTEM_AUTO_LOGOUT_MINUTES,
   });
+const normalizeGridSortRules = (rules) => stateFactories.normalizeGridSortRules(rules);
 const normalizeSystemSettingsPayload = (payload = {}) =>
   stateFactories.normalizeSystemSettingsPayload(payload, {
     defaultPassword: DEFAULT_SYSTEM_INITIAL_PASSWORD,
@@ -231,14 +232,15 @@ const {
 } = examineeFileTransfer;
 const getDefaultLoginNoticeHtml = (initialPassword = DEFAULT_SYSTEM_INITIAL_PASSWORD) =>
   stateFactories.getDefaultLoginNoticeHtml(initialPassword);
+const DEFAULT_LOGIN_NOTICE_HTML = getDefaultLoginNoticeHtml(DEFAULT_SYSTEM_INITIAL_PASSWORD);
 const normalizeLoginNoticeHtml = (html = "") =>
   stateFactories.normalizeLoginNoticeHtml(html, {
-    fallbackHtml: getDefaultLoginNoticeHtml(getSystemInitialPassword()),
+    fallbackHtml: DEFAULT_LOGIN_NOTICE_HTML,
   });
 const createLoginNoticeState = (initialHtml = getDefaultLoginNoticeHtml()) =>
   stateFactories.createLoginNoticeState(initialHtml, {
-    defaultHtml: getDefaultLoginNoticeHtml(),
-    fallbackHtml: getDefaultLoginNoticeHtml(getSystemInitialPassword()),
+    defaultHtml: DEFAULT_LOGIN_NOTICE_HTML,
+    fallbackHtml: DEFAULT_LOGIN_NOTICE_HTML,
   });
 
 const appStateController = createAppStateController({
@@ -345,6 +347,8 @@ const {
   viewRoot,
 } = domElementRegistry;
 let templateEditorBlockType = null;
+let templateEditorCellSplitCount = null;
+let templateEditorCellSplitPanel = null;
 let templateEditorCellShading = null;
 let templateEditorCellWidth = null;
 let templateEditorFontFamily = null;
@@ -360,6 +364,7 @@ let templateEditorTextShading = null;
 const gridRowStoreController = createGridRowStoreController();
 const {
   appendAccountGridRow,
+  getAccountGridColumns,
   getAccountGridRows,
   getExamineeGridRows,
   getPrintHistoryRows,
@@ -367,10 +372,13 @@ const {
   setExamineeGridRows,
   setPrintHistoryRows,
 } = gridRowStoreController;
+const accountGridColumns = getAccountGridColumns();
 
 function refreshTemplateEditorToolbarElements() {
   ({
     templateEditorBlockType,
+    templateEditorCellSplitCount,
+    templateEditorCellSplitPanel,
     templateEditorCellShading,
     templateEditorCellWidth,
     templateEditorFontFamily,
@@ -392,7 +400,19 @@ const MIN_UPLOAD_OVERLAY_DISPLAY_MS = 1000;
 const BATCH_PRINT_STATUS_POLL_INTERVAL_MS = 400;
 const BATCH_PRINT_JOB_TIMEOUT_MS = 1000 * 60 * 30;
 const titles = pageTitles;
-
+const authAccountStateController = createAuthAccountStateController({
+  accountCreateDescription,
+  normalizeSystemAutoLogoutMinutes,
+  normalizeSystemInitialPassword,
+  state,
+});
+const {
+  getSystemAutoLogoutMinutes,
+  getSystemInitialPassword,
+  isUserAuthenticated,
+  normalizeAuthAccount,
+  syncAccountCreateDescription,
+} = authAccountStateController;
 syncAccountCreateDescription();
 const navigationController = createNavigationController({
   getAccessibleViewsForRoleConfig,
@@ -483,20 +503,6 @@ const {
   syncAutoLogoutCountdown,
   syncAutoLogoutTimer,
 } = autoLogoutController;
-
-const authAccountStateController = createAuthAccountStateController({
-  accountCreateDescription,
-  normalizeSystemAutoLogoutMinutes,
-  normalizeSystemInitialPassword,
-  state,
-});
-const {
-  getSystemAutoLogoutMinutes,
-  getSystemInitialPassword,
-  isUserAuthenticated,
-  normalizeAuthAccount,
-  syncAccountCreateDescription,
-} = authAccountStateController;
 
 const bootstrapDataController = createBootstrapDataController({
   EXAMINEE_DETAIL_FIELD_KEYS,
@@ -777,7 +783,13 @@ const workflowRuntimeController = createWorkflowRuntimeController({
   loadBootstrapData,
   mergeUploadResult,
   readFileAsArrayBuffer,
-  renderView,
+  renderView: (...args) => {
+    if (typeof globalThis.renderView === "function") {
+      return globalThis.renderView(...args);
+    }
+
+    return undefined;
+  },
   setUploadOverlayStateFallback: (...args) => {
     if (typeof setUploadOverlayState === "function") {
       return setUploadOverlayState(...args);

@@ -1,6 +1,6 @@
-const editorContentModule = globalThis.AdmitCardEditorContentShared;
-const editorTableUtilsModule = globalThis.AdmitCardEditorTableUtils;
-const templateGeneratedObjectModule = globalThis.AdmitCardTemplateGeneratedObjects;
+const renderersContentSharedModule = globalThis.AdmitCardEditorContentShared;
+const renderersTableUtilsModule = globalThis.AdmitCardEditorTableUtils;
+const renderersGeneratedObjectModule = globalThis.AdmitCardTemplateGeneratedObjects;
 const authRenderers = globalThis.AdmitCardAuthRenderers;
 const loginNoticeEditorModule = globalThis.AdmitCardLoginNoticeEditor;
 const systemRenderers = globalThis.AdmitCardSystemRenderers;
@@ -10,22 +10,22 @@ const htmlUtilsModule = globalThis.AdmitCardHtmlUtils;
 const gridRuntimeModule = globalThis.AdmitCardGridRuntime;
 const modalControllerModule = globalThis.AdmitCardModalController;
 const viewShellModule = globalThis.AdmitCardViewShell;
-const examineePhotoUtilsModule = globalThis.AdmitCardExamineePhotoUtils;
+const renderersExamineePhotoUtilsModule = globalThis.AdmitCardExamineePhotoUtils;
 const examineeDetailModalModule = globalThis.AdmitCardExamineeDetailModal;
 const examineePageRenderers = globalThis.AdmitCardExamineePageRenderers;
 const printHistoryRenderers = globalThis.AdmitCardPrintHistoryRenderers;
 const templateManagementRenderers = globalThis.AdmitCardTemplateManagementRenderers;
 const dashboardRenderers = globalThis.AdmitCardDashboardRenderers;
 
-if (!editorContentModule) {
+if (!renderersContentSharedModule) {
   throw new Error("client/features/editor/content-shared.js must be loaded before client/renderers.js.");
 }
 
-if (!templateGeneratedObjectModule) {
+if (!renderersGeneratedObjectModule) {
   throw new Error("client/features/template-editor/generated-objects.js must be loaded before client/renderers.js.");
 }
 
-if (!editorTableUtilsModule) {
+if (!renderersTableUtilsModule) {
   throw new Error("client/features/editor/table-utils.js must be loaded before client/renderers.js.");
 }
 
@@ -65,7 +65,7 @@ if (!viewShellModule?.createViewShellController) {
   throw new Error("client/app/view-shell.js must be loaded before client/renderers.js.");
 }
 
-if (!examineePhotoUtilsModule) {
+if (!renderersExamineePhotoUtilsModule) {
   throw new Error("client/features/examinees/photo-utils.js must be loaded before client/renderers.js.");
 }
 
@@ -90,29 +90,36 @@ if (!dashboardRenderers?.createDashboardRenderer) {
 }
 
 const {
-  TEMPLATE_EDITOR_DEFAULT_FONT_FAMILY,
-  TEMPLATE_EDITOR_DEFAULT_FONT_SIZE,
-  TEMPLATE_EDITOR_DEFAULT_TABLE_HEADER_BACKGROUND,
-  buildTemplateEditorTableMarkup,
-  normalizeTemplateEditorColorValue,
-  normalizeTemplateEditorFontNodes,
-} = editorContentModule;
+  TEMPLATE_EDITOR_DEFAULT_FONT_FAMILY: renderersDefaultFontFamily,
+  TEMPLATE_EDITOR_DEFAULT_FONT_SIZE: renderersDefaultFontSize,
+  TEMPLATE_EDITOR_DEFAULT_TABLE_HEADER_BACKGROUND: renderersDefaultTableHeaderBackground,
+  buildTemplateEditorTableMarkup: renderersBuildTemplateEditorTableMarkup,
+  normalizeTemplateEditorColorValue: renderersNormalizeTemplateEditorColorValue,
+  normalizeTemplateEditorFontNodes: renderersNormalizeTemplateEditorFontNodes,
+} = renderersContentSharedModule;
 
 const {
-  buildTemplateTableCellMap,
-  ensureTemplateEditorTableColGroup,
-  normalizeTemplateEditorTableAppearance,
-  normalizeTemplateEditorTables,
-  syncTemplateEditorTableWidth,
-} = editorTableUtilsModule;
+  buildTemplateTableCellMap: renderersBuildTemplateTableCellMap,
+  ensureTemplateEditorTableColGroup: renderersEnsureTemplateEditorTableColGroup,
+  normalizeTemplateEditorTableAppearance: renderersNormalizeTemplateEditorTableAppearance,
+  normalizeTemplateEditorTables: renderersNormalizeTemplateEditorTables,
+  syncTemplateEditorTableWidth: renderersSyncTemplateEditorTableWidth,
+} = renderersTableUtilsModule;
 
-const { buildTemplateGeneratedObjectMarkup, decorateTemplateGeneratedObjectImage } = templateGeneratedObjectModule;
+const {
+  buildTemplateGeneratedObjectMarkup: renderersBuildTemplateGeneratedObjectMarkup,
+  decorateTemplateGeneratedObjectImage: renderersDecorateTemplateGeneratedObjectImage,
+} = renderersGeneratedObjectModule;
 
 const { getLoginNoticeMarkup, renderLoginScreen } = authRenderers;
 const { renderLoginNoticeEditorToolbar, renderLoginNoticeSettings, renderSystemSettings } = systemRenderers;
 const { renderAccountManagement, renderAccountRoleOptions } = accountRenderers;
 const { createAccountActionController } = accountActionsModule;
-const { escapeAttribute, escapeHtml, escapeRegExp } = htmlUtilsModule;
+const {
+  escapeAttribute: renderersEscapeAttribute,
+  escapeHtml: renderersEscapeHtml,
+  escapeRegExp,
+} = htmlUtilsModule;
 const { createGridRuntimeController } = gridRuntimeModule;
 const { createModalController } = modalControllerModule;
 const { createViewShellController } = viewShellModule;
@@ -120,7 +127,7 @@ const { renderAdmitCardLookup, renderAdmitCardLookupGridSection, renderExamineeR
 const { renderPrintHistory } = printHistoryRenderers;
 const { renderTemplateManagement } = templateManagementRenderers;
 const { createDashboardRenderer } = dashboardRenderers;
-const { buildExamineePhotoUrl } = examineePhotoUtilsModule;
+const { buildExamineePhotoUrl: renderersBuildExamineePhotoUrl } = renderersExamineePhotoUtilsModule;
 
 let viewShellController = null;
 const renderView = (...args) => viewShellController?.renderView(...args);
@@ -129,21 +136,21 @@ const refreshAdmitCardLookupGrid = (...args) => viewShellController?.refreshAdmi
 
 const loginNoticeEditorController = loginNoticeEditorModule.createLoginNoticeEditorController({
   LOGIN_NOTICE_EDITOR_HISTORY_LIMIT,
-  TEMPLATE_EDITOR_DEFAULT_FONT_FAMILY,
-  TEMPLATE_EDITOR_DEFAULT_FONT_SIZE,
-  TEMPLATE_EDITOR_DEFAULT_TABLE_HEADER_BACKGROUND,
+  TEMPLATE_EDITOR_DEFAULT_FONT_FAMILY: renderersDefaultFontFamily,
+  TEMPLATE_EDITOR_DEFAULT_FONT_SIZE: renderersDefaultFontSize,
+  TEMPLATE_EDITOR_DEFAULT_TABLE_HEADER_BACKGROUND: renderersDefaultTableHeaderBackground,
   apiRequest,
   appendMergedTemplateCellContent,
   applyLoginNoticePayload,
   applySharedEditorCommand,
-  buildTemplateEditorTableMarkup,
-  buildTemplateGeneratedObjectMarkup,
-  buildTemplateTableCellMap,
+  buildTemplateEditorTableMarkup: renderersBuildTemplateEditorTableMarkup,
+  buildTemplateGeneratedObjectMarkup: renderersBuildTemplateGeneratedObjectMarkup,
+  buildTemplateTableCellMap: renderersBuildTemplateTableCellMap,
   createTemplateTableCell,
-  decorateTemplateGeneratedObjectImage,
+  decorateTemplateGeneratedObjectImage: renderersDecorateTemplateGeneratedObjectImage,
   defaultTextColor: typeof EDITOR_TOOLBAR_DEFAULT_TEXT_COLOR === "string" ? EDITOR_TOOLBAR_DEFAULT_TEXT_COLOR : "#152033",
-  ensureTemplateEditorTableColGroup,
-  escapeAttribute,
+  ensureTemplateEditorTableColGroup: renderersEnsureTemplateEditorTableColGroup,
+  escapeAttribute: renderersEscapeAttribute,
   getLoginNoticeMarkup,
   getTemplateEditorMedianValue,
   getTemplateEditorTableLogicalColumnWidth,
@@ -152,10 +159,10 @@ const loginNoticeEditorController = loginNoticeEditorModule.createLoginNoticeEdi
   handleAuthenticationFailure,
   insertTemplateCellAtAbsoluteColumn,
   isTemplateTableCellEmpty,
-  normalizeTemplateEditorColorValue,
-  normalizeTemplateEditorFontNodes,
-  normalizeTemplateEditorTables,
-  normalizeTemplateEditorTableAppearance,
+  normalizeTemplateEditorColorValue: renderersNormalizeTemplateEditorColorValue,
+  normalizeTemplateEditorFontNodes: renderersNormalizeTemplateEditorFontNodes,
+  normalizeTemplateEditorTables: renderersNormalizeTemplateEditorTables,
+  normalizeTemplateEditorTableAppearance: renderersNormalizeTemplateEditorTableAppearance,
   renderView,
   setEditorToolbarTableInsertPanelVisibility,
   setTemplateEditorTableLogicalRowHeight,
@@ -163,7 +170,7 @@ const loginNoticeEditorController = loginNoticeEditorModule.createLoginNoticeEdi
   state,
   stripTemplateEditorTransientState,
   syncEditorToolbarColorControls,
-  syncTemplateEditorTableWidth,
+  syncTemplateEditorTableWidth: renderersSyncTemplateEditorTableWidth,
   updateEditorToolbarFormattingState,
 });
 
@@ -171,6 +178,7 @@ const {
   applyLoginNoticeEditorCommand,
   buildLoginNoticeEditorMarkup,
   captureLoginNoticeEditorSelection,
+  getLoginNoticeCellSplitConfig,
   getLoginNoticeDefaultFontFamily,
   getLoginNoticeDefaultFontSize,
   getLoginNoticeEditorElement,
@@ -182,6 +190,8 @@ const {
   redoLoginNoticeEditorHistory,
   restoreLoginNoticeEditorSelection,
   saveLoginNoticeContent,
+  setLoginNoticeCellSplitPanelVisibility,
+  setLoginNoticeTableInsertPanelVisibility,
   syncLoginNoticeEditorDraft,
   undoLoginNoticeEditorHistory,
   updateLoginNoticeEditorActiveCell,
@@ -194,17 +204,17 @@ const examineeDetailModalController = examineeDetailModalModule.createExamineeDe
   apiRequest,
   areExamineeDetailDraftsEqual,
   arrayBufferToBase64,
-  buildExamineePhotoUrl: (examinee) => buildExamineePhotoUrl(examinee, { buildApiUrl }),
+  buildExamineePhotoUrl: (examinee) => renderersBuildExamineePhotoUrl(examinee, { buildApiUrl }),
   buildExamineeDetailDraft,
   createExamineeDetailState,
-  escapeAttribute,
-  escapeHtml,
+  escapeAttribute: renderersEscapeAttribute,
+  escapeHtml: renderersEscapeHtml,
   getExamineeDetailBody: () => examineeDetailBody,
   getExamineeDetailCloseConfirmMessage: () => examineeDetailCloseConfirmMessage,
   getExamineeDetailCloseConfirmModal: () => examineeDetailCloseConfirmModal,
   getExamineeDetailCloseConfirmSummary: () => examineeDetailCloseConfirmSummary,
   getExamineeDetailSaveButton: () => examineeDetailSaveButton,
-  getExamineeGridRows: () => examineeGridRows,
+  getExamineeGridRows,
   handleAuthenticationFailure,
   loadBootstrapData,
   normalizeExamineeRecord,
@@ -233,15 +243,13 @@ const {
 const accountActionController = createAccountActionController({
   apiRequest,
   createAccountEditorState,
-  getAccountGridRows: () => accountGridRows,
+  getAccountGridRows,
   getSystemInitialPassword,
   handleAuthenticationFailure,
   logoutCurrentUser,
   normalizeAccountRecord,
   renderView,
-  setAccountGridRows: (rows) => {
-    accountGridRows = Array.isArray(rows) ? rows : [];
-  },
+  setAccountGridRows,
   state,
 });
 
@@ -256,8 +264,8 @@ const {
 let modalController = null;
 
 modalController = createModalController({
-  TEMPLATE_EDITOR_DEFAULT_FONT_FAMILY,
-  TEMPLATE_EDITOR_DEFAULT_FONT_SIZE,
+  TEMPLATE_EDITOR_DEFAULT_FONT_FAMILY: renderersDefaultFontFamily,
+  TEMPLATE_EDITOR_DEFAULT_FONT_SIZE: renderersDefaultFontSize,
   clearSelectedUploadFiles,
   clearTemplateEditorActiveCell,
   clearTemplateEditorImageSelection,
@@ -295,13 +303,13 @@ const gridRuntimeController = createGridRuntimeController({
   accountGridColumns,
   admitCardLookupGridColumns,
   createTableState,
-  escapeAttribute,
-  escapeHtml,
+  escapeAttribute: renderersEscapeAttribute,
+  escapeHtml: renderersEscapeHtml,
   examineePhotoColumn,
   examineeRegistrationGridColumns,
-  getAccountGridRows: () => accountGridRows,
-  getExamineeGridRows: () => examineeGridRows,
-  getPrintHistoryRows: () => printHistoryRows,
+  getAccountGridRows,
+  getExamineeGridRows,
+  getPrintHistoryRows,
   getSelectedAdmitCardExamineeCount,
   headerFilterFields,
   lookupSelectKeys,
@@ -336,6 +344,7 @@ const {
   getGridSelectableRowIds,
   getGridSelectedRowIds,
   getGridSelectionState,
+  getHeaderComboElement,
   getHeaderFilteredRows,
   getLookupOptionMap,
   getTableState,
@@ -368,11 +377,11 @@ const {
   updateLookupTextFilter,
 } = gridRuntimeController;
 const dashboardRendererController = createDashboardRenderer({
-  escapeHtml,
+  escapeHtml: renderersEscapeHtml,
   getCurrentUserRole: (...args) => (typeof getCurrentUserRole === "function" ? getCurrentUserRole(...args) : ""),
-  getExamineeGridRows: () => examineeGridRows,
+  getExamineeGridRows,
   getHeaderFilteredRows: (...args) => getHeaderFilteredRows(...args),
-  getPrintHistoryRows: () => printHistoryRows,
+  getPrintHistoryRows,
   state,
 });
 const { renderDashboard } = dashboardRendererController;
@@ -389,7 +398,7 @@ const renderers = {
 viewShellController = createViewShellController({
   DEFAULT_VIEW,
   decorateSelectFields,
-  escapeHtml,
+  escapeHtml: renderersEscapeHtml,
   getViewRenderer: (viewKey) => renderers[viewKey] || renderDashboard,
   isLoginPage,
   isUserAuthenticated,
@@ -410,7 +419,7 @@ viewShellController = createViewShellController({
   updateAuthChrome,
   updateMetricBadges,
   viewRoot,
-  navItems,
+  navItems: Array.from(document.querySelectorAll(".nav-item")),
 });
 
 Object.assign(globalThis, {

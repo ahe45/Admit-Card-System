@@ -75,6 +75,11 @@
 .login-notice-card {
   grid-template-rows: auto minmax(0, 1fr);
   align-content: stretch;
+  padding: 30px;
+}
+
+.login-hero-card.login-notice-card {
+  padding: 24px;
 }
 
 .login-notice-head {
@@ -219,6 +224,10 @@
   gap: 24px;
 }
 
+.login-notice-settings-stack > .form-card {
+  padding: 20px;
+}
+
 .login-preview-host {
   display: grid;
   align-items: stretch;
@@ -259,6 +268,7 @@
   width: min(1240px, 100%);
   height: auto;
   min-height: 600px;
+  gap: 10px;
 }
 
 .login-shell.login-notice-editor-stage .login-notice-card,

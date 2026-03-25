@@ -1,14 +1,27 @@
 (function (globalScope, factory) {
   if (typeof module === "object" && module.exports) {
-    module.exports = factory();
+    module.exports = factory({
+      toolbarControlsModule: require("../editor/toolbar-controls"),
+    });
     return;
   }
 
-  globalScope.AdmitCardLoginNoticeEvents = factory();
-})(typeof globalThis !== "undefined" ? globalThis : this, () => {
+  globalScope.AdmitCardLoginNoticeEvents = factory({
+    toolbarControlsModule: globalScope.AdmitCardEditorToolbarControls,
+  });
+})(typeof globalThis !== "undefined" ? globalThis : this, ({ toolbarControlsModule }) => {
+  if (!toolbarControlsModule) {
+    throw new Error("client/features/editor/toolbar-controls.js must be loaded before login-notice-events.js.");
+  }
+
+  const { focusEditorToolbarNumberInput, stepEditorToolbarNumberInput } = toolbarControlsModule;
+
   function createLoginNoticeEventHandlers({
     applyLoginNoticeEditorCommand,
     captureLoginNoticeEditorSelection,
+    getLoginNoticeCellSplitConfig,
+    getLoginNoticeCellSplitCountInputElement,
+    getLoginNoticeCellSplitPanelElement,
     getLoginNoticeEditorElement,
     getLoginNoticeImageInputElement,
     handleLoginNoticeAction,
@@ -16,6 +29,8 @@
     handleLoginNoticeTableAction,
     insertLoginNoticeImage,
     redoLoginNoticeEditorHistory,
+    setLoginNoticeCellSplitPanelVisibility,
+    setLoginNoticeTableInsertPanelVisibility,
     state,
     syncEditorToolbarFontSizeMenuSelection,
     syncLoginNoticeEditorDraft,
@@ -23,12 +38,67 @@
     updateLoginNoticeEditorActiveCell,
     updateLoginNoticeFormattingControls,
   }) {
+    function isLoginNoticeViewActive() {
+      return state.currentView === "loginNoticeSettings";
+    }
+
     async function handleClick(event) {
-      const noticeCommandTrigger = event.target.closest("button[data-notice-command]");
-      const noticeActionTrigger = event.target.closest("button[data-notice-action]");
-      const noticeInsertTrigger = event.target.closest("button[data-notice-insert]");
-      const noticeTableActionTrigger = event.target.closest("button[data-notice-table-action]");
-      const noticeOpenImageTrigger = event.target.closest("button[data-notice-open-image]");
+      if (!isLoginNoticeViewActive()) {
+        return false;
+      }
+
+      const noticeCommandTrigger = event.target.closest(".login-notice-editor-shell button[data-notice-command]");
+      const noticeActionTrigger = event.target.closest(".login-notice-editor-shell button[data-notice-action]");
+      const noticeInsertTrigger = event.target.closest(".login-notice-editor-shell button[data-notice-insert]");
+      const noticeTableActionTrigger = event.target.closest(".login-notice-editor-shell button[data-notice-table-action]");
+      const noticeCellSplitStepTrigger = event.target.closest(".login-notice-editor-shell [data-template-cell-split-step]");
+      const noticeCellSplitToggleTrigger = event.target.closest(".login-notice-editor-shell [data-template-cell-split-toggle]");
+      const noticeCellSplitConfirmTrigger = event.target.closest(".login-notice-editor-shell [data-template-cell-split-confirm]");
+      const noticeOpenImageTrigger = event.target.closest(".login-notice-editor-shell button[data-notice-open-image]");
+
+      if (noticeCellSplitStepTrigger) {
+        const splitCountInput = getLoginNoticeCellSplitCountInputElement?.();
+
+        if (!splitCountInput) {
+          return true;
+        }
+
+        stepEditorToolbarNumberInput({
+          inputElement: splitCountInput,
+          direction: noticeCellSplitStepTrigger.dataset.templateCellSplitStep,
+          minimum: 2,
+        });
+        focusEditorToolbarNumberInput(splitCountInput);
+        return true;
+      }
+
+      if (noticeCellSplitToggleTrigger) {
+        const splitPanel = getLoginNoticeCellSplitPanelElement?.();
+        const splitCountInput = getLoginNoticeCellSplitCountInputElement?.();
+        const nextOpen = splitPanel?.classList.contains("hidden") ?? true;
+
+        setLoginNoticeCellSplitPanelVisibility(nextOpen);
+
+        if (nextOpen) {
+          focusEditorToolbarNumberInput(splitCountInput);
+        }
+
+        return true;
+      }
+
+      if (noticeCellSplitConfirmTrigger) {
+        const cellSplitConfig = getLoginNoticeCellSplitConfig?.();
+
+        if (!cellSplitConfig) {
+          return true;
+        }
+
+        if (handleLoginNoticeTableAction("split-cell", cellSplitConfig)) {
+          setLoginNoticeCellSplitPanelVisibility(false);
+        }
+
+        return true;
+      }
 
       if (noticeCommandTrigger) {
         applyLoginNoticeEditorCommand(noticeCommandTrigger.dataset.noticeCommand);
@@ -51,6 +121,8 @@
       }
 
       if (noticeOpenImageTrigger) {
+        setLoginNoticeCellSplitPanelVisibility(false);
+        setLoginNoticeTableInsertPanelVisibility(false);
         getLoginNoticeImageInputElement?.()?.click();
         return true;
       }
@@ -59,14 +131,18 @@
     }
 
     function handlePointerDown(event) {
+      if (!isLoginNoticeViewActive()) {
+        return false;
+      }
+
       const noticeToolbarTrigger = event.target.closest(
-        "button[data-notice-command], button[data-notice-action], button[data-notice-insert], button[data-notice-table-action], button[data-notice-open-image], button[data-editor-color-preset], button[data-editor-color-apply], button[data-editor-color-toggle], button[data-editor-color-direct]",
+        ".login-notice-editor-shell button[data-notice-command], .login-notice-editor-shell button[data-notice-action], .login-notice-editor-shell button[data-notice-insert], .login-notice-editor-shell button[data-notice-table-action], .login-notice-editor-shell button[data-notice-open-image], .login-notice-editor-shell [data-template-cell-split-step], .login-notice-editor-shell [data-template-cell-split-toggle], .login-notice-editor-shell [data-template-cell-split-confirm], .login-notice-editor-shell button[data-editor-color-preset], .login-notice-editor-shell button[data-editor-color-apply], .login-notice-editor-shell button[data-editor-color-toggle], .login-notice-editor-shell button[data-editor-color-direct]",
       );
       const noticeFontSizeTrigger = event.target.closest(
-        ".login-notice-editor-toolbar [data-editor-font-size-toggle], .login-notice-editor-toolbar [data-editor-font-size-option]",
+        ".login-notice-editor-shell [data-editor-font-size-toggle], .login-notice-editor-shell [data-editor-font-size-option]",
       );
       const noticeToolbarSelectionControl = event.target.closest(
-        "#loginNoticeFontFamily, #loginNoticeFontSize, #loginNoticeTextColor, #loginNoticeTextShading, #loginNoticeCellShading, #loginNoticeTableRows, #loginNoticeTableColumns",
+        "#loginNoticeFontFamily, #loginNoticeFontSize, #loginNoticeTextColor, #loginNoticeTextShading, #loginNoticeCellShading, #loginNoticeTableRows, #loginNoticeTableColumns, #loginNoticeCellSplitPanel",
       );
 
       if (noticeToolbarTrigger || noticeFontSizeTrigger) {
@@ -84,8 +160,13 @@
     }
 
     function handleKeydown(event) {
+      if (!isLoginNoticeViewActive()) {
+        return false;
+      }
+
       const loginNoticeEditor = getLoginNoticeEditorElement?.();
       const loginNoticeTableInsertPanel = document.getElementById("loginNoticeTableInsertPanel");
+      const loginNoticeCellSplitPanel = getLoginNoticeCellSplitPanelElement?.();
       const isLoginNoticeShortcutTarget =
         state.currentView === "loginNoticeSettings" &&
         loginNoticeEditor &&
@@ -93,6 +174,7 @@
       const isModifierPressed = event.ctrlKey || event.metaKey;
       const normalizedKey = String(event.key || "").toLowerCase();
       const isLoginNoticeTableInsertField = event.target?.id === "loginNoticeTableRows" || event.target?.id === "loginNoticeTableColumns";
+      const isLoginNoticeCellSplitField = event.target?.id === "loginNoticeCellSplitCount";
       const isLoginNoticeFontSizeField = event.target?.id === "loginNoticeFontSize";
 
       if (isLoginNoticeShortcutTarget && isModifierPressed && !event.altKey) {
@@ -126,6 +208,22 @@
         return true;
       }
 
+      if (
+        isLoginNoticeCellSplitField &&
+        event.key === "Enter" &&
+        loginNoticeCellSplitPanel &&
+        !loginNoticeCellSplitPanel.classList.contains("hidden")
+      ) {
+        event.preventDefault();
+        const cellSplitConfig = getLoginNoticeCellSplitConfig?.();
+
+        if (cellSplitConfig && handleLoginNoticeTableAction("split-cell", cellSplitConfig)) {
+          setLoginNoticeCellSplitPanelVisibility(false);
+        }
+
+        return true;
+      }
+
       if (isLoginNoticeFontSizeField && event.key === "Enter") {
         event.preventDefault();
         applyLoginNoticeEditorCommand("fontSizePx", event.target.value);
@@ -136,6 +234,10 @@
     }
 
     async function handleChange(event) {
+      if (!isLoginNoticeViewActive()) {
+        return false;
+      }
+
       const noticeCommandSelect = event.target.matches("select[data-notice-command]") ? event.target : null;
 
       if (event.target.id === "loginNoticeImageInput") {
@@ -166,6 +268,10 @@
     }
 
     function handleInput(event) {
+      if (!isLoginNoticeViewActive()) {
+        return false;
+      }
+
       const loginNoticeEditor = getLoginNoticeEditorElement?.();
 
       if (loginNoticeEditor && (event.target === loginNoticeEditor || loginNoticeEditor.contains(event.target))) {
@@ -188,12 +294,21 @@
     }
 
     function handleSelectionChange() {
+      if (!isLoginNoticeViewActive()) {
+        return false;
+      }
+
       captureLoginNoticeEditorSelection();
       updateLoginNoticeEditorActiveCell();
       updateLoginNoticeFormattingControls();
+      return true;
     }
 
     function handlePaste(event) {
+      if (!isLoginNoticeViewActive()) {
+        return false;
+      }
+
       const loginNoticeEditor = getLoginNoticeEditorElement?.();
 
       if (loginNoticeEditor && (event.target === loginNoticeEditor || loginNoticeEditor.contains(event.target))) {

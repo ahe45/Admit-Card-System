@@ -347,6 +347,7 @@
       closeAllHeaderCombos,
       decorateSelectFields,
       getFilteredLookupRows,
+      getHeaderComboElement,
       getHeaderFilteredRows,
       getLookupOptionMap,
       reconcileHeaderFilters,

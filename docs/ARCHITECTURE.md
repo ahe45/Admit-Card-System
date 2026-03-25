@@ -1,26 +1,37 @@
 # Architecture Notes
 
-## Observed issues
+## Refactor direction
 
-- `app.js` was a single 4,900+ line browser entry that mixed state, DOM references, API calls, rendering, template editing, and event wiring.
-- Client and server duplicated the account role list and template tag definitions.
-- The application had no lightweight architectural guide, so future changes would likely keep accumulating in the same files.
+- Keep entry files thin and use them as composition or wiring layers.
+- Move reusable behavior into feature folders under `client/features/*` and domain services under `server/modules/*`.
+- Keep shared constants in `shared/*` so client and server stay aligned.
 
-## Applied changes
+## Current structure
 
-- Split the browser code into feature-oriented files under `client/`.
-- Added `shared/app-config.js` so client and server use the same role and template tag definitions.
-- Removed the legacy single-file browser entry from the runtime path.
+### Client
 
-## Current client structure
+- `client/app/*`: runtime state, API access, DOM lookup, navigation, bootstrap loading.
+- `client/features/*`: feature-specific controllers and rendering helpers.
+- Thin composition files such as `client/features/admit-cards/workflow.js`, `client/features/grids/filtering.js`, and `client/features/template-editor/lifecycle.js` now assemble smaller modules from sibling folders.
+- `client/events.js`: top-level event registration and startup wiring.
 
-- `client/core.js`: state, DOM references, API helpers, bootstrap data loading, upload helpers, preview helpers.
-- `client/template-editor.js`: template CRUD, template preview/editor logic, image manipulation, table editing.
-- `client/renderers.js`: view rendering, grid rendering, pagination/filter/sort helpers, account actions, global `switchView`.
-- `client/events.js`: DOM event registration and startup.
+### Server
 
-## Remaining hotspots
+- `server/http/*`: request body parsing, response helpers, routing, and page handling.
+- `server/modules/auth/*`: password helpers, session/auth flows, account administration.
+- `server/modules/system/*`: settings, login notice, data cleanup, account bootstrap, summary payloads.
+- `server/modules/templates/*`: template bootstrap, rendering, generated objects, tag replacement.
+- `server/modules/bootstrap/*`: schema bootstrap per table/domain.
+- `server.js`: composition root that wires HTTP helpers and domain services together.
 
-- `server.js` is still a large mixed file and should be split next into transport, import/template, and account/print services.
-- `styles.css` is still large enough to benefit from page or feature-level CSS extraction.
-- There is still no automated regression test coverage for the client interaction-heavy template editor.
+### Styles
+
+- `styles.css`: shared components and common form/layout rules.
+- `styles/features/*.css`: feature-level styling for grids, examinees, system pages, templates, and modals.
+- `styles/responsive.css`: responsive overrides.
+
+## Current hotspots
+
+- `server.js` is thinner now, but it is still the main composition root and can be reduced further by extracting more route dependency wiring if needed.
+- `index.html` still carries a long script and modal list because the app is multi-view and script-order dependent.
+- There is still no automated regression coverage for the interaction-heavy client flows, especially template editing and grid behavior.

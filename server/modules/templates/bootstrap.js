@@ -8,6 +8,20 @@ function createTemplateBootstrapService({
   templateTagSchemaVersion,
 }) {
   async function ensureTemplateSchema() {
+    await query(`
+      CREATE TABLE IF NOT EXISTS templates (
+        id VARCHAR(64) NOT NULL,
+        name VARCHAR(200) NOT NULL,
+        description VARCHAR(255) NOT NULL DEFAULT '',
+        version_label VARCHAR(100) NOT NULL,
+        status ENUM('used', 'unused') NOT NULL DEFAULT 'unused',
+        content_html MEDIUMTEXT NOT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id)
+      )
+    `);
+
     const descriptionColumns = await query(`SHOW COLUMNS FROM templates LIKE 'description'`);
 
     if (Array.isArray(descriptionColumns) && descriptionColumns.length === 0) {

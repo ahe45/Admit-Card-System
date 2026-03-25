@@ -1,8 +1,8 @@
-const editorContentModule = globalThis.AdmitCardEditorContentShared;
-const editorTableUtilsModule = globalThis.AdmitCardEditorTableUtils;
-const examineePhotoUtilsModule = globalThis.AdmitCardExamineePhotoUtils;
+const templateEditorContentSharedModule = globalThis.AdmitCardEditorContentShared;
+const templateEditorTableUtilsModule = globalThis.AdmitCardEditorTableUtils;
+const templateEditorExamineePhotoUtilsModule = globalThis.AdmitCardExamineePhotoUtils;
 const templateEditorCommandsModule = globalThis.AdmitCardTemplateEditorCommands;
-const templateGeneratedObjectModule = globalThis.AdmitCardTemplateGeneratedObjects;
+const templateEditorGeneratedObjectModule = globalThis.AdmitCardTemplateGeneratedObjects;
 const templateEditorImageToolsModule = globalThis.AdmitCardTemplateEditorImageTools;
 const templateEditorPreviewModule = globalThis.AdmitCardTemplateEditorPreview;
 const templateEditorSelectionModule = globalThis.AdmitCardTemplateEditorSelection;
@@ -13,11 +13,11 @@ const templateEditorRuntimeModule = globalThis.AdmitCardTemplateEditorRuntime;
 const templateEditorToolbarStateModule = globalThis.AdmitCardTemplateEditorToolbarState;
 const templateCardModule = globalThis.AdmitCardTemplateCards;
 
-if (!editorContentModule) {
+if (!templateEditorContentSharedModule) {
   throw new Error("client/features/editor/content-shared.js must be loaded before client/template-editor.js.");
 }
 
-if (!templateGeneratedObjectModule) {
+if (!templateEditorGeneratedObjectModule) {
   throw new Error("client/features/template-editor/generated-objects.js must be loaded before client/template-editor.js.");
 }
 
@@ -57,11 +57,11 @@ if (!templateEditorToolbarStateModule?.createTemplateEditorToolbarStateControlle
   throw new Error("client/features/template-editor/toolbar-state.js must be loaded before client/template-editor.js.");
 }
 
-if (!examineePhotoUtilsModule) {
+if (!templateEditorExamineePhotoUtilsModule) {
   throw new Error("client/features/examinees/photo-utils.js must be loaded before client/template-editor.js.");
 }
 
-if (!editorTableUtilsModule) {
+if (!templateEditorTableUtilsModule) {
   throw new Error("client/features/editor/table-utils.js must be loaded before client/template-editor.js.");
 }
 
@@ -74,10 +74,10 @@ const {
   TEMPLATE_EDITOR_DEFAULT_FONT_SIZE,
   TEMPLATE_EDITOR_DEFAULT_TABLE_HEADER_BACKGROUND,
   buildTemplateEditorTableMarkup,
-  normalizeTemplateEditorColorValue,
-  normalizeTemplateEditorFontNodes,
-  normalizeTemplateEditorInlineFontSizeStyles,
-} = editorContentModule;
+  normalizeTemplateEditorColorValue: templateNormalizeTemplateEditorColorValue,
+  normalizeTemplateEditorFontNodes: templateNormalizeTemplateEditorFontNodes,
+  normalizeTemplateEditorInlineFontSizeStyles: templateNormalizeTemplateEditorInlineFontSizeStyles,
+} = templateEditorContentSharedModule;
 
 const {
   TEMPLATE_EDITOR_TABLE_MIN_SIZE,
@@ -90,13 +90,13 @@ const {
   normalizeTemplateEditorTables,
   parseTemplateEditorPixelStyle,
   syncTemplateEditorTableWidth,
-} = editorTableUtilsModule;
+} = templateEditorTableUtilsModule;
 
 const {
   applyTemplateRenderedObjects,
   buildTemplateGeneratedObjectMarkup,
   decorateTemplateGeneratedObjectImage,
-} = templateGeneratedObjectModule;
+} = templateEditorGeneratedObjectModule;
 const { createTemplateEditorCommandController } = templateEditorCommandsModule;
 const { createTemplateEditorImageController } = templateEditorImageToolsModule;
 const { createTemplateEditorLifecycleController } = templateEditorLifecycleModule;
@@ -106,7 +106,7 @@ const { createTemplateEditorTableFormattingController } = templateEditorTableFor
 const { createTemplateEditorRuntimeController } = templateEditorRuntimeModule;
 const { createTemplateEditorTableController } = templateEditorTableToolsModule;
 const { createTemplateEditorToolbarStateController } = templateEditorToolbarStateModule;
-const { buildExamineePhotoUrl: buildSharedExamineePhotoUrl } = examineePhotoUtilsModule;
+const { buildExamineePhotoUrl: buildSharedExamineePhotoUrl } = templateEditorExamineePhotoUtilsModule;
 
 const {
   TEMPLATE_PREVIEW_PHOTO_PATH,
@@ -166,7 +166,7 @@ const templateEditorSelectionController = createTemplateEditorSelectionControlle
   getTemplateEditorSelectedCell: (...args) => getTemplateEditorSelectedCell(...args),
   getTemplateEditorStatusElement: () => templateEditorStatus,
   getTemplateEditorSurface: () => templateEditorSurface,
-  normalizeTemplateEditorFontNodes,
+  normalizeTemplateEditorFontNodes: templateNormalizeTemplateEditorFontNodes,
   normalizeTemplateEditorTables,
   releaseTemplateEditorTableResizeSession: (...args) => releaseTemplateEditorTableResizeSession(...args),
   releaseTemplateEditorTableSelectionSession: (...args) => releaseTemplateEditorTableSelectionSession(...args),
@@ -210,7 +210,7 @@ const templatePreviewController = createTemplatePreviewController({
   escapeHtml,
   getTemplateEditorTagText,
   getTemplatePreviewDate,
-  normalizeTemplateEditorFontNodes,
+  normalizeTemplateEditorFontNodes: templateNormalizeTemplateEditorFontNodes,
   normalizeTemplateTag,
   normalizeTemplateTagNodes,
   recordExamineePrint,
@@ -265,6 +265,8 @@ const templateEditorCommandController = createTemplateEditorCommandController({
   buildTemplateGeneratedObjectMarkup,
   buildTemplateTokenHtml,
   escapeAttribute,
+  getTemplateEditorCellSplitCountInput: () => templateEditorCellSplitCount,
+  getTemplateEditorCellSplitPanel: () => templateEditorCellSplitPanel,
   getTemplateEditorSurface: () => templateEditorSurface,
   getTemplateEditorTableColumnsInput: () => templateEditorTableColumns,
   getTemplateEditorTableInsertPanel: () => templateEditorTableInsertPanel,
@@ -280,10 +282,12 @@ const templateEditorCommandController = createTemplateEditorCommandController({
 });
 
 const {
+  getTemplateEditorCellSplitConfig,
   handleTemplateEditorInsert,
   insertTemplateHtml,
   insertTemplateImage,
   insertTemplateTag,
+  setTemplateEditorCellSplitPanelVisibility,
   setTemplateEditorTableInsertPanelVisibility,
 } = templateEditorCommandController;
 
@@ -333,7 +337,7 @@ const templateEditorTableController = createTemplateEditorTableController({
   getTemplateEditorSizeScopeInput: () => templateEditorSizeScope,
   getTemplateEditorMeasuredColumnWidth,
   getTemplateEditorTableColumnCount,
-  normalizeTemplateEditorColorValue,
+  normalizeTemplateEditorColorValue: templateNormalizeTemplateEditorColorValue,
   normalizeTemplateEditorTableAppearance,
   parseTemplateEditorPixelStyle,
   placeCaretAtEnd,
@@ -430,6 +434,7 @@ const templateEditorLifecycleController = createTemplateEditorLifecycleControlle
   renderEditorToolbarInner: typeof renderEditorToolbarInner === "function" ? renderEditorToolbarInner : null,
   renderTemplateWithExaminee,
   renderView: (...args) => (typeof renderView === "function" ? renderView(...args) : undefined),
+  setTemplateEditorCellSplitPanelVisibility,
   setTemplateEditorStatus,
   setTemplateEditorTableInsertPanelVisibility,
   showToast,

@@ -1,16 +1,32 @@
 (function (globalScope, factory) {
   if (typeof module === "object" && module.exports) {
-    module.exports = factory();
+    module.exports = factory({
+      toolbarControlsModule: require("../editor/toolbar-controls"),
+    });
     return;
   }
 
-  globalScope.AdmitCardTemplateEditorCommands = factory();
-})(typeof globalThis !== "undefined" ? globalThis : this, () => {
+  globalScope.AdmitCardTemplateEditorCommands = factory({
+    toolbarControlsModule: globalScope.AdmitCardEditorToolbarControls,
+  });
+})(typeof globalThis !== "undefined" ? globalThis : this, ({ toolbarControlsModule }) => {
+  if (!toolbarControlsModule) {
+    throw new Error("client/features/editor/toolbar-controls.js must be loaded before commands.js.");
+  }
+
+  const {
+    getEditorToolbarCellSplitConfig,
+    getEditorToolbarTableInsertConfig,
+    setEditorToolbarManagedPanelVisibility,
+  } = toolbarControlsModule;
+
   function createTemplateEditorCommandController({
     buildTemplateEditorTableMarkup,
     buildTemplateGeneratedObjectMarkup,
     buildTemplateTokenHtml,
     escapeAttribute,
+    getTemplateEditorCellSplitCountInput,
+    getTemplateEditorCellSplitPanel,
     getTemplateEditorSurface,
     getTemplateEditorTableColumnsInput,
     getTemplateEditorTableInsertPanel,
@@ -24,38 +40,38 @@
     syncTemplateEditorContent,
   }) {
     function setTemplateEditorTableInsertPanelVisibility(isVisible) {
-      const templateEditorTableInsertPanel = getTemplateEditorTableInsertPanel();
+      setEditorToolbarManagedPanelVisibility({
+        panelId: "templateEditorTableInsertPanel",
+        isVisible,
+        getPanelElement: getTemplateEditorTableInsertPanel,
+        setEditorToolbarTableInsertPanelVisibility,
+      });
+    }
 
-      if (typeof setEditorToolbarTableInsertPanelVisibility === "function") {
-        setEditorToolbarTableInsertPanelVisibility("templateEditorTableInsertPanel", Boolean(isVisible));
-        return;
-      }
-
-      templateEditorTableInsertPanel?.classList.toggle("hidden", !isVisible);
+    function setTemplateEditorCellSplitPanelVisibility(isVisible) {
+      setEditorToolbarManagedPanelVisibility({
+        panelId: "templateEditorCellSplitPanel",
+        isVisible,
+        getPanelElement: getTemplateEditorCellSplitPanel,
+        setEditorToolbarTableInsertPanelVisibility,
+      });
     }
 
     function getTemplateEditorTableInsertConfig() {
-      const templateEditorTableRows = getTemplateEditorTableRowsInput();
-      const templateEditorTableColumns = getTemplateEditorTableColumnsInput();
-      const rowCount = Math.round(Number(templateEditorTableRows?.value || 0));
-      const columnCount = Math.round(Number(templateEditorTableColumns?.value || 0));
+      return getEditorToolbarTableInsertConfig({
+        rowInputElement: getTemplateEditorTableRowsInput(),
+        columnInputElement: getTemplateEditorTableColumnsInput(),
+        setStatus: setTemplateEditorStatus,
+      });
+    }
 
-      if (!Number.isFinite(rowCount) || rowCount < 1 || rowCount > 20) {
-        setTemplateEditorStatus("표 행 수는 1개 이상 20개 이하로 입력하세요.", "warning");
-        templateEditorTableRows?.focus();
-        return null;
-      }
-
-      if (!Number.isFinite(columnCount) || columnCount < 1 || columnCount > 8) {
-        setTemplateEditorStatus("표 열 수는 1개 이상 8개 이하로 입력하세요.", "warning");
-        templateEditorTableColumns?.focus();
-        return null;
-      }
-
-      return {
-        rowCount,
-        columnCount,
-      };
+    function getTemplateEditorCellSplitConfig() {
+      return getEditorToolbarCellSplitConfig({
+        countInputElement: getTemplateEditorCellSplitCountInput(),
+        axisName: "templateEditorCellSplitAxis",
+        axisFallbackId: "templateEditorCellSplitAxisColumn",
+        setStatus: setTemplateEditorStatus,
+      });
     }
 
     function insertTemplateHtml(html) {
@@ -165,11 +181,13 @@
     }
 
     return Object.freeze({
+      getTemplateEditorCellSplitConfig,
       getTemplateEditorTableInsertConfig,
       handleTemplateEditorInsert,
       insertTemplateHtml,
       insertTemplateImage,
       insertTemplateTag,
+      setTemplateEditorCellSplitPanelVisibility,
       setTemplateEditorTableInsertPanelVisibility,
     });
   }

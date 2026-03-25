@@ -30,6 +30,11 @@
       tableInsertPanelId: "loginNoticeTableInsertPanel",
       tableRowsId: "loginNoticeTableRows",
       tableColumnsId: "loginNoticeTableColumns",
+      cellSplitPanelId: "loginNoticeCellSplitPanel",
+      cellSplitCountId: "loginNoticeCellSplitCount",
+      cellSplitAxisName: "loginNoticeCellSplitAxis",
+      cellSplitAxisRowId: "loginNoticeCellSplitAxisRow",
+      cellSplitAxisColumnId: "loginNoticeCellSplitAxisColumn",
       imageInputId: "loginNoticeImageInput",
     });
   }

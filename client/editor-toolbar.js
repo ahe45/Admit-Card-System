@@ -178,6 +178,15 @@ const EDITOR_TOOLBAR_ICON_MARKUP = Object.freeze({
       <path d="m14.5 10.5 2.5 1.5-2.5 1.5"></path>
     </svg>
   `,
+  splitCell: `
+    <svg class="template-tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="4" y="5" width="16" height="14" rx="1.5"></rect>
+      <path d="M12 5v14"></path>
+      <path d="M4 12h16"></path>
+      <path d="m9.5 9.5 2.5 2.5-2.5 2.5"></path>
+      <path d="m14.5 9.5-2.5 2.5 2.5 2.5"></path>
+    </svg>
+  `,
   equalizeColumnWidths: `
     <svg class="template-tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="4" y="6" width="16" height="12" rx="1.5"></rect>

@@ -67,7 +67,10 @@
       stripTemplateEditorTransientState,
     } = tokenContentController;
 
+    let initializeTemplateEditorHistory = () => {};
+    let redoTemplateEditorHistory = () => {};
     let syncTemplateEditorContent = () => {};
+    let undoTemplateEditorHistory = () => {};
     const selectionStateController = createTemplateEditorSelectionStateController({
       focusTemplateEditorCell,
       getTemplateEditorActiveTableSelection,

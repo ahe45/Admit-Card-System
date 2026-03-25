@@ -51,6 +51,8 @@
     let gridStateController = null;
 
     const gridRenderingController = createGridRenderingController({
+      escapeAttribute,
+      escapeHtml,
       getExamineeGridRows,
       getPrintHistoryRows,
       getTableState: (...args) => gridStateController?.getTableState(...args),

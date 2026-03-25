@@ -94,7 +94,8 @@
       getTemplateEditorMedianValue,
     } = tableSizingController;
 
-    function handleTemplateTableAction(action, { colorValue = "" } = {}) {
+    function handleTemplateTableAction(action, options = {}) {
+      const { colorValue = "" } = options;
       restoreTemplateEditorSelection();
 
       let focusCell = null;
@@ -137,7 +138,7 @@
 
       if (action === "apply-cell-shading") {
         applyTemplateEditorCellShading(colorValue);
-        return;
+        return true;
       }
 
       if (action === "merge-right") {
@@ -149,16 +150,17 @@
       }
 
       if (action === "split-cell") {
-        focusCell = splitTemplateTableCell();
+        focusCell = splitTemplateTableCell(options);
       }
 
       if (!focusCell) {
-        return;
+        return false;
       }
 
       focusTemplateEditorCell(focusCell);
       syncTemplateEditorContent();
       updateTemplateTableControls();
+      return true;
     }
 
     return Object.freeze({

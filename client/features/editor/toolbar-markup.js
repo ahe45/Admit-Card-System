@@ -258,6 +258,83 @@
       `;
     }
 
+    function renderEditorToolbarCellSplitPopover({
+      panelId = "",
+      countId = "",
+      axisName = "",
+      axisRowId = "",
+      axisColumnId = "",
+    } = {}) {
+      return `
+        <div
+          class="template-toolbar-table-insert-popover template-toolbar-cell-split-popover"
+          data-editor-table-insert-popover="${escapeEditorToolbarAttribute(panelId)}"
+        >
+          <button
+            class="template-tool-button icon-only template-toolbar-table-insert-toggle template-toolbar-cell-split-toggle"
+            ${renderEditorToolbarAttribute("data-template-cell-split-toggle", panelId)}
+            ${renderEditorToolbarAttribute("data-editor-table-insert-toggle", panelId)}
+            type="button"
+            aria-label="셀 분할"
+            title="셀 분할"
+            aria-expanded="false"
+            aria-controls="${escapeEditorToolbarAttribute(panelId)}"
+          >
+            ${EDITOR_TOOLBAR_ICON_MARKUP.splitCell}
+            <span class="sr-only">셀 분할</span>
+          </button>
+          <div
+            class="template-table-insert-panel template-toolbar-cell-split-panel hidden"
+            id="${escapeEditorToolbarAttribute(panelId)}"
+            role="group"
+            aria-label="셀 분할 설정"
+          >
+            <fieldset class="template-toolbar-subfield template-toolbar-subfield-wide template-toolbar-choice-field">
+              <legend>편집</legend>
+              <div class="template-toolbar-choice-group" role="radiogroup" aria-label="셀 분할 방향">
+                <label class="template-toolbar-choice-option" for="${escapeEditorToolbarAttribute(axisRowId)}">
+                  <input
+                    class="sr-only"
+                    id="${escapeEditorToolbarAttribute(axisRowId)}"
+                    name="${escapeEditorToolbarAttribute(axisName)}"
+                    type="radio"
+                    value="row"
+                  />
+                  <span>행</span>
+                </label>
+                <label class="template-toolbar-choice-option" for="${escapeEditorToolbarAttribute(axisColumnId)}">
+                  <input
+                    class="sr-only"
+                    id="${escapeEditorToolbarAttribute(axisColumnId)}"
+                    name="${escapeEditorToolbarAttribute(axisName)}"
+                    type="radio"
+                    value="column"
+                    checked
+                  />
+                  <span>열</span>
+                </label>
+              </div>
+            </fieldset>
+            <label class="template-toolbar-subfield template-toolbar-subfield-wide" for="${escapeEditorToolbarAttribute(countId)}">
+              <span>칸</span>
+              <span class="template-toolbar-number-stepper">
+                <input class="template-toolbar-number template-toolbar-number-stepper-input" id="${escapeEditorToolbarAttribute(countId)}" type="number" min="2" step="1" value="2" />
+                <span class="template-toolbar-number-stepper-controls">
+                  <button class="template-toolbar-number-stepper-button" data-template-cell-split-step="up" type="button" aria-label="분할 칸 수 증가" title="증가">
+                    <span aria-hidden="true">▲</span>
+                  </button>
+                  <button class="template-toolbar-number-stepper-button" data-template-cell-split-step="down" type="button" aria-label="분할 칸 수 감소" title="감소">
+                    <span aria-hidden="true">▼</span>
+                  </button>
+                </span>
+              </span>
+            </label>
+            <button class="template-tool-button" data-template-cell-split-confirm="true" type="button">셀 분할</button>
+          </div>
+        </div>
+      `;
+    }
+
     function renderEditorToolbarInner({
       commandAttr = "",
       commandSelectAttr = "",
@@ -277,6 +354,11 @@
       tableInsertPanelId = "",
       tableRowsId = "",
       tableColumnsId = "",
+      cellSplitPanelId = "",
+      cellSplitCountId = "",
+      cellSplitAxisName = "",
+      cellSplitAxisRowId = "",
+      cellSplitAxisColumnId = "",
       imageInputId = "",
     }) {
       const resolvedFontSizeMenuId = `${fontSizeId}Menu`;
@@ -354,9 +436,16 @@
           </div>
           <div class="template-toolbar-section-row template-toolbar-section-row-dual">
             <div class="template-toolbar-section">
-              <span class="template-toolbar-section-label">병합</span>
+              <span class="template-toolbar-section-label">편집</span>
               <div class="template-toolbar-group-controls">
                 ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "merge-selection", label: "선택한 셀 병합", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.mergeSelection })}
+                ${renderEditorToolbarCellSplitPopover({
+                  panelId: cellSplitPanelId,
+                  countId: cellSplitCountId,
+                  axisName: cellSplitAxisName,
+                  axisRowId: cellSplitAxisRowId,
+                  axisColumnId: cellSplitAxisColumnId,
+                })}
               </div>
             </div>
             <div class="template-toolbar-section">

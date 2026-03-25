@@ -1,269 +1,91 @@
 (function (globalScope, factory) {
   if (typeof module === "object" && module.exports) {
-    module.exports = factory();
+    module.exports = factory({
+      metaEditorModule: require("./cards/meta-editor"),
+      previewModule: require("./cards/preview"),
+    });
     return;
   }
 
-  globalScope.AdmitCardTemplateCards = factory();
-})(typeof globalThis !== "undefined" ? globalThis : this, () => {
+  globalScope.AdmitCardTemplateCards = factory({
+    metaEditorModule: globalScope.AdmitCardTemplateCardMetaEditor,
+    previewModule: globalScope.AdmitCardTemplateCardPreview,
+  });
+})(typeof globalThis !== "undefined" ? globalThis : this, ({
+  metaEditorModule,
+  previewModule,
+}) => {
+
+  if (!previewModule?.createTemplateCardPreviewService) {
+    throw new Error("client/features/templates/cards/preview.js must be loaded before cards.js.");
+  }
+
+  if (!metaEditorModule?.createTemplateCardMetaEditorService) {
+    throw new Error("client/features/templates/cards/meta-editor.js must be loaded before cards.js.");
+  }
+
+  const { createTemplateCardPreviewService } = previewModule;
+  const { createTemplateCardMetaEditorService } = metaEditorModule;
+
   const TEMPLATE_PREVIEW_PHOTO_PATH = "/client/assets/template-preview-photo.png";
 
-  const TEMPLATE_CARD_INLINE_EDIT_ICON = `
-    <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M5 5.5A1.5 1.5 0 0 1 6.5 4H13"></path>
-      <path d="M18.5 11V18A1.5 1.5 0 0 1 17 19.5H6.5A1.5 1.5 0 0 1 5 18V5.5"></path>
-      <path d="m10 14 7.5-7.5 2 2L12 16l-3 .5z"></path>
-    </svg>
-  `;
+  function getTemplateCardRuntimeDependencies() {
+    return {
+      apiRequest: typeof apiRequest === "function" ? apiRequest : null,
+      createTemplateCardEditorState:
+        typeof createTemplateCardEditorState === "function" ? createTemplateCardEditorState : null,
+      escapeAttribute: typeof escapeAttribute === "function" ? escapeAttribute : (value) => String(value ?? ""),
+      escapeHtml: typeof escapeHtml === "function" ? escapeHtml : (value) => String(value ?? ""),
+      findTemplateCard: typeof findTemplateCard === "function" ? findTemplateCard : () => null,
+      getDefaultTemplateContent: typeof getDefaultTemplateContent === "function" ? getDefaultTemplateContent : () => "",
+      getTemplatePreviewExaminee: typeof getTemplatePreviewExaminee === "function" ? getTemplatePreviewExaminee : () => ({}),
+      renderTemplateWithExaminee:
+        typeof renderTemplateWithExaminee === "function" ? renderTemplateWithExaminee : (markup) => markup,
+      renderView: typeof renderView === "function" ? renderView : () => {},
+      showToast: typeof showToast === "function" ? showToast : () => {},
+      updateTemplateCard: typeof updateTemplateCard === "function" ? updateTemplateCard : () => {},
+    };
+  }
 
-  const TEMPLATE_CARD_INLINE_SAVE_ICON = `
-    <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M5 12.5 9.2 16.7 19 7.5"></path>
-    </svg>
-  `;
+  function createTemplateCardServices() {
+    const runtimeDependencies = getTemplateCardRuntimeDependencies();
 
-  const TEMPLATE_CARD_INLINE_CANCEL_ICON = `
-    <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="m7 7 10 10"></path>
-      <path d="M17 7 7 17"></path>
-    </svg>
-  `;
+    const previewService = createTemplateCardPreviewService({
+      getDefaultTemplateContent: runtimeDependencies.getDefaultTemplateContent,
+      getTemplatePreviewExaminee: runtimeDependencies.getTemplatePreviewExaminee,
+      renderTemplateWithExaminee: runtimeDependencies.renderTemplateWithExaminee,
+      state,
+    });
 
-  function getTemplateCreationSeed() {
-    const sourceTemplate = state.templateCards.find((card) => card.status === "used") || state.templateCards[0] || null;
+    const metaEditorService = createTemplateCardMetaEditorService({
+      apiRequest: runtimeDependencies.apiRequest,
+      createTemplateCardEditorState: runtimeDependencies.createTemplateCardEditorState,
+      escapeAttribute: runtimeDependencies.escapeAttribute,
+      escapeHtml: runtimeDependencies.escapeHtml,
+      findTemplateCard: runtimeDependencies.findTemplateCard,
+      renderView: runtimeDependencies.renderView,
+      showToast: runtimeDependencies.showToast,
+      state,
+      updateTemplateCard: runtimeDependencies.updateTemplateCard,
+    });
 
     return {
-      description: String(sourceTemplate?.description || "").trim() || "기본 수험표 레이아웃",
-      version: String(sourceTemplate?.version || "").trim() || "초안 버전 v1.0",
-      contentHtml: String(sourceTemplate?.contentHtml || "").trim() || getDefaultTemplateContent(),
+      metaEditorService,
+      previewService,
+      runtimeDependencies,
     };
-  }
-
-  function getTemplatePreviewDate() {
-    const serverDate = String(state.bootstrap?.serverDate || "").trim();
-
-    if (serverDate) {
-      return serverDate;
-    }
-
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
-
-  function renderTemplateCardThumbnail(card) {
-    try {
-      const previewExaminee = getTemplatePreviewExaminee();
-      const sourceHtml = String(card?.contentHtml || "").trim() || getDefaultTemplateContent();
-      const renderedHtml = renderTemplateWithExaminee(sourceHtml, previewExaminee);
-      const thumbnailContainer = document.createElement("div");
-
-      thumbnailContainer.innerHTML = renderedHtml;
-      thumbnailContainer.querySelectorAll("img").forEach((imageElement) => {
-        imageElement.loading = "lazy";
-        imageElement.decoding = "async";
-        imageElement.draggable = false;
-      });
-
-      return `
-        <article class="template-render-sheet template-card-thumbnail-sheet" aria-hidden="true">
-          ${thumbnailContainer.innerHTML}
-        </article>
-      `;
-    } catch (error) {
-      return `
-        <div class="template-sheet-placeholder" aria-hidden="true">
-          <span class="template-sheet-placeholder-title"></span>
-          <span class="template-sheet-placeholder-line long"></span>
-          <span class="template-sheet-placeholder-line"></span>
-          <span class="template-sheet-placeholder-line"></span>
-          <span class="template-sheet-placeholder-block"></span>
-        </div>
-      `;
-    }
-  }
-
-  function isTemplateCardMetaEditorActive(templateId, field) {
-    return state.templateCardEditor.activeTemplateId === templateId && state.templateCardEditor.field === field;
-  }
-
-  function getTemplateCardMetaEditorInputId(templateId, field) {
-    return `templateCardMetaEditor-${templateId}-${field}`;
-  }
-
-  function focusTemplateCardMetaEditor(templateId, field) {
-    const inputId = getTemplateCardMetaEditorInputId(templateId, field);
-
-    window.requestAnimationFrame(() => {
-      const inputElement = document.getElementById(inputId);
-
-      if (!(inputElement instanceof HTMLInputElement)) {
-        return;
-      }
-
-      inputElement.focus();
-      inputElement.select();
-    });
-  }
-
-  function openTemplateCardMetaEditor(templateId, field) {
-    const templateCard = findTemplateCard(templateId);
-
-    if (!templateCard || !["name", "description"].includes(field)) {
-      return;
-    }
-
-    state.templateCardEditor = {
-      activeTemplateId: templateId,
-      field,
-      draftValue: String(templateCard[field] || ""),
-      isSaving: false,
-    };
-    renderView();
-    focusTemplateCardMetaEditor(templateId, field);
-  }
-
-  function updateTemplateCardMetaEditorDraft(templateId, field, nextValue) {
-    if (!isTemplateCardMetaEditorActive(templateId, field)) {
-      return;
-    }
-
-    state.templateCardEditor.draftValue = String(nextValue ?? "");
-  }
-
-  function closeTemplateCardMetaEditor() {
-    state.templateCardEditor = createTemplateCardEditorState();
-    renderView();
-  }
-
-  async function saveTemplateCardMetaEditor(templateId, field) {
-    const templateCard = findTemplateCard(templateId);
-
-    if (!templateCard || !isTemplateCardMetaEditorActive(templateId, field)) {
-      return;
-    }
-
-    const draftValue = String(state.templateCardEditor.draftValue || "").trim();
-
-    if (field === "name" && !draftValue) {
-      showToast("양식 제목을 입력하세요.", "error", 4200);
-      focusTemplateCardMetaEditor(templateId, field);
-      return;
-    }
-
-    state.templateCardEditor.isSaving = true;
-    renderView();
-
-    try {
-      const updatedTemplate = await apiRequest(`/api/templates/${encodeURIComponent(templateId)}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          name: field === "name" ? draftValue : templateCard.name,
-          description: field === "description" ? draftValue : templateCard.description,
-          version: templateCard.version || "초안 버전 v1.0",
-          status: templateCard.status || "unused",
-          contentHtml: templateCard.contentHtml,
-        }),
-      });
-
-      updateTemplateCard(templateId, updatedTemplate);
-
-      if (state.templateEditor.activeTemplateId === templateId) {
-        state.templateEditor.name = updatedTemplate.name;
-        state.templateEditor.description = updatedTemplate.description;
-      }
-
-      state.templateCardEditor = createTemplateCardEditorState();
-      renderView();
-      showToast(field === "name" ? "양식 제목을 수정했습니다." : "양식 설명을 수정했습니다.");
-    } catch (error) {
-      state.templateCardEditor.isSaving = false;
-      renderView();
-      showToast(error.message, "error", 4200);
-      focusTemplateCardMetaEditor(templateId, field);
-    }
-  }
-
-  function renderTemplateCardMetaEditButton(templateId, field, label) {
-    return `
-      <button
-        class="icon-button template-card-meta-edit-button"
-        data-template-card-edit="${escapeAttribute(templateId)}"
-        data-template-card-field="${escapeAttribute(field)}"
-        type="button"
-        aria-label="${escapeAttribute(label)}"
-        title="${escapeAttribute(label)}"
-      >
-        ${TEMPLATE_CARD_INLINE_EDIT_ICON}
-      </button>
-    `;
-  }
-
-  function renderTemplateCardMetaEditor(card, field, options = {}) {
-    const isActive = isTemplateCardMetaEditorActive(card.id, field);
-    const inputId = getTemplateCardMetaEditorInputId(card.id, field);
-    const draftValue = isActive ? state.templateCardEditor.draftValue : String(card[field] || "");
-    const inputLabel = options.inputLabel || "";
-    const placeholder = options.placeholder || "";
-    const displayValue = String(card[field] || "").trim();
-    const isSaving = isActive && state.templateCardEditor.isSaving;
-
-    if (!isActive) {
-      const fallbackValue = field === "description" ? "설명이 없습니다." : "";
-      const tagName = options.tagName || "p";
-
-      return `
-        <div class="template-card-meta-row template-card-meta-row-${escapeAttribute(field)}">
-          <${tagName}>${escapeHtml(displayValue || fallbackValue)}</${tagName}>
-          ${renderTemplateCardMetaEditButton(card.id, field, inputLabel)}
-        </div>
-      `;
-    }
-
-    return `
-      <div class="template-card-meta-editor template-card-meta-editor-${escapeAttribute(field)}">
-        <label class="sr-only" for="${escapeAttribute(inputId)}">${escapeHtml(inputLabel)}</label>
-        <input
-          class="template-card-meta-input"
-          id="${escapeAttribute(inputId)}"
-          data-template-card-input="${escapeAttribute(card.id)}"
-          data-template-card-field="${escapeAttribute(field)}"
-          type="text"
-          maxlength="${field === "name" ? "200" : "255"}"
-          value="${escapeAttribute(draftValue)}"
-          placeholder="${escapeAttribute(placeholder)}"
-          ${isSaving ? "disabled" : ""}
-        />
-        <div class="template-card-meta-editor-actions">
-          <button
-            class="icon-button template-card-meta-action-button template-card-meta-save-button"
-            data-template-card-save="${escapeAttribute(card.id)}"
-            data-template-card-field="${escapeAttribute(field)}"
-            type="button"
-            aria-label="저장"
-            title="저장"
-            ${isSaving ? "disabled" : ""}
-          >
-            ${TEMPLATE_CARD_INLINE_SAVE_ICON}
-          </button>
-          <button
-            class="icon-button template-card-meta-action-button template-card-meta-cancel-button"
-            data-template-card-cancel="${escapeAttribute(card.id)}"
-            type="button"
-            aria-label="취소"
-            title="취소"
-            ${isSaving ? "disabled" : ""}
-          >
-            ${TEMPLATE_CARD_INLINE_CANCEL_ICON}
-          </button>
-        </div>
-      </div>
-    `;
   }
 
   function renderTemplateCard(card) {
+    const {
+      metaEditorService,
+      previewService,
+      runtimeDependencies,
+    } = createTemplateCardServices();
+    const { escapeAttribute } = runtimeDependencies;
+    const { renderTemplateCardMetaEditor } = metaEditorService;
+    const { renderTemplateCardThumbnail } = previewService;
+
     const badgeClass = card.status === "used" ? "green" : "gray";
     const badgeLabel = card.status === "used" ? "사용중" : "사용 안 함";
     const isActiveTemplate = card.status === "used";
@@ -335,6 +157,30 @@
         </div>
       </article>
     `;
+  }
+
+  function getTemplateCreationSeed() {
+    return createTemplateCardServices().previewService.getTemplateCreationSeed();
+  }
+
+  function getTemplatePreviewDate() {
+    return createTemplateCardServices().previewService.getTemplatePreviewDate();
+  }
+
+  function openTemplateCardMetaEditor(...args) {
+    return createTemplateCardServices().metaEditorService.openTemplateCardMetaEditor(...args);
+  }
+
+  function updateTemplateCardMetaEditorDraft(...args) {
+    return createTemplateCardServices().metaEditorService.updateTemplateCardMetaEditorDraft(...args);
+  }
+
+  function closeTemplateCardMetaEditor(...args) {
+    return createTemplateCardServices().metaEditorService.closeTemplateCardMetaEditor(...args);
+  }
+
+  function saveTemplateCardMetaEditor(...args) {
+    return createTemplateCardServices().metaEditorService.saveTemplateCardMetaEditor(...args);
   }
 
   return {

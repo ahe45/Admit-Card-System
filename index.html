@@ -14,8 +14,14 @@
     <link rel="stylesheet" href="./styles/base.css" />
     <link rel="stylesheet" href="./styles/features/auth.css" />
     <link rel="stylesheet" href="./styles/surfaces.css" />
+    <link rel="stylesheet" href="./styles/features/grids.css" />
+    <link rel="stylesheet" href="./styles/features/examinees.css" />
+    <link rel="stylesheet" href="./styles/features/system.css" />
+    <link rel="stylesheet" href="./styles/features/templates.css" />
+    <link rel="stylesheet" href="./styles/features/modals.css" />
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./styles/features/template-editor.css" />
+    <link rel="stylesheet" href="./styles/responsive.css" />
   </head>
   <body>
     <div class="app-shell auth-locked" id="appShell">
@@ -480,6 +486,10 @@
     <script src="./client/features/auth/account-state.js"></script>
     <script src="./client/features/auth/ui-state.js"></script>
     <script src="./client/features/auth/session.js"></script>
+    <script src="./client/features/admit-cards/workflow/selection.js"></script>
+    <script src="./client/features/admit-cards/workflow/pdf-utils.js"></script>
+    <script src="./client/features/admit-cards/workflow/print-history.js"></script>
+    <script src="./client/features/admit-cards/workflow/batch-print.js"></script>
     <script src="./client/features/admit-cards/workflow.js"></script>
     <script src="./client/features/examinees/file-transfer.js"></script>
     <script src="./client/features/examinees/photo-utils.js"></script>
@@ -497,7 +507,10 @@
     <script src="./client/features/editor/table-utils.js"></script>
     <script src="./client/features/editor/toolbar-markup.js"></script>
     <script src="./client/features/editor/toolbar-ui.js"></script>
+    <script src="./client/features/editor/toolbar-controls.js"></script>
     <script src="./client/editor-toolbar.js"></script>
+    <script src="./client/features/templates/cards/preview.js"></script>
+    <script src="./client/features/templates/cards/meta-editor.js"></script>
     <script src="./client/features/templates/cards.js"></script>
     <script src="./client/features/template-editor/generated-objects.js"></script>
     <script src="./client/features/template-editor/preview.js"></script>
@@ -511,6 +524,9 @@
     <script src="./client/features/template-editor/selection-state.js"></script>
     <script src="./client/features/template-editor/selection-history.js"></script>
     <script src="./client/features/template-editor/selection.js"></script>
+    <script src="./client/features/template-editor/lifecycle/default-content.js"></script>
+    <script src="./client/features/template-editor/lifecycle/template-actions.js"></script>
+    <script src="./client/features/template-editor/lifecycle/modal-flow.js"></script>
     <script src="./client/features/template-editor/lifecycle.js"></script>
     <script src="./client/features/template-editor/runtime.js"></script>
     <script src="./client/features/template-editor/table-selection.js"></script>
@@ -529,8 +545,6 @@
     <script src="./client/features/system/login-notice-selection-range.js"></script>
     <script src="./client/features/system/login-notice-selection-history.js"></script>
     <script src="./client/features/system/login-notice-selection.js"></script>
-    <script src="./client/features/system/login-notice-table-structure.js"></script>
-    <script src="./client/features/system/login-notice-table-formatting.js"></script>
     <script src="./client/features/system/login-notice-table-actions.js"></script>
     <script src="./client/features/system/login-notice-commands.js"></script>
     <script src="./client/features/system/login-notice-editor.js"></script>
@@ -545,6 +559,9 @@
     <script src="./client/features/templates/renderers.js"></script>
     <script src="./client/features/template-editor/tag-panel.js"></script>
     <script src="./client/features/template-editor/events.js"></script>
+    <script src="./client/features/app/grid-document-events/priority.js"></script>
+    <script src="./client/features/app/grid-document-events/actions.js"></script>
+    <script src="./client/features/app/grid-document-events/inputs.js"></script>
     <script src="./client/features/app/grid-document-events.js"></script>
     <script src="./client/features/app/auth-document-events.js"></script>
     <script src="./client/features/app/editor-toolbar-document-events.js"></script>
@@ -553,6 +570,10 @@
     <script src="./client/app/view-shell.js"></script>
     <script src="./client/features/grids/rendering.js"></script>
     <script src="./client/features/grids/table-settings.js"></script>
+    <script src="./client/features/grids/filtering/columns.js"></script>
+    <script src="./client/features/grids/filtering/sorting.js"></script>
+    <script src="./client/features/grids/filtering/filters.js"></script>
+    <script src="./client/features/grids/filtering/print-history.js"></script>
     <script src="./client/features/grids/filtering.js"></script>
     <script src="./client/features/grids/selection.js"></script>
     <script src="./client/features/grids/state.js"></script>

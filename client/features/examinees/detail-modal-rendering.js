@@ -19,8 +19,74 @@
     getSelectedExamineeDetailRow,
     state,
   }) {
+    const EXAMINEE_DETAIL_FIELD_ROWS = Object.freeze([
+      Object.freeze(["examineeNo", "name", "birth"]),
+      Object.freeze(["track", "admission", "series"]),
+      Object.freeze(["unit", "major"]),
+      Object.freeze(["date", "time"]),
+      Object.freeze(["building", "room", "group"]),
+    ]);
+
     function buildExamineeDetailPhotoUrl(examinee) {
       return buildExamineePhotoUrl(examinee);
+    }
+
+    function renderExamineeDetailField(field, draftRecord, isBusy) {
+      if (!field) {
+        return "";
+      }
+
+      return `
+        <div class="field examinee-detail-field">
+          <label for="examineeDetailField-${escapeAttribute(field.key)}">${escapeHtml(field.label)}</label>
+          <input
+            id="examineeDetailField-${escapeAttribute(field.key)}"
+            data-examinee-detail-field="${escapeAttribute(field.key)}"
+            type="${escapeAttribute(field.type)}"
+            value="${escapeAttribute(draftRecord[field.key] || "")}"
+            ${isBusy ? "disabled" : ""}
+            autocomplete="off"
+          />
+        </div>
+      `;
+    }
+
+    function renderExamineeDetailFieldRows(draftRecord, isBusy) {
+      const fieldsByKey = new Map(EXAMINEE_DETAIL_FIELDS.map((field) => [field.key, field]));
+      const configuredFieldKeys = new Set(EXAMINEE_DETAIL_FIELD_ROWS.flat());
+      const configuredRows = EXAMINEE_DETAIL_FIELD_ROWS.map((fieldKeys) => {
+        const rowFields = fieldKeys.map((fieldKey) => fieldsByKey.get(fieldKey)).filter(Boolean);
+
+        if (rowFields.length === 0) {
+          return "";
+        }
+
+        return `
+          <div class="examinee-detail-field-row">
+            ${rowFields.map((field) => renderExamineeDetailField(field, draftRecord, isBusy)).join("")}
+          </div>
+        `;
+      }).join("");
+      const unconfiguredFields = EXAMINEE_DETAIL_FIELDS.filter((field) => !configuredFieldKeys.has(field.key));
+
+      if (unconfiguredFields.length === 0) {
+        return configuredRows;
+      }
+
+      const extraRows = [];
+
+      for (let fieldIndex = 0; fieldIndex < unconfiguredFields.length; fieldIndex += 3) {
+        extraRows.push(`
+          <div class="examinee-detail-field-row">
+            ${unconfiguredFields
+              .slice(fieldIndex, fieldIndex + 3)
+              .map((field) => renderExamineeDetailField(field, draftRecord, isBusy))
+              .join("")}
+          </div>
+        `);
+      }
+
+      return `${configuredRows}${extraRows.join("")}`;
     }
 
     function renderExamineeDetailModalContent() {
@@ -53,21 +119,7 @@
           </p>
           <div class="examinee-detail-layout">
             <div class="examinee-detail-field-grid">
-              ${EXAMINEE_DETAIL_FIELDS.map(
-                (field) => `
-                  <div class="field">
-                    <label for="examineeDetailField-${escapeAttribute(field.key)}">${escapeHtml(field.label)}</label>
-                    <input
-                      id="examineeDetailField-${escapeAttribute(field.key)}"
-                      data-examinee-detail-field="${escapeAttribute(field.key)}"
-                      type="${escapeAttribute(field.type)}"
-                      value="${escapeAttribute(draftRecord[field.key] || "")}"
-                      ${isBusy ? "disabled" : ""}
-                      autocomplete="off"
-                    />
-                  </div>
-                `,
-              ).join("")}
+              ${renderExamineeDetailFieldRows(draftRecord, isBusy)}
             </div>
             <aside class="examinee-detail-photo-panel">
               <div class="examinee-detail-photo-frame">

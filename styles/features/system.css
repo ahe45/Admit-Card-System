@@ -1,0 +1,121 @@
+/* System settings and control layouts */
+
+.system-settings-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.system-settings-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #374151;
+}
+
+.system-settings-help {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.system-settings-control-wrap {
+  display: grid;
+  gap: 0;
+  justify-items: start;
+}
+
+.system-settings-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.system-settings-control-wrap .system-settings-input {
+  width: min(240px, 100%);
+  min-height: 38px;
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  border-radius: 12px;
+}
+
+.system-settings-control-wrap .system-settings-number-input {
+  width: 92px !important;
+  text-align: right;
+}
+
+.system-settings-stepper {
+  display: grid;
+  gap: 3px;
+}
+
+.system-settings-stepper-button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgba(203, 213, 225, 0.82);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #475569;
+  font-size: 0.72rem;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.system-settings-stepper-button:hover {
+  border-color: rgba(45, 99, 245, 0.4);
+  color: #1d4ed8;
+  background: rgba(239, 246, 255, 0.96);
+}
+
+.system-settings-stepper-button:focus-visible {
+  outline: 2px solid rgba(45, 99, 245, 0.28);
+  outline-offset: 2px;
+}
+
+.system-data-delete-status {
+  margin: 16px 0 0;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+.system-data-delete-status.warning {
+  color: #b42318;
+}
+
+.lookup-filter-card .search-grid + .search-grid {
+  margin-top: 10px;
+}
+
+.lookup-filter-card {
+  padding: 10px 24px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.lookup-filter-card .section-header {
+  padding: 0;
+}
+
+#admitCardLookupResultMount .table-card {
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.lookup-filter-card .field {
+  gap: 4px;
+}
+
+.lookup-filter-card .field label {
+  font-size: 0.82rem;
+}
+
+.lookup-filter-card .field input,
+.lookup-filter-card .field select {
+  min-height: 36px;
+  padding: 8px 14px;
+  font-size: 0.85rem;

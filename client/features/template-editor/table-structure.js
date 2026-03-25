@@ -102,6 +102,24 @@
       row.insertBefore(cell, referenceCell);
     }
 
+    function cloneEmptyTemplateTableCell(sourceCell) {
+      const nextCell = sourceCell?.cloneNode(false) || document.createElement(sourceCell?.tagName?.toLowerCase?.() || "td");
+
+      nextCell.innerHTML = "<br />";
+      nextCell.rowSpan = 1;
+      nextCell.colSpan = 1;
+      return nextCell;
+    }
+
+    function buildTemplateCellSplitSegments(totalSpan, segmentCount) {
+      const safeTotalSpan = Math.max(Math.round(Number(totalSpan) || 0), 1);
+      const safeSegmentCount = Math.max(Math.round(Number(segmentCount) || 0), 1);
+      const baseSpan = Math.floor(safeTotalSpan / safeSegmentCount);
+      const remainder = safeTotalSpan % safeSegmentCount;
+
+      return Array.from({ length: safeSegmentCount }, (_, index) => baseSpan + (index < remainder ? 1 : 0));
+    }
+
     function mergeTemplateTableCell(direction) {
       const selectedCell = getTemplateEditorSelectedCell();
 
@@ -156,7 +174,39 @@
       return selectedCell;
     }
 
-    function splitTemplateTableCell() {
+    function fullySplitTemplateTableCell(selectedCell, selectedEntry, table) {
+      const originalRowSpan = selectedEntry.rowSpan;
+      const originalColSpan = selectedEntry.colSpan;
+
+      selectedCell.rowSpan = 1;
+      selectedCell.colSpan = 1;
+
+      for (let rowOffset = 0; rowOffset < originalRowSpan; rowOffset += 1) {
+        const row = table.rows[selectedEntry.rowIndex + rowOffset];
+
+        for (let colOffset = 0; colOffset < originalColSpan; colOffset += 1) {
+          if (rowOffset === 0 && colOffset === 0) {
+            continue;
+          }
+
+          insertTemplateCellAtAbsoluteColumn(
+            row,
+            selectedEntry.colIndex + colOffset,
+            cloneEmptyTemplateTableCell(selectedCell),
+          );
+        }
+      }
+
+      if (isTemplateTableCellEmpty(selectedCell)) {
+        selectedCell.innerHTML = "<br />";
+      }
+
+      normalizeTemplateEditorTableAppearance(table);
+
+      return selectedCell;
+    }
+
+    function splitTemplateTableCell({ axis = "", count = 0 } = {}) {
       const selectedCell = getTemplateEditorSelectedCell();
 
       if (!selectedCell) {
@@ -173,37 +223,85 @@
         return null;
       }
 
-      if (selectedEntry.rowSpan === 1 && selectedEntry.colSpan === 1) {
-        setTemplateEditorStatus("현재 셀은 이미 분할된 상태입니다.", "warning");
-        return selectedCell;
+      const normalizedAxis = String(axis || "").trim().toLowerCase();
+
+      if (!normalizedAxis) {
+        if (selectedEntry.rowSpan === 1 && selectedEntry.colSpan === 1) {
+          setTemplateEditorStatus("현재 셀은 이미 분할된 상태입니다.", "warning");
+          return selectedCell;
+        }
+
+        return fullySplitTemplateTableCell(selectedCell, selectedEntry, table);
       }
 
-      const originalRowSpan = selectedEntry.rowSpan;
-      const originalColSpan = selectedEntry.colSpan;
-      const sourceTagName = selectedCell.tagName;
+      const isRowSplit = normalizedAxis === "row";
+      const spanLabel = isRowSplit ? "행" : "열";
+      const availableSpan = isRowSplit ? selectedEntry.rowSpan : selectedEntry.colSpan;
+      const requestedCount = Math.round(Number(count));
 
-      selectedCell.rowSpan = 1;
-      selectedCell.colSpan = 1;
+      if (availableSpan < 2) {
+        setTemplateEditorStatus(`현재 셀은 ${spanLabel} 방향으로 분할할 수 없습니다. 먼저 ${spanLabel} 병합 셀을 선택하세요.`, "warning");
+        return null;
+      }
 
-      for (let rowOffset = 0; rowOffset < originalRowSpan; rowOffset += 1) {
-        const row = table.rows[selectedEntry.rowIndex + rowOffset];
+      if (!Number.isFinite(requestedCount) || requestedCount < 2) {
+        setTemplateEditorStatus("셀 분할 개수는 2 이상이어야 합니다.", "warning");
+        return null;
+      }
 
-        for (let colOffset = 0; colOffset < originalColSpan; colOffset += 1) {
-          if (rowOffset === 0 && colOffset === 0) {
-            continue;
+      if (requestedCount > availableSpan) {
+        setTemplateEditorStatus(`현재 셀은 ${spanLabel} 방향으로 최대 ${availableSpan}개까지 분할할 수 있습니다.`, "warning");
+        return null;
+      }
+
+      const segmentSpans = buildTemplateCellSplitSegments(availableSpan, requestedCount);
+
+      if (isRowSplit) {
+        const originalColSpan = selectedEntry.colSpan;
+        let rowOffset = segmentSpans[0];
+
+        selectedCell.rowSpan = segmentSpans[0];
+        selectedCell.colSpan = originalColSpan;
+
+        for (let segmentIndex = 1; segmentIndex < segmentSpans.length; segmentIndex += 1) {
+          const targetRow = table.rows[selectedEntry.rowIndex + rowOffset];
+
+          if (!targetRow) {
+            setTemplateEditorStatus("셀 분할 중 행 구조를 계산할 수 없습니다.", "warning");
+            return null;
           }
 
+          const nextCell = cloneEmptyTemplateTableCell(selectedCell);
+          nextCell.rowSpan = segmentSpans[segmentIndex];
+          nextCell.colSpan = originalColSpan;
+          insertTemplateCellAtAbsoluteColumn(targetRow, selectedEntry.colIndex, nextCell);
+          rowOffset += segmentSpans[segmentIndex];
+        }
+      } else {
+        const originalRowSpan = selectedEntry.rowSpan;
+        let columnOffset = segmentSpans[0];
+
+        selectedCell.rowSpan = originalRowSpan;
+        selectedCell.colSpan = segmentSpans[0];
+
+        for (let segmentIndex = 1; segmentIndex < segmentSpans.length; segmentIndex += 1) {
+          const nextCell = cloneEmptyTemplateTableCell(selectedCell);
+          nextCell.rowSpan = originalRowSpan;
+          nextCell.colSpan = segmentSpans[segmentIndex];
           insertTemplateCellAtAbsoluteColumn(
-            row,
-            selectedEntry.colIndex + colOffset,
-            createTemplateTableCell(sourceTagName),
+            selectedCell.parentElement,
+            selectedEntry.colIndex + columnOffset,
+            nextCell,
           );
+          columnOffset += segmentSpans[segmentIndex];
         }
       }
 
       if (isTemplateTableCellEmpty(selectedCell)) {
         selectedCell.innerHTML = "<br />";
       }
+
+      normalizeTemplateEditorTableAppearance(table);
 
       return selectedCell;
     }

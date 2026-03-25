@@ -3,12 +3,14 @@ require("dotenv").config({ quiet: true });
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
-const { randomBytes, randomUUID, scryptSync, timingSafeEqual } = require("crypto");
 const { getPool, query } = require("./db");
+const { readBinaryBody, readJsonBody } = require("./server/http/body");
 const { buildContentDisposition } = require("./server/http/content-disposition");
 const { createApiRoutes } = require("./server/http/api-routes");
 const { createPageRequestHandlers } = require("./server/http/page-handler");
+const { getCorsHeaders, sendBinary, sendJson } = require("./server/http/response");
 const { dispatchRoute } = require("./server/http/router");
+const { createPasswordHelpers, DEFAULT_PASSWORD_HASH_PREFIX } = require("./server/modules/auth/passwords");
 const {
   accountRoleOptions,
   getDefaultAccessibleView,
@@ -21,11 +23,13 @@ const {
   templateTagDefinitions,
 } = require("./shared/app-config");
 const DEFAULT_TEMPLATE_SEEDS = require("./db/default-templates.json");
+const { createDatabaseErrorTranslator } = require("./server/modules/database/error-translation");
 const { createAuthSessionStore } = require("./server/modules/auth/session-store");
 const { createAuthService } = require("./server/modules/auth/service");
 const { createAdmitCardService } = require("./server/modules/examinees/admit-card");
 const { createExamineeService } = require("./server/modules/examinees/service");
 const { createSchemaBootstrapService } = require("./server/modules/bootstrap/schema");
+const { createPrintHistoryService } = require("./server/modules/print-history/service");
 const { createTemplateBootstrapService } = require("./server/modules/templates/bootstrap");
 const { createSystemService } = require("./server/modules/system/service");
 const { createTemplateService } = require("./server/modules/templates/service");
@@ -37,7 +41,7 @@ const DEFAULT_AUTO_LOGOUT_MINUTES = 0;
 const MAX_AUTO_LOGOUT_MINUTES = 1440;
 const TEMPLATE_TAG_SCHEMA_VERSION = "3";
 const TEMPLATE_LAYOUT_SCHEMA_VERSION = "1";
-const PASSWORD_HASH_PREFIX = "scrypt";
+const PASSWORD_HASH_PREFIX = DEFAULT_PASSWORD_HASH_PREFIX;
 const SESSION_COOKIE_NAME = "admitcard.sid";
 const AUTHENTICATED_SESSION_TTL_MS = 1000 * 60 * 60 * 12;
 const PASSWORD_SETUP_SESSION_TTL_MS = 1000 * 60 * 15;
@@ -77,39 +81,6 @@ const DEFAULT_SEED_ACCOUNTS = Object.freeze([
   }),
 ]);
 
-function getCorsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
-}
-
-function sendJson(response, statusCode, payload, headers = {}) {
-  response.writeHead(statusCode, {
-    ...getCorsHeaders(),
-    "Content-Type": "application/json; charset=utf-8",
-    ...headers,
-  });
-  response.end(JSON.stringify(payload));
-}
-
-function sendBinary(response, statusCode, headers, payload) {
-  const contentLength =
-    typeof payload === "string"
-      ? Buffer.byteLength(payload)
-      : Buffer.isBuffer(payload) || payload instanceof Uint8Array
-        ? payload.byteLength
-        : null;
-
-  response.writeHead(statusCode, {
-    ...getCorsHeaders(),
-    ...(Number.isFinite(contentLength) ? { "Content-Length": String(contentLength) } : {}),
-    ...headers,
-  });
-  response.end(payload);
-}
-
 function createHttpError(statusCode, message, errorCode = "") {
   const error = new Error(message);
   error.statusCode = statusCode;
@@ -126,42 +97,15 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function escapeRegExp(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function isPasswordHash(value) {
-  return new RegExp(`^${PASSWORD_HASH_PREFIX}\\$[a-f0-9]+\\$[a-f0-9]+$`, "i").test(String(value || ""));
-}
-
-function hashPassword(password) {
-  const salt = randomBytes(16).toString("hex");
-  const hash = scryptSync(String(password), salt, 64).toString("hex");
-  return `${PASSWORD_HASH_PREFIX}$${salt}$${hash}`;
-}
-
-function verifyPassword(password, passwordValue) {
-  const normalizedPassword = String(password ?? "");
-  const normalizedPasswordValue = String(passwordValue ?? "");
-
-  if (!normalizedPasswordValue) {
-    return false;
-  }
-
-  if (!isPasswordHash(normalizedPasswordValue)) {
-    return normalizedPassword === normalizedPasswordValue;
-  }
-
-  const [, salt, expectedHash] = normalizedPasswordValue.split("$");
-  const expectedBuffer = Buffer.from(expectedHash, "hex");
-  const derivedBuffer = scryptSync(normalizedPassword, salt, expectedBuffer.length);
-
-  return expectedBuffer.length === derivedBuffer.length && timingSafeEqual(expectedBuffer, derivedBuffer);
-}
-
-function normalizePasswordSetupValue(value) {
-  return String(value ?? "");
-}
+const passwordHelpers = createPasswordHelpers({
+  passwordHashPrefix: PASSWORD_HASH_PREFIX,
+});
+const {
+  hashPassword,
+  isPasswordHash,
+  normalizePasswordSetupValue,
+  verifyPassword,
+} = passwordHelpers;
 const authSessionStore = createAuthSessionStore({
   authenticatedSessionTtlMs: AUTHENTICATED_SESSION_TTL_MS,
   passwordSetupSessionTtlMs: PASSWORD_SETUP_SESSION_TTL_MS,
@@ -169,13 +113,11 @@ const authSessionStore = createAuthSessionStore({
 });
 const {
   attachSessionCookie,
-  buildSessionCookieValue,
   clearSessionCookie,
   createSession,
   destroySession,
   destroySessionsByAccountId,
   getSessionContext,
-  parseCookies,
 } = authSessionStore;
 const examineeService = createExamineeService({
   createHttpError,
@@ -302,33 +244,6 @@ const {
 function formatDateAsYmd(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
-async function readJsonBody(request) {
-  const chunks = [];
-
-  for await (const chunk of request) {
-    chunks.push(chunk);
-  }
-
-  if (chunks.length === 0) {
-    return {};
-  }
-
-  try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
-  } catch (error) {
-    throw createHttpError(400, "JSON 본문을 해석할 수 없습니다.");
-  }
-}
-
-async function readBinaryBody(request) {
-  const chunks = [];
-
-  for await (const chunk of request) {
-    chunks.push(chunk);
-  }
-
-  return chunks.length > 0 ? Buffer.concat(chunks) : Buffer.alloc(0);
-}
 
 async function getAccounts() {
   return query(`
@@ -342,91 +257,13 @@ async function getAccounts() {
   `);
 }
 
-function normalizeExamineeNoList(examineeNos) {
-  const list = Array.isArray(examineeNos) ? examineeNos : [examineeNos];
+const printHistoryService = createPrintHistoryService({
+  createHttpError,
+  getPool,
+});
+const { normalizeExamineeNoList, recordPrintHistory } = printHistoryService;
 
-  return Array.from(
-    new Set(
-      list
-        .map((examineeNo) => String(examineeNo || "").trim())
-        .filter(Boolean),
-    ),
-  );
-}
-
-async function recordPrintHistory(payload) {
-  const examineeNos = normalizeExamineeNoList(
-    Array.isArray(payload?.examineeNos) ? payload.examineeNos : payload?.examineeNo,
-  );
-
-  if (examineeNos.length === 0) {
-    throw createHttpError(400, "출력 대상 수험번호가 필요합니다.");
-  }
-
-  const connection = await getPool().getConnection();
-
-  try {
-    await connection.beginTransaction();
-    const insertedHistory = [];
-
-    for (const examineeNo of examineeNos) {
-      const [examineeRows] = await connection.query(
-        `SELECT examinee_no FROM examinee WHERE examinee_no = ? FOR UPDATE`,
-        [examineeNo],
-      );
-
-      if (examineeRows.length === 0) {
-        throw createHttpError(404, "수험생 정보를 찾을 수 없습니다.");
-      }
-
-      await connection.query(
-        `INSERT INTO print_history (examinee_no, print_count) VALUES (?, ?)`,
-        [examineeNo, 1],
-      );
-      insertedHistory.push(examineeNo);
-    }
-
-    await connection.commit();
-
-    return {
-      examineeNo: insertedHistory[0] || "",
-      examineeNos: insertedHistory,
-      printCount: insertedHistory.length,
-    };
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
-}
-
-function translateDatabaseError(error) {
-  if (error.statusCode) {
-    return error;
-  }
-
-  if (error.code === "AUTH_SWITCH_PLUGIN_ERROR" || String(error.message || "").includes("auth_gssapi_client")) {
-    return createHttpError(
-      500,
-      "현재 MariaDB 계정은 auth_gssapi_client 인증을 사용 중입니다. Node에서는 전용 mysql_native_password 계정을 만들어 `.env`에 설정해야 합니다.",
-    );
-  }
-
-  if (error.code === "ER_BAD_DB_ERROR") {
-    return createHttpError(500, "DB가 아직 생성되지 않았습니다. `npm run db:setup`을 먼저 실행하세요.");
-  }
-
-  if (error.code === "ER_ACCESS_DENIED_ERROR") {
-    return createHttpError(500, "MariaDB 접속 정보가 올바르지 않습니다. `.env`의 계정 정보를 확인하세요.");
-  }
-
-  if (error.code === "ECONNREFUSED") {
-    return createHttpError(500, "MariaDB 서버에 연결할 수 없습니다. 서비스 실행 여부와 포트를 확인하세요.");
-  }
-
-  return createHttpError(500, "서버 처리 중 오류가 발생했습니다.");
-}
+const translateDatabaseError = createDatabaseErrorTranslator({ createHttpError });
 
 const admitCardService = createAdmitCardService({
   batchAdmitCardJobTtlMs: BATCH_ADMIT_CARD_JOB_TTL_MS,
@@ -569,9 +406,29 @@ async function initializeServer() {
     console.error(`Schema check skipped: ${translateDatabaseError(error).message}`);
   }
 
-  server.listen(port, () => {
-    console.log(`Admit Card System running at http://localhost:${port}`);
+  return new Promise((resolve, reject) => {
+    const handleError = (error) => {
+      server.off("error", handleError);
+      reject(error);
+    };
+
+    server.once("error", handleError);
+    server.listen(port, () => {
+      server.off("error", handleError);
+      console.log(`Admit Card System running at http://localhost:${port}`);
+      resolve(server);
+    });
   });
 }
 
-initializeServer();
+if (require.main === module) {
+  initializeServer().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  initializeServer,
+  server,
+};

@@ -1,28 +1,33 @@
 (function (globalScope, factory) {
   if (typeof module === "object" && module.exports) {
-    module.exports = factory();
+    module.exports = factory({
+      editorTableUtilsModule: require("../editor/table-utils"),
+      templateTableActionModule: require("../template-editor/table-actions"),
+    });
     return;
   }
 
-  globalScope.AdmitCardLoginNoticeTableActions = factory();
-})(typeof globalThis !== "undefined" ? globalThis : this, () => {
-  const loginNoticeTableFormattingModule = globalThis.AdmitCardLoginNoticeTableFormatting;
-  const loginNoticeTableStructureModule = globalThis.AdmitCardLoginNoticeTableStructure;
-
-  if (!loginNoticeTableFormattingModule?.createLoginNoticeTableFormattingController) {
-    throw new Error(
-      "client/features/system/login-notice-table-formatting.js must be loaded before login-notice-table-actions.js.",
-    );
+  globalScope.AdmitCardLoginNoticeTableActions = factory({
+    editorTableUtilsModule: globalScope.AdmitCardEditorTableUtils,
+    templateTableActionModule: globalScope.AdmitCardTemplateEditorTableActions,
+  });
+})(typeof globalThis !== "undefined" ? globalThis : this, ({
+  editorTableUtilsModule,
+  templateTableActionModule,
+}) => {
+  if (!editorTableUtilsModule?.TEMPLATE_EDITOR_TABLE_MIN_SIZE || !editorTableUtilsModule?.parseTemplateEditorPixelStyle) {
+    throw new Error("client/features/editor/table-utils.js must be loaded before login-notice-table-actions.js.");
   }
 
-  if (!loginNoticeTableStructureModule?.createLoginNoticeTableStructureController) {
-    throw new Error(
-      "client/features/system/login-notice-table-structure.js must be loaded before login-notice-table-actions.js.",
-    );
+  if (!templateTableActionModule?.createTemplateEditorTableActionController) {
+    throw new Error("client/features/template-editor/table-actions.js must be loaded before login-notice-table-actions.js.");
   }
 
-  const { createLoginNoticeTableFormattingController } = loginNoticeTableFormattingModule;
-  const { createLoginNoticeTableStructureController } = loginNoticeTableStructureModule;
+  const {
+    TEMPLATE_EDITOR_TABLE_MIN_SIZE,
+    parseTemplateEditorPixelStyle,
+  } = editorTableUtilsModule;
+  const { createTemplateEditorTableActionController } = templateTableActionModule;
 
   function createLoginNoticeTableActionController({
     appendMergedTemplateCellContent,
@@ -34,9 +39,6 @@
     getLoginNoticeEditorElement,
     getLoginNoticeSelectedCell,
     getLoginNoticeSelectedCells,
-    getLoginNoticeTableColumnsElement,
-    getLoginNoticeTableInsertPanel,
-    getLoginNoticeTableRowsElement,
     getTemplateEditorMedianValue,
     getTemplateEditorTableLogicalColumnWidth,
     getTemplateEditorTableLogicalRowHeight,
@@ -45,108 +47,142 @@
     normalizeTemplateEditorColorValue,
     normalizeTemplateEditorTableAppearance,
     restoreLoginNoticeEditorSelection,
-    setEditorToolbarTableInsertPanelVisibility,
     setLoginNoticeEditorStatus,
     setTemplateEditorTableLogicalRowHeight,
     syncLoginNoticeEditorDraft,
     syncTemplateEditorTableWidth,
   }) {
-    const loginNoticeTableStructureController = createLoginNoticeTableStructureController({
-      appendMergedTemplateCellContent,
+    function getLoginNoticeActiveTableSelection() {
+      const anchorCell = getLoginNoticeSelectedCell();
+      const table = anchorCell?.closest("table");
+      const selectedCells = Array.from(new Set(getLoginNoticeSelectedCells().filter(Boolean)));
+
+      if (!anchorCell || !table || selectedCells.length === 0) {
+        return null;
+      }
+
+      const { entries } = buildTemplateTableCellMap(table);
+      const selectedEntries = selectedCells.map((cell) => entries.get(cell)).filter(Boolean);
+
+      if (selectedEntries.length === 0) {
+        return null;
+      }
+
+      return Object.freeze({
+        anchorCell,
+        endColIndex: Math.max(...selectedEntries.map((entry) => entry.colIndex + entry.colSpan - 1)),
+        endRowIndex: Math.max(...selectedEntries.map((entry) => entry.rowIndex + entry.rowSpan - 1)),
+        selectedCells,
+        startColIndex: Math.min(...selectedEntries.map((entry) => entry.colIndex)),
+        startRowIndex: Math.min(...selectedEntries.map((entry) => entry.rowIndex)),
+        table,
+      });
+    }
+
+    function getLoginNoticeTableMaxWidth(table) {
+      const noticeEditor = getLoginNoticeEditorElement();
+      const documentElement = table?.closest(".login-notice-editor-surface") || noticeEditor;
+
+      if (!documentElement) {
+        return Number.MAX_SAFE_INTEGER;
+      }
+
+      const elementWidth = Math.floor(documentElement.clientWidth);
+
+      if (elementWidth > 0) {
+        return Math.max(TEMPLATE_EDITOR_TABLE_MIN_SIZE, elementWidth);
+      }
+
+      return Number.MAX_SAFE_INTEGER;
+    }
+
+    function getLoginNoticeClampedColumnGroupWidth(table, columns, columnIndexes, requestedTotalWidth) {
+      const normalizedIndexes = Array.from(
+        new Set((columnIndexes || []).filter((index) => Number.isInteger(index) && index >= 0)),
+      ).sort((leftIndex, rightIndex) => leftIndex - rightIndex);
+
+      if (normalizedIndexes.length === 0) {
+        return Math.max(TEMPLATE_EDITOR_TABLE_MIN_SIZE, Math.round(requestedTotalWidth));
+      }
+
+      const minTotalWidth = TEMPLATE_EDITOR_TABLE_MIN_SIZE * normalizedIndexes.length;
+      const safeRequestedWidth = Math.max(minTotalWidth, Math.round(requestedTotalWidth));
+      const currentWidths = columns.map((columnElement) =>
+        Math.max(TEMPLATE_EDITOR_TABLE_MIN_SIZE, parseTemplateEditorPixelStyle(columnElement.style.width, TEMPLATE_EDITOR_TABLE_MIN_SIZE)),
+      );
+      const currentTableWidth = currentWidths.reduce((widthSum, columnWidth) => widthSum + columnWidth, 0);
+      const currentTargetWidth = normalizedIndexes.reduce(
+        (widthSum, columnIndex) => widthSum + (currentWidths[columnIndex] || TEMPLATE_EDITOR_TABLE_MIN_SIZE),
+        0,
+      );
+      const tableMaxWidth = getLoginNoticeTableMaxWidth(table);
+
+      if (safeRequestedWidth <= currentTargetWidth) {
+        return safeRequestedWidth;
+      }
+
+      const maxExpandableWidth =
+        currentTableWidth > tableMaxWidth ? currentTargetWidth : currentTargetWidth + Math.max(0, tableMaxWidth - currentTableWidth);
+
+      return Math.min(safeRequestedWidth, Math.max(minTotalWidth, maxExpandableWidth));
+    }
+
+    function setLoginNoticeTableLogicalColumnWidth(table, columnIndex, width) {
+      const { columns } = ensureTemplateEditorTableColGroup(table);
+      const columnElement = columns[columnIndex];
+
+      if (!columnElement) {
+        return false;
+      }
+
+      const safeWidth = getLoginNoticeClampedColumnGroupWidth(table, columns, [columnIndex], width);
+      columnElement.style.width = `${safeWidth}px`;
+      syncTemplateEditorTableWidth(table, columns);
+      return true;
+    }
+
+    const templateTableActionController = createTemplateEditorTableActionController({
+      TEMPLATE_EDITOR_TABLE_MIN_SIZE,
       buildTemplateTableCellMap,
       createTemplateTableCell,
-      getLoginNoticeSelectedCell,
-      getLoginNoticeSelectedCells,
-      getLoginNoticeTableColumnsElement,
-      getLoginNoticeTableInsertPanel,
-      getLoginNoticeTableRowsElement,
-      insertTemplateCellAtAbsoluteColumn,
-      isTemplateTableCellEmpty,
-      normalizeTemplateEditorTableAppearance,
-      setEditorToolbarTableInsertPanelVisibility,
-      setLoginNoticeEditorStatus,
-    });
-    const loginNoticeTableFormattingController = createLoginNoticeTableFormattingController({
-      buildTemplateTableCellMap,
       ensureTemplateEditorTableColGroup,
-      getLoginNoticeCellShadingElement,
-      getLoginNoticeSelectedCell,
-      getLoginNoticeSelectedCells,
-      getTemplateEditorMedianValue,
+      focusTemplateEditorCell: focusLoginNoticeEditorCell,
+      getTemplateEditorActiveTableSelection: getLoginNoticeActiveTableSelection,
+      getTemplateEditorCellShadingInput: getLoginNoticeCellShadingElement,
+      getTemplateEditorCellWidthInput: () => null,
+      getTemplateEditorClampedColumnGroupWidth: getLoginNoticeClampedColumnGroupWidth,
+      getTemplateEditorRowHeightInput: () => null,
+      getTemplateEditorSelectedCell: getLoginNoticeSelectedCell,
+      getTemplateEditorSizeScopeInput: () => ({ value: "cell" }),
       getTemplateEditorTableLogicalColumnWidth,
       getTemplateEditorTableLogicalRowHeight,
       normalizeTemplateEditorColorValue,
-      setLoginNoticeEditorStatus,
+      normalizeTemplateEditorTableAppearance,
+      restoreTemplateEditorSelection: restoreLoginNoticeEditorSelection,
+      setTemplateEditorStatus: setLoginNoticeEditorStatus,
+      setTemplateEditorTableLogicalColumnWidth: setLoginNoticeTableLogicalColumnWidth,
       setTemplateEditorTableLogicalRowHeight,
-      syncTemplateEditorTableWidth,
+      syncTemplateEditorContent: syncLoginNoticeEditorDraft,
+      updateTemplateTableControls: () => {},
     });
 
-    const { getLoginNoticeTableInsertConfig, setLoginNoticeTableInsertPanelVisibility } = loginNoticeTableStructureController;
-
-    function handleLoginNoticeTableAction(action, { colorValue = "" } = {}) {
+    function handleLoginNoticeTableAction(action, options = {}) {
       const noticeEditor = getLoginNoticeEditorElement();
 
       if (!noticeEditor) {
-        return;
+        return false;
       }
 
       noticeEditor.focus();
-      restoreLoginNoticeEditorSelection();
-
-      let focusCell = null;
-
-      if (action === "insert-row-before") {
-        focusCell = loginNoticeTableStructureController.insertLoginNoticeTableRow("before");
-      }
-
-      if (action === "insert-row-after") {
-        focusCell = loginNoticeTableStructureController.insertLoginNoticeTableRow("after");
-      }
-
-      if (action === "insert-column-before") {
-        focusCell = loginNoticeTableStructureController.insertLoginNoticeTableColumn("before");
-      }
-
-      if (action === "insert-column-after") {
-        focusCell = loginNoticeTableStructureController.insertLoginNoticeTableColumn("after");
-      }
-
-      if (action === "delete-row") {
-        focusCell = loginNoticeTableStructureController.deleteLoginNoticeTableRow();
-      }
-
-      if (action === "delete-column") {
-        focusCell = loginNoticeTableStructureController.deleteLoginNoticeTableColumn();
-      }
-
-      if (action === "merge-selection") {
-        focusCell = loginNoticeTableStructureController.mergeLoginNoticeTableSelection();
-      }
-
-      if (action === "equalize-column-widths") {
-        focusCell = loginNoticeTableFormattingController.equalizeLoginNoticeTableColumnWidths();
-      }
-
-      if (action === "equalize-row-heights") {
-        focusCell = loginNoticeTableFormattingController.equalizeLoginNoticeTableRowHeights();
-      }
-
-      if (action === "apply-cell-shading") {
-        focusCell = loginNoticeTableFormattingController.applyLoginNoticeCellShading(colorValue);
-      }
-
-      if (!focusCell) {
-        return;
-      }
-
-      focusLoginNoticeEditorCell(focusCell);
-      syncLoginNoticeEditorDraft();
+      return templateTableActionController.handleTemplateTableAction(action, options);
     }
 
     return Object.freeze({
-      getLoginNoticeTableInsertConfig,
+      getTemplateEditorMedianValue:
+        typeof getTemplateEditorMedianValue === "function"
+          ? (...args) => getTemplateEditorMedianValue(...args)
+          : undefined,
       handleLoginNoticeTableAction,
-      setLoginNoticeTableInsertPanelVisibility,
     });
   }
 

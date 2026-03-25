@@ -1,11 +1,21 @@
 (function (globalScope, factory) {
   if (typeof module === "object" && module.exports) {
-    module.exports = factory();
+    module.exports = factory({
+      toolbarControlsModule: require("../editor/toolbar-controls"),
+    });
     return;
   }
 
-  globalScope.AdmitCardTemplateEditorEvents = factory();
-})(typeof globalThis !== "undefined" ? globalThis : this, () => {
+  globalScope.AdmitCardTemplateEditorEvents = factory({
+    toolbarControlsModule: globalScope.AdmitCardEditorToolbarControls,
+  });
+})(typeof globalThis !== "undefined" ? globalThis : this, ({ toolbarControlsModule }) => {
+  if (!toolbarControlsModule) {
+    throw new Error("client/features/editor/toolbar-controls.js must be loaded before template-editor/events.js.");
+  }
+
+  const { focusEditorToolbarNumberInput, stepEditorToolbarNumberInput } = toolbarControlsModule;
+
   function createTemplateEditorEventHandlers({
     addTemplateCard,
     applyTemplateCard,
@@ -18,6 +28,9 @@
     clearTemplateEditorTableSelection,
     closeTemplateCardMetaEditor,
     deleteTemplateCard,
+    getTemplateEditorCellSplitConfig,
+    getTemplateEditorCellSplitCountInput,
+    getTemplateEditorCellSplitPanel,
     getTemplateEditorImageInput,
     getTemplateEditorImageTarget,
     getTemplateEditorModal,
@@ -39,6 +52,7 @@
     saveTemplateEditorSelection,
     selectTemplateEditorImage,
     setEditorToolbarFontSizeMenuVisibility,
+    setTemplateEditorCellSplitPanelVisibility,
     setTemplateEditorTableInsertPanelVisibility,
     startTemplateEditorImageMoveSession,
     state,
@@ -64,6 +78,9 @@
       const templateDeleteTrigger = event.target.closest("[data-template-delete]");
       const templateCommandTrigger = event.target.closest("[data-template-command]");
       const templateBlockTrigger = event.target.closest("[data-template-block]");
+      const templateCellSplitStepTrigger = event.target.closest("[data-template-cell-split-step]");
+      const templateCellSplitToggleTrigger = event.target.closest("[data-template-cell-split-toggle]");
+      const templateCellSplitConfirmTrigger = event.target.closest("[data-template-cell-split-confirm]");
       const templateTableActionTrigger = event.target.closest("[data-template-table-action]");
       const templateTableSizeTrigger = event.target.closest("[data-template-table-size]");
       const templateInsertTrigger = event.target.closest("[data-template-insert]");
@@ -103,6 +120,52 @@
         }
 
         setEditorToolbarFontSizeMenuVisibility(inputId, false);
+        return true;
+      }
+
+      if (templateCellSplitStepTrigger) {
+        const splitCountInput = getTemplateEditorCellSplitCountInput?.();
+        const nextStep = templateCellSplitStepTrigger.dataset.templateCellSplitStep;
+
+        if (!splitCountInput) {
+          return true;
+        }
+
+        stepEditorToolbarNumberInput({
+          inputElement: splitCountInput,
+          direction: nextStep,
+          minimum: 2,
+        });
+        focusEditorToolbarNumberInput(splitCountInput);
+        return true;
+      }
+
+      if (templateCellSplitToggleTrigger) {
+        const splitPanel = getTemplateEditorCellSplitPanel?.();
+        const splitCountInput = getTemplateEditorCellSplitCountInput?.();
+        const nextOpen = splitPanel?.classList.contains("hidden") ?? true;
+
+        setTemplateEditorCellSplitPanelVisibility(nextOpen);
+
+        if (nextOpen) {
+          splitCountInput?.focus();
+          splitCountInput?.select();
+        }
+
+        return true;
+      }
+
+      if (templateCellSplitConfirmTrigger) {
+        const cellSplitConfig = getTemplateEditorCellSplitConfig?.();
+
+        if (!cellSplitConfig) {
+          return true;
+        }
+
+        if (handleTemplateTableAction("split-cell", cellSplitConfig)) {
+          setTemplateEditorCellSplitPanelVisibility(false);
+        }
+
         return true;
       }
 
@@ -172,6 +235,7 @@
       }
 
       if (templateOpenImageTrigger) {
+        setTemplateEditorCellSplitPanelVisibility(false);
         setTemplateEditorTableInsertPanelVisibility(false);
         getTemplateEditorImageInput()?.click();
         return true;
@@ -205,6 +269,7 @@
       const normalizedKey = String(event.key || "").toLowerCase();
       const isTemplateTableInsertField =
         event.target?.id === "templateEditorTableRows" || event.target?.id === "templateEditorTableColumns";
+      const isTemplateCellSplitField = event.target?.id === "templateEditorCellSplitCount";
       const isTemplateEditorFontSizeField = event.target?.id === "templateEditorFontSize";
       const isTemplateCardMetaField = event.target?.matches?.("[data-template-card-input]") ?? false;
 
@@ -257,6 +322,23 @@
         return true;
       }
 
+      if (
+        !templateEditorModal?.classList.contains("hidden") &&
+        isTemplateCellSplitField &&
+        event.key === "Enter" &&
+        !getTemplateEditorCellSplitPanel()?.classList.contains("hidden")
+      ) {
+        event.preventDefault();
+
+        const cellSplitConfig = getTemplateEditorCellSplitConfig?.();
+
+        if (cellSplitConfig && handleTemplateTableAction("split-cell", cellSplitConfig)) {
+          setTemplateEditorCellSplitPanelVisibility(false);
+        }
+
+        return true;
+      }
+
       if (isTemplateEditorFontSizeField && event.key === "Enter") {
         event.preventDefault();
         applyTemplateEditorFontSize(event.target.value);
@@ -275,13 +357,13 @@
       }
 
       const toolbarTrigger = event.target.closest(
-        "[data-template-command], [data-template-table-action], [data-template-insert], [data-template-open-image], [data-template-tag], [data-save-template-editor], [data-editor-color-preset], [data-editor-color-apply], [data-editor-color-toggle], [data-editor-color-direct]",
+        "[data-template-command], [data-template-table-action], [data-template-cell-split-step], [data-template-cell-split-toggle], [data-template-cell-split-confirm], [data-template-insert], [data-template-open-image], [data-template-tag], [data-save-template-editor], [data-editor-color-preset], [data-editor-color-apply], [data-editor-color-toggle], [data-editor-color-direct]",
       );
       const templateFontSizeTrigger = event.target.closest(
         "#templateEditorModal [data-editor-font-size-toggle], #templateEditorModal [data-editor-font-size-option]",
       );
       const toolbarSelectionControl = event.target.closest(
-        "#templateEditorBlockType, #templateEditorFontFamily, #templateEditorFontSize, #templateEditorTextColor, #templateEditorTextShading, #templateEditorCellShading, #templateEditorTableRows, #templateEditorTableColumns",
+        "#templateEditorBlockType, #templateEditorFontFamily, #templateEditorFontSize, #templateEditorTextColor, #templateEditorTextShading, #templateEditorCellShading, #templateEditorTableRows, #templateEditorTableColumns, #templateEditorCellSplitPanel",
       );
 
       if (toolbarTrigger || templateFontSizeTrigger) {
