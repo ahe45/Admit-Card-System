@@ -7,7 +7,7 @@ function createDatabaseErrorTranslator({ createHttpError }) {
     if (error.code === "AUTH_SWITCH_PLUGIN_ERROR" || String(error.message || "").includes("auth_gssapi_client")) {
       return createHttpError(
         500,
-        "현재 MariaDB 계정은 auth_gssapi_client 인증을 사용 중입니다. Node에서는 전용 mysql_native_password 계정을 만들어 `.env`에 설정해야 합니다.",
+        "MariaDB 인증 협상에 실패했습니다. Windows의 root/admin 계정을 쓰는 경우 auth_gssapi_client가 잡힐 수 있으니, 먼저 `.env`의 DB 계정 정보가 맞는지 확인하고 필요하면 mysql_native_password 계정을 사용하세요.",
       );
     }
 

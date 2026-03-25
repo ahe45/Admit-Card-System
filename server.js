@@ -300,7 +300,7 @@ function createApiRouteDependencies() {
     createBatchAdmitCardJob,
     createHttpError,
     createTemplate,
-    databaseName: process.env.DB_NAME || "admit_card",
+    databaseName: process.env.DB_NAME || "admitcard",
     deleteAccount,
     deleteSystemData,
     deleteTemplate,
@@ -421,14 +421,26 @@ async function initializeServer() {
   });
 }
 
+function reportStartupError(error) {
+  if (error?.code === "EADDRINUSE") {
+    console.error(
+      `Server start failed: port ${port} is already in use. Stop the existing process or change PORT in .env.`,
+    );
+    return;
+  }
+
+  console.error(error);
+}
+
 if (require.main === module) {
   initializeServer().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
+    reportStartupError(error);
+    process.exit(1);
   });
 }
 
 module.exports = {
   initializeServer,
+  reportStartupError,
   server,
 };
