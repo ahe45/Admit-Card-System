@@ -225,7 +225,12 @@
 }
 
 .login-notice-settings-stack > .form-card {
-  padding: 20px;
+  padding: 10px 20px;
+}
+
+.notice-settings-tabs {
+  margin: 0;
+  padding: 14px 0;
 }
 
 .login-preview-host {
@@ -275,6 +280,49 @@
 .login-shell.login-notice-editor-stage .login-panel-card {
   height: 100%;
   min-height: 100%;
+}
+
+.applicant-notice-preview-shell {
+  width: min(100%, 920px);
+  min-height: 600px;
+  display: grid;
+}
+
+.applicant-notice-preview-card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 22px;
+  min-height: 600px;
+  padding: 32px;
+  border: 1px solid rgba(203, 213, 225, 0.44);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top right, rgba(84, 211, 186, 0.14), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(45, 99, 245, 0.14), transparent 30%),
+    rgba(255, 255, 255, 0.82);
+  box-shadow: var(--shadow);
+}
+
+.applicant-notice-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.applicant-notice-preview-home-button {
+  min-width: 160px;
+}
+
+.applicant-notice-preview-body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
+  min-height: 0;
+}
+
+.applicant-notice-editor-surface {
+  height: 100%;
 }
 
 .template-editor-surface.login-notice-editor-surface {
@@ -534,6 +582,16 @@
   .login-hero-card,
   .login-panel-card {
     min-height: auto;
+  }
+
+  .applicant-notice-preview-card {
+    min-height: auto;
+    padding: 24px;
+  }
+
+  .applicant-notice-preview-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .notice-toolbar-group {

@@ -77,6 +77,14 @@
     undoLoginNoticeEditorHistory,
     redoLoginNoticeEditorHistory,
   }) {
+    function getActiveNoticeScope() {
+      return state.noticeManagement?.activeScope === "applicant" ? "applicant" : "login";
+    }
+
+    function getActiveNoticeScopeLabel() {
+      return getActiveNoticeScope() === "applicant" ? "접수화면" : "로그인화면";
+    }
+
     const loginNoticeTableActionController = createLoginNoticeTableActionController({
       appendMergedTemplateCellContent,
       buildTemplateTableCellMap,
@@ -208,18 +216,23 @@
 
     async function saveLoginNoticeContent() {
       syncLoginNoticeEditorDraft();
+      const activeScope = getActiveNoticeScope();
+      const activeScopeLabel = getActiveNoticeScopeLabel();
 
       try {
         const payload = await apiRequest("/api/login-notice", {
           method: "PUT",
           body: JSON.stringify({
+            scope: activeScope,
             html: state.loginNotice.draftHtml,
           }),
         });
 
-        applyLoginNoticePayload(payload.html || payload.loginNoticeHtml || state.loginNotice.draftHtml);
+        applyLoginNoticePayload(payload.html || payload.loginNoticeHtml || payload.applicantNoticeHtml || state.loginNotice.draftHtml, {
+          scope: activeScope,
+        });
         renderView();
-        showToast("로그인화면 공지사항을 저장했습니다.");
+        showToast(`${activeScopeLabel} 공지사항을 저장했습니다.`);
       } catch (error) {
         if (handleAuthenticationFailure(error)) {
           return;

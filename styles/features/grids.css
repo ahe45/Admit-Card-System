@@ -420,6 +420,10 @@ tbody tr:last-child td {
   scrollbar-gutter: stable;
 }
 
+.applicant-admin-grid-card.is-empty-grid {
+  min-height: clamp(420px, calc(100vh - 240px), 760px);
+}
+
 .table-header-static {
   display: flex;
   align-items: center;
@@ -578,6 +582,13 @@ tbody tr:last-child td {
 }
 
 .result-grid-card th.table-action-column .table-header-static {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.applicant-admin-grid-card th.table-column-detailAction .table-header-static,
+.applicant-admin-grid-card th.table-column-promoteAction .table-header-static {
   justify-content: center;
   padding-left: 0;
   padding-right: 0;

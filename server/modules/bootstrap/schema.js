@@ -1,4 +1,5 @@
 const { createAccountSchemaBootstrap } = require("./schema/accounts");
+const { createApplicantSchemaBootstrap } = require("./schema/applications");
 const { createExamineeSchemaBootstrap } = require("./schema/examinee");
 const { createPrintHistorySchemaBootstrap } = require("./schema/print-history");
 const { createSchemaQueryHelpers } = require("./schema/helpers");
@@ -24,6 +25,7 @@ function createSchemaBootstrapService({
   const printHistorySchemaBootstrap = createPrintHistorySchemaBootstrap({
     getTableColumns,
     hasColumn,
+    hasTable,
     query,
   });
   const { ensurePrintHistorySchema } = printHistorySchemaBootstrap;
@@ -35,15 +37,25 @@ function createSchemaBootstrapService({
   });
   const { ensureAccountSchema } = accountSchemaBootstrap;
 
+  const applicantSchemaBootstrap = createApplicantSchemaBootstrap({
+    getTableColumns,
+    hasColumn,
+    hasTable,
+    query,
+  });
+  const { ensureApplicantSchema } = applicantSchemaBootstrap;
+
   const systemSettingsSchemaBootstrap = createSystemSettingsSchemaBootstrap({
     defaultAutoLogoutMinutes,
     defaultInitialPassword,
+    hasTable,
     query,
   });
   const { ensureSystemSettingsSchema } = systemSettingsSchemaBootstrap;
 
   return Object.freeze({
     ensureAccountSchema,
+    ensureApplicantSchema,
     ensureExamineeSchema,
     ensurePrintHistorySchema,
     ensureSystemSettingsSchema,

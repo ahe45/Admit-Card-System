@@ -608,9 +608,36 @@ async function runSmokeTest() {
     const loginNoticePayload = await fetchJsonInPage(page, "/api/login-notice");
     assert(loginNoticePayload.ok && String(loginNoticePayload.payload?.html || "").includes(updatedNoticeText), "Login notice save did not persist.");
 
-    console.log("STEP 10/11: Print history deletion");
-    await navigateToView(page, "systemSettings", "/system-settings");
+    console.log("STEP 10/11: System data deletion");
+    await navigateToView(page, "systemDataDeletion", "/system-data-deletion");
     await waitForVisible(page, "[data-system-data-delete='print-history']");
+    const dataDeletionViewState = await page.evaluate(() => {
+      const navViews = Array.from(document.querySelectorAll(".nav-item[data-view]"))
+        .filter((item) => !item.classList.contains("hidden"))
+        .map((item) => String(item.dataset.view || "").trim());
+      const deleteFields = Array.from(document.querySelectorAll(".system-data-delete-form .field.system-settings-field")).map((field) => ({
+        label: field.querySelector(".system-settings-label")?.textContent?.trim() || "",
+        description: field.querySelector(".system-settings-help")?.textContent?.trim() || "",
+      }));
+
+      return {
+        navViews,
+        deleteFields,
+      };
+    });
+    assert(
+      dataDeletionViewState.navViews.indexOf("systemDataDeletion") === dataDeletionViewState.navViews.indexOf("systemSettings") + 1,
+      "Data deletion menu item was not placed directly below system settings.",
+    );
+    const examineeDeleteFieldIndex = dataDeletionViewState.deleteFields.findIndex((field) => field.label === "수험생 데이터");
+    const photoDeleteFieldIndex = dataDeletionViewState.deleteFields.findIndex((field) => field.label === "사진 데이터");
+    assert(examineeDeleteFieldIndex >= 0, "Examinee deletion field did not render.");
+    assert(photoDeleteFieldIndex >= 0, "Photo deletion field did not render.");
+    assert(examineeDeleteFieldIndex < photoDeleteFieldIndex, "Examinee deletion field was not placed above photo deletion.");
+    assert(
+      dataDeletionViewState.deleteFields.some((field) => field.description === "수험생 데이터와 사진 파일을 삭제합니다."),
+      "Examinee deletion description did not match the requested copy.",
+    );
     await page.click("[data-system-data-delete='print-history']");
     await page.waitForFunction(() => {
       const status = document.getElementById("systemDataDeletionStatus");
@@ -622,6 +649,18 @@ async function runSmokeTest() {
       return viewText.includes("출력 이력이 없습니다.") || !viewText.includes(examineeNo);
     }, {}, artifacts.sampleExamineeNo);
     assert(!((await page.$eval("#viewRoot", (element) => element.innerText)).includes(artifacts.sampleExamineeNo)), "Print history rows still remained after deletion.");
+    await navigateToView(page, "systemDataDeletion", "/system-data-deletion");
+    await waitForVisible(page, "[data-system-data-delete='examinees']");
+    await page.click("[data-system-data-delete='examinees']");
+    await page.waitForFunction(() => {
+      const status = document.getElementById("systemDataDeletionStatus");
+      return Boolean(status) && status.textContent.includes("수험생 데이터");
+    });
+    await navigateToView(page, "dashboard", "/dashboard");
+    await page.waitForFunction(() => {
+      const counter = document.getElementById("registeredExamineeCount");
+      return Boolean(counter) && counter.textContent.includes("0명");
+    });
 
     console.log("STEP 11/11: Logout and final login notice check");
     await page.click("[data-auth-logout='true']");

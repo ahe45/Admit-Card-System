@@ -38,6 +38,35 @@
     }
 
     function renderTableCell(gridKey, column, row) {
+      if (gridKey === "applicantHistoryGrid") {
+        if (column.key === "id") {
+          return renderTableTextCell(column.key, row.id, [], { strong: true });
+        }
+
+        if (column.key === "statusLabel") {
+          return renderTableDataCell(
+            column.key,
+            `<span class="applicant-status-chip applicant-status-${escapeAttribute(row.status || "submitted")}">${escapeHtml(row.statusLabel || row.status || "-")}</span>`,
+          );
+        }
+
+        if (column.key === "detailAction") {
+          return renderAccountActionCell(
+            column.key,
+            `
+              <button
+                class="ghost-button small-button"
+                data-applicant-submission-toggle="${escapeAttribute(row.id)}"
+                type="button"
+              >
+                ${escapeHtml("답변 보기")}
+              </button>
+            `,
+          );
+        }
+
+      }
+
       if (gridKey === "accountManagementGrid") {
         const isEditing = isAccountRowEditing(row.id);
 

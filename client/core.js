@@ -146,13 +146,23 @@ const {
 const SYSTEM_DATA_DELETE_CONFIG = Object.freeze({
   all: Object.freeze({
     confirmMessage:
-      "전체 데이터를 삭제하시겠습니까?\n\n수험생 데이터, 사진 데이터, 수험표 출력 이력이 모두 삭제되며 복구할 수 없습니다.",
+      "전체 데이터를 삭제하시겠습니까?\n\n수험생 데이터, 사진 데이터, 접수 설정 데이터, 수험표 출력 이력, 접수 이력 데이터가 모두 삭제되며 복구할 수 없습니다.",
+  }),
+  "applicant-settings": Object.freeze({
+    confirmMessage: "접수 설정 데이터를 삭제하시겠습니까?\n\n접수 설정 데이터가 모두 삭제되며 복구할 수 없습니다.",
+  }),
+  examinees: Object.freeze({
+    confirmMessage:
+      "수험생 데이터를 삭제하시겠습니까?\n\n수험생 데이터와 사진 파일이 모두 삭제되며, 연관된 수험표 출력 이력도 함께 정리됩니다. 복구할 수 없습니다.",
   }),
   photos: Object.freeze({
     confirmMessage: "사진 데이터를 삭제하시겠습니까?\n\n업로드된 사진 파일과 사진 데이터가 모두 삭제되며 복구할 수 없습니다.",
   }),
   "print-history": Object.freeze({
     confirmMessage: "수험표 출력 이력을 삭제하시겠습니까?\n\n출력 이력 데이터가 모두 삭제되며 복구할 수 없습니다.",
+  }),
+  "applicant-history": Object.freeze({
+    confirmMessage: "접수 이력 데이터를 삭제하시겠습니까?\n\n접수 이력 데이터가 모두 삭제되며 복구할 수 없습니다.",
   }),
 });
 const AVAILABLE_VIEWS = new Set(availableViews);
@@ -161,6 +171,7 @@ const LOGIN_NOTICE_EDITOR_HISTORY_LIMIT = 120;
 const TEMPLATE_EDITOR_IMAGE_MIN_SIZE = 32;
 const {
   createAccountEditorState,
+  createApplicantManagementState,
   createAuthState,
   createBatchPrintState,
   createExamineeDetailState,
@@ -232,7 +243,9 @@ const {
 } = examineeFileTransfer;
 const getDefaultLoginNoticeHtml = (initialPassword = DEFAULT_SYSTEM_INITIAL_PASSWORD) =>
   stateFactories.getDefaultLoginNoticeHtml(initialPassword);
+const getDefaultApplicantNoticeHtml = () => stateFactories.getDefaultApplicantNoticeHtml();
 const DEFAULT_LOGIN_NOTICE_HTML = getDefaultLoginNoticeHtml(DEFAULT_SYSTEM_INITIAL_PASSWORD);
+const DEFAULT_APPLICANT_NOTICE_HTML = getDefaultApplicantNoticeHtml();
 const normalizeLoginNoticeHtml = (html = "") =>
   stateFactories.normalizeLoginNoticeHtml(html, {
     fallbackHtml: DEFAULT_LOGIN_NOTICE_HTML,
@@ -242,16 +255,23 @@ const createLoginNoticeState = (initialHtml = getDefaultLoginNoticeHtml()) =>
     defaultHtml: DEFAULT_LOGIN_NOTICE_HTML,
     fallbackHtml: DEFAULT_LOGIN_NOTICE_HTML,
   });
+const createApplicantNoticeState = (initialHtml = getDefaultApplicantNoticeHtml()) =>
+  stateFactories.createApplicantNoticeState(initialHtml, {
+    defaultHtml: DEFAULT_APPLICANT_NOTICE_HTML,
+    fallbackHtml: DEFAULT_APPLICANT_NOTICE_HTML,
+  });
 
 const appStateController = createAppStateController({
   AVAILABLE_VIEWS,
   DEFAULT_VIEW,
   HEADER_FILTER_STORAGE_KEY,
   createAccountEditorState,
+  createApplicantManagementState,
   createAuthState,
   createBatchPrintState,
   createExamineeDetailState,
   createHeaderFilters,
+  createApplicantNoticeState,
   createLoginNoticeState,
   createLookupFilters,
   createPdfGenerationState,
@@ -274,6 +294,7 @@ const {
   getRequestedViewFromLocation,
   isLoginPage,
   loadCurrentViewFromLocation,
+  setNoticeManagementScope,
   state,
 } = appStateController;
 
@@ -286,6 +307,14 @@ const {
   accountCreateModal,
   accountCreateName,
   accountCreateRole,
+  applicantSubmissionDownloadModal,
+  applicantSubmissionDetailBody,
+  applicantSubmissionDetailMeta,
+  applicantSubmissionDetailModal,
+  applicantRecruitmentUnitModal,
+  applicantUnitUploadFileInput,
+  applicantUnitUploadFileName,
+  applicantUnitUploadModal,
   appShell,
   autoLogoutCountdown,
   autoLogoutCountdownValue,
@@ -519,6 +548,7 @@ const bootstrapDataController = createBootstrapDataController({
   clearAutoLogoutCountdownInterval,
   clearAutoLogoutTimer,
   createAccountEditorState,
+  createApplicantManagementState,
   createExamineeDetailState,
   createHeaderFilters,
   createPdfGenerationState,

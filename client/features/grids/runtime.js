@@ -27,6 +27,8 @@
   const { createGridTableUiController } = gridTableUiModule;
 
   function createGridRuntimeController({
+    applicantHistoryGridColumns,
+    applicantRecruitmentGridColumns,
     accountGridColumns,
     admitCardLookupGridColumns,
     createTableState,
@@ -34,6 +36,7 @@
     escapeHtml,
     examineePhotoColumn,
     examineeRegistrationGridColumns,
+    getApplicantStatusLabel,
     getAccountGridRows,
     getExamineeGridRows,
     getPrintHistoryRows,
@@ -46,6 +49,7 @@
     renderAccountRoleOptions,
     renderView,
     resultGridColumns,
+    startApplicantRecruitmentUnitEdit,
     state,
   }) {
     let gridStateController = null;
@@ -62,11 +66,14 @@
       state,
     });
     const gridStateMethods = createGridStateController({
+      applicantHistoryGridColumns,
+      applicantRecruitmentGridColumns,
       accountGridColumns,
       admitCardLookupGridColumns,
       createTableState,
       examineePhotoColumn,
       examineeRegistrationGridColumns,
+      getApplicantStatusLabel,
       getAccountGridRows,
       getExamineeGridRows,
       getFilteredLookupRows: (...args) => gridRenderingController.getFilteredLookupRows(...args),
@@ -76,6 +83,7 @@
       openExamineeDetail,
       printHistoryGridColumns,
       resultGridColumns,
+      startApplicantRecruitmentUnitEdit,
       state,
     });
     const gridTableUiController = createGridTableUiController({

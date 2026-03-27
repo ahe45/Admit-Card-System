@@ -102,11 +102,12 @@
       gridKey,
       showPrintColumn,
       headerActionsMarkup = "",
+      headerLeadingMarkup = "",
       showSectionHeader = true,
       selectable = true,
       showRowNumber = false,
       checkboxFirst = false,
-      emptyMessage = "검색 결과가 없습니다.",
+      emptyMessage = "데이터가 없습니다.",
     }) {
       const columns = getGridColumns(gridKey);
       const rows = getGridRows(gridKey);
@@ -130,8 +131,16 @@
         cardClasses.push("has-print-column");
       }
 
+      if (visibleRows.length === 0) {
+        cardClasses.push("is-empty-grid");
+      }
+
       if (["examineeRegistrationGrid", "admitCardLookupGrid", "printHistoryGrid"].includes(gridKey)) {
         cardClasses.push("examinee-data-table");
+      }
+
+      if (["applicantHistoryGrid", "applicantRecruitmentGrid"].includes(gridKey)) {
+        cardClasses.push("applicant-admin-grid-card");
       }
 
       if (gridKey === "examineeRegistrationGrid") {
@@ -150,15 +159,24 @@
         cardClasses.push("account-management-table");
       }
 
+      const resolvedHeaderLeadingMarkup =
+        typeof headerLeadingMarkup === "string" && headerLeadingMarkup.trim()
+          ? headerLeadingMarkup
+          : title
+            ? `
+                <div>
+                  <h3>${title}</h3>
+                </div>
+              `
+            : "<div></div>";
+
       return `
         <article class="${cardClasses.join(" ")}">
           ${
             showSectionHeader
               ? `
                 <div class="section-header">
-                  <div>
-                    <h3>${title}</h3>
-                  </div>
+                  ${resolvedHeaderLeadingMarkup}
                   <div class="inline-actions table-header-actions">
                     ${headerActionsMarkup}
                   </div>

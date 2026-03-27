@@ -338,7 +338,7 @@
 
     function decorateSelectFields() {
       document.querySelectorAll(".field").forEach((field) => {
-        field.classList.toggle("select-field", Boolean(field.querySelector("select")));
+        field.classList.toggle("select-field", Boolean(field.querySelector(":scope > select")));
       });
     }
 

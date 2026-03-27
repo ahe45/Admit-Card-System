@@ -171,7 +171,7 @@ function createTemplateBootstrapService({
     const [schemaVersionRow] = await query(
       `
         SELECT setting_value AS settingValue
-        FROM system_settings
+        FROM system_set
         WHERE setting_key = 'templateTagSchemaVersion'
       `,
     );
@@ -206,7 +206,7 @@ function createTemplateBootstrapService({
 
     await query(
       `
-        INSERT INTO system_settings (setting_key, setting_value)
+        INSERT INTO system_set (setting_key, setting_value)
         VALUES ('templateTagSchemaVersion', ?)
         ON DUPLICATE KEY UPDATE
           setting_value = VALUES(setting_value)
@@ -219,7 +219,7 @@ function createTemplateBootstrapService({
     const [schemaVersionRow] = await query(
       `
         SELECT setting_value AS settingValue
-        FROM system_settings
+        FROM system_set
         WHERE setting_key = 'templateLayoutSchemaVersion'
       `,
     );
@@ -254,7 +254,7 @@ function createTemplateBootstrapService({
 
     await query(
       `
-        INSERT INTO system_settings (setting_key, setting_value)
+        INSERT INTO system_set (setting_key, setting_value)
         VALUES ('templateLayoutSchemaVersion', ?)
         ON DUPLICATE KEY UPDATE
           setting_value = VALUES(setting_value)

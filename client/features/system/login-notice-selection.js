@@ -44,6 +44,31 @@
     syncEditorToolbarColorControls,
     updateEditorToolbarFormattingState,
   }) {
+    function syncLoginNoticeTableVerticalAlignButtons(selectedCell, noticeEditor) {
+      if (!noticeEditor) {
+        return;
+      }
+
+      const activeValue = selectedCell
+        ? (() => {
+            const computedValue = String(selectedCell.style.verticalAlign || window.getComputedStyle(selectedCell).verticalAlign || "")
+              .trim()
+              .toLowerCase();
+            return computedValue === "bottom" ? "bottom" : computedValue === "middle" ? "middle" : "top";
+          })()
+        : "";
+
+      noticeEditor
+        .querySelectorAll("[data-notice-table-action^='cell-vertical-align-']")
+        .forEach((buttonElement) => {
+          const buttonValue = String(buttonElement.dataset.noticeTableAction || "").replace("cell-vertical-align-", "");
+          const isActive = activeValue !== "" && buttonValue === activeValue;
+
+          buttonElement.classList.toggle("is-active", isActive);
+          buttonElement.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
+    }
+
     function buildLoginNoticeEditorMarkup(rawHtml) {
       const container = document.createElement("div");
 
@@ -139,6 +164,8 @@
           fallbackValue,
         });
       }
+
+      syncLoginNoticeTableVerticalAlignButtons(getLoginNoticeSelectedCell(), noticeEditor);
     }
 
     function getLoginNoticeSerializedHtml() {

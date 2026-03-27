@@ -6,7 +6,7 @@
 
   globalScope.AdmitCardGridSelection = factory();
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
-  function createGridSelectionController({ getGridRows, getTableState, openExamineeDetail, state }) {
+  function createGridSelectionController({ getGridRows, getTableState, openExamineeDetail, startApplicantRecruitmentUnitEdit, state }) {
     function getGridRowId(gridKey, row) {
       if (gridKey === "accountManagementGrid") {
         return row.id || "";
@@ -14,6 +14,10 @@
 
       if (gridKey === "printHistoryGrid") {
         return String(row.historyId || `${row.examineeNo}-${row.printedAt}`);
+      }
+
+      if (gridKey === "applicantHistoryGrid" || gridKey === "applicantRecruitmentGrid") {
+        return String(row.id || "");
       }
 
       return row.examineeNo || `${row.name}-${row.birth}-${row.date}`;
@@ -46,7 +50,7 @@
     }
 
     function isGridRowClickable(gridKey) {
-      return gridKey === "examineeRegistrationGrid" || gridKey === "admitCardLookupGrid";
+      return gridKey === "examineeRegistrationGrid" || gridKey === "admitCardLookupGrid" || gridKey === "applicantRecruitmentGrid";
     }
 
     function isGridRowHighlighted(gridKey, row, rowId = getGridRowId(gridKey, row)) {
@@ -56,6 +60,14 @@
 
       if (gridKey === "admitCardLookupGrid") {
         return isGridRowSelected(gridKey, rowId);
+      }
+
+      if (gridKey === "applicantHistoryGrid") {
+        return Number(state.applicantManager?.expandedSubmissionId || 0) === Number(row?.id || rowId || 0);
+      }
+
+      if (gridKey === "applicantRecruitmentGrid") {
+        return Number(state.applicantManager?.recruitmentUnitEditor?.editingId || 0) === Number(row?.id || rowId || 0);
       }
 
       return false;
@@ -158,6 +170,11 @@
       if (gridKey === "admitCardLookupGrid") {
         handleAdmitCardLookupRowSelection(rowId, options);
         return true;
+      }
+
+      if (gridKey === "applicantRecruitmentGrid") {
+        startApplicantRecruitmentUnitEdit(rowId);
+        return false;
       }
 
       return false;

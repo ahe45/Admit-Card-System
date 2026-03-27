@@ -11,6 +11,8 @@
     DEFAULT_VIEW,
     HEADER_FILTER_STORAGE_KEY,
     createAccountEditorState,
+    createApplicantManagementState,
+    createApplicantNoticeState,
     createAuthState,
     createBatchPrintState,
     createExamineeDetailState,
@@ -48,6 +50,14 @@
       return AVAILABLE_VIEWS.has(requestedView) ? requestedView : DEFAULT_VIEW;
     }
 
+    const noticeManagementState = {
+      activeScope: "login",
+      scopes: {
+        login: createLoginNoticeState(),
+        applicant: createApplicantNoticeState(),
+      },
+    };
+
     const state = {
       currentView: loadCurrentViewFromLocation(),
       headerFilters: loadStoredHeaderFilters({
@@ -56,6 +66,7 @@
       }),
       lookupFilters: createLookupFilters(),
       composingInputId: "",
+      applicantManager: createApplicantManagementState(),
       examineeDetail: createExamineeDetailState(),
       templateCards: [],
       templateCardEditor: createTemplateCardEditorState(),
@@ -79,7 +90,8 @@
       },
       upload: createUploadState(),
       toast: createToastState(),
-      loginNotice: createLoginNoticeState(),
+      noticeManagement: noticeManagementState,
+      loginNotice: noticeManagementState.scopes.login,
       tableSettings: {
         examineeRegistrationGrid: createTableState({
           defaultSortRules: [{ key: "examineeNo", direction: "asc" }],
@@ -93,11 +105,32 @@
         accountManagementGrid: createTableState({
           defaultSortRules: [{ key: "id", direction: "asc" }],
         }),
+        applicantHistoryGrid: createTableState({
+          defaultSortRules: [{ key: "updatedAt", direction: "desc" }],
+        }),
+        applicantRecruitmentGrid: createTableState(),
       },
     };
 
-    function applyLoginNoticePayload(html = "") {
-      state.loginNotice = createLoginNoticeState(html);
+    function getNoticeScopeState(scope = "") {
+      return String(scope || "").trim() === "applicant" ? "applicant" : "login";
+    }
+
+    function applyLoginNoticePayload(html = "", options = {}) {
+      const scope = getNoticeScopeState(options.scope);
+      const nextNoticeState = scope === "applicant" ? createApplicantNoticeState(html) : createLoginNoticeState(html);
+
+      state.noticeManagement.scopes[scope] = nextNoticeState;
+
+      if (state.noticeManagement.activeScope === scope) {
+        state.loginNotice = nextNoticeState;
+      }
+    }
+
+    function setNoticeManagementScope(scope = "") {
+      const nextScope = getNoticeScopeState(scope);
+      state.noticeManagement.activeScope = nextScope;
+      state.loginNotice = state.noticeManagement.scopes[nextScope];
     }
 
     return Object.freeze({
@@ -106,6 +139,7 @@
       getRequestedViewFromLocation,
       isLoginPage,
       loadCurrentViewFromLocation,
+      setNoticeManagementScope,
       state,
     });
   }

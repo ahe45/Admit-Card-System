@@ -25,61 +25,61 @@
             </colgroup>
             <tbody>
               <tr>
-                <th style="border: 1px solid #5b6e8f; padding: 12px 14px; background: #f6f8fc;">수험번호</th>
-                <td style="border: 1px solid #5b6e8f; padding: 12px 14px;">${token("수험번호")}</td>
-                <th style="border: 1px solid #5b6e8f; padding: 12px 14px; background: #f6f8fc;">모집시기</th>
-                <td style="border: 1px solid #5b6e8f; padding: 12px 14px;">${token("모집시기")}</td>
+                <th style="border: 1px solid #5b6e8f; padding: 6px 7px; background: #f6f8fc;">수험번호</th>
+                <td style="border: 1px solid #5b6e8f; padding: 6px 7px;">${token("수험번호")}</td>
+                <th style="border: 1px solid #5b6e8f; padding: 6px 7px; background: #f6f8fc;">모집시기</th>
+                <td style="border: 1px solid #5b6e8f; padding: 6px 7px;">${token("모집시기")}</td>
               </tr>
               <tr>
-                <th style="border: 1px solid #5b6e8f; padding: 12px 14px; background: #f6f8fc;">성명</th>
-                <td style="border: 1px solid #5b6e8f; padding: 12px 14px;">${token("이름")}</td>
-                <th style="border: 1px solid #5b6e8f; padding: 12px 14px; background: #f6f8fc;">전형</th>
-                <td style="border: 1px solid #5b6e8f; padding: 12px 14px;">${token("전형")}</td>
+                <th style="border: 1px solid #5b6e8f; padding: 6px 7px; background: #f6f8fc;">성명</th>
+                <td style="border: 1px solid #5b6e8f; padding: 6px 7px;">${token("이름")}</td>
+                <th style="border: 1px solid #5b6e8f; padding: 6px 7px; background: #f6f8fc;">전형</th>
+                <td style="border: 1px solid #5b6e8f; padding: 6px 7px;">${token("전형")}</td>
               </tr>
               <tr>
-                <th style="border: 1px solid #5b6e8f; padding: 12px 14px; background: #f6f8fc;">생년월일</th>
-                <td style="border: 1px solid #5b6e8f; padding: 12px 14px;">${token("생년월일")}</td>
-                <th style="border: 1px solid #5b6e8f; padding: 12px 14px; background: #f6f8fc;">계열</th>
-                <td style="border: 1px solid #5b6e8f; padding: 12px 14px;">${token("계열")}</td>
+                <th style="border: 1px solid #5b6e8f; padding: 6px 7px; background: #f6f8fc;">생년월일</th>
+                <td style="border: 1px solid #5b6e8f; padding: 6px 7px;">${token("생년월일")}</td>
+                <th style="border: 1px solid #5b6e8f; padding: 6px 7px; background: #f6f8fc;">계열</th>
+                <td style="border: 1px solid #5b6e8f; padding: 6px 7px;">${token("계열")}</td>
               </tr>
               <tr>
-                <th style="border: 1px solid #5b6e8f; padding: 12px 14px; background: #f6f8fc;">고사건물</th>
-                <td style="border: 1px solid #5b6e8f; padding: 12px 14px;">${token("고사건물")}</td>
-                <th style="border: 1px solid #5b6e8f; padding: 12px 14px; background: #f6f8fc;">모집단위</th>
-                <td style="border: 1px solid #5b6e8f; padding: 12px 14px;">${token("모집단위")}</td>
+                <th style="border: 1px solid #5b6e8f; padding: 6px 7px; background: #f6f8fc;">고사건물</th>
+                <td style="border: 1px solid #5b6e8f; padding: 6px 7px;">${token("고사건물")}</td>
+                <th style="border: 1px solid #5b6e8f; padding: 6px 7px; background: #f6f8fc;">모집단위</th>
+                <td style="border: 1px solid #5b6e8f; padding: 6px 7px;">${token("모집단위")}</td>
               </tr>
               <tr>
-                <th style="border: 1px solid #5b6e8f; padding: 12px 14px; background: #f6f8fc;">고사실</th>
-                <td style="border: 1px solid #5b6e8f; padding: 12px 14px;">${token("고사실")}</td>
-                <th style="border: 1px solid #5b6e8f; padding: 12px 14px; background: #f6f8fc;">전공</th>
-                <td style="border: 1px solid #5b6e8f; padding: 12px 14px;">${token("전공")}</td>
+                <th style="border: 1px solid #5b6e8f; padding: 6px 7px; background: #f6f8fc;">고사실</th>
+                <td style="border: 1px solid #5b6e8f; padding: 6px 7px;">${token("고사실")}</td>
+                <th style="border: 1px solid #5b6e8f; padding: 6px 7px; background: #f6f8fc;">전공</th>
+                <td style="border: 1px solid #5b6e8f; padding: 6px 7px;">${token("전공")}</td>
               </tr>
               <tr>
-                <th rowspan="2" style="border: 1px solid #5b6e8f; padding: 12px 14px; background: #f6f8fc;">조</th>
-                <td rowspan="2" style="border: 1px solid #5b6e8f; padding: 12px 14px;">${token("조")}</td>
-                <th style="border: 1px solid #5b6e8f; padding: 12px 14px; background: #f6f8fc;">시험날짜</th>
-                <td style="border: 1px solid #5b6e8f; padding: 12px 14px;">${token("시험날짜")}</td>
+                <th rowspan="2" style="border: 1px solid #5b6e8f; padding: 6px 7px; background: #f6f8fc;">조</th>
+                <td rowspan="2" style="border: 1px solid #5b6e8f; padding: 6px 7px;">${token("조")}</td>
+                <th style="border: 1px solid #5b6e8f; padding: 6px 7px; background: #f6f8fc;">시험날짜</th>
+                <td style="border: 1px solid #5b6e8f; padding: 6px 7px;">${token("시험날짜")}</td>
               </tr>
               <tr>
-                <th style="border: 1px solid #5b6e8f; padding: 12px 14px; background: #f6f8fc;">시간</th>
-                <td style="border: 1px solid #5b6e8f; padding: 12px 14px;">${token("시간")}</td>
+                <th style="border: 1px solid #5b6e8f; padding: 6px 7px; background: #f6f8fc;">시간</th>
+                <td style="border: 1px solid #5b6e8f; padding: 6px 7px;">${token("시간")}</td>
               </tr>
             </tbody>
           </table>
           <table style="width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 14px; margin-top: 18px;">
             <tbody>
               <tr>
-                <th colspan="3" style="border: 1px solid #5b6e8f; padding: 10px 12px; text-align: center; font-weight: 700; background: #f6f8fc;">시험 시간 안내</th>
+                <th colspan="3" style="border: 1px solid #5b6e8f; padding: 5px 6px; text-align: center; font-weight: 700; background: #f6f8fc;">시험 시간 안내</th>
               </tr>
               <tr>
-                <td style="border: 1px solid #5b6e8f; padding: 10px 8px; text-align: center;"><strong>08:40 시작</strong><br />08:40 - 10:00</td>
-                <td style="border: 1px solid #5b6e8f; padding: 10px 8px; text-align: center;"><strong>10:30 시작</strong><br />10:30 - 12:10</td>
-                <td style="border: 1px solid #5b6e8f; padding: 10px 8px; text-align: center;"><strong>점심시간</strong><br />12:10 - 13:00</td>
+                <td style="border: 1px solid #5b6e8f; padding: 5px 4px; text-align: center;"><strong>08:40 시작</strong><br />08:40 - 10:00</td>
+                <td style="border: 1px solid #5b6e8f; padding: 5px 4px; text-align: center;"><strong>10:30 시작</strong><br />10:30 - 12:10</td>
+                <td style="border: 1px solid #5b6e8f; padding: 5px 4px; text-align: center;"><strong>점심시간</strong><br />12:10 - 13:00</td>
               </tr>
               <tr>
-                <td style="border: 1px solid #5b6e8f; padding: 10px 8px; text-align: center;"><strong>13:10 시작</strong><br />13:10 - 14:20</td>
-                <td style="border: 1px solid #5b6e8f; padding: 10px 8px; text-align: center;"><strong>14:50 시작</strong><br />14:50 - 16:30</td>
-                <td style="border: 1px solid #5b6e8f; padding: 10px 8px; text-align: center;"><strong>17:00 시작</strong><br />17:00 - 17:45</td>
+                <td style="border: 1px solid #5b6e8f; padding: 5px 4px; text-align: center;"><strong>13:10 시작</strong><br />13:10 - 14:20</td>
+                <td style="border: 1px solid #5b6e8f; padding: 5px 4px; text-align: center;"><strong>14:50 시작</strong><br />14:50 - 16:30</td>
+                <td style="border: 1px solid #5b6e8f; padding: 5px 4px; text-align: center;"><strong>17:00 시작</strong><br />17:00 - 17:45</td>
               </tr>
             </tbody>
           </table>

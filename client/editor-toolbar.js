@@ -205,6 +205,28 @@ const EDITOR_TOOLBAR_ICON_MARKUP = Object.freeze({
       <path d="M12 17v4"></path>
     </svg>
   `,
+  cellVerticalAlignTop: `
+    <svg class="template-tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="5" y="4.5" width="14" height="15" rx="1.5"></rect>
+      <path d="M8 8h8"></path>
+      <path d="M8 4.5h8"></path>
+    </svg>
+  `,
+  cellVerticalAlignMiddle: `
+    <svg class="template-tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="5" y="4.5" width="14" height="15" rx="1.5"></rect>
+      <path d="M8 12h8"></path>
+      <path d="M8 9.5h8"></path>
+      <path d="M8 14.5h8"></path>
+    </svg>
+  `,
+  cellVerticalAlignBottom: `
+    <svg class="template-tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="5" y="4.5" width="14" height="15" rx="1.5"></rect>
+      <path d="M8 16h8"></path>
+      <path d="M8 19.5h8"></path>
+    </svg>
+  `,
   insertTable: `
     <svg class="template-tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="4" y="5" width="16" height="14" rx="1.5"></rect>

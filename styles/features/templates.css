@@ -1419,7 +1419,7 @@
 .template-editor-surface td,
 .template-render-sheet th,
 .template-render-sheet td {
-  padding: 10px 12px;
+  padding: 5px 6px;
   text-align: left;
   border: 1px solid #000000;
   min-width: 88px;

@@ -26,6 +26,33 @@
     syncEditorToolbarColorControls,
     updateEditorToolbarFormattingState,
   }) {
+    function syncTemplateTableVerticalAlignButtons(selectedCell) {
+      const templateEditorModal = getTemplateEditorModal();
+
+      if (!templateEditorModal) {
+        return;
+      }
+
+      const activeValue = selectedCell
+        ? (() => {
+            const computedValue = String(selectedCell.style.verticalAlign || window.getComputedStyle(selectedCell).verticalAlign || "")
+              .trim()
+              .toLowerCase();
+            return computedValue === "bottom" ? "bottom" : computedValue === "middle" ? "middle" : "top";
+          })()
+        : "";
+
+      templateEditorModal
+        .querySelectorAll("[data-template-table-action^='cell-vertical-align-']")
+        .forEach((buttonElement) => {
+          const buttonValue = String(buttonElement.dataset.templateTableAction || "").replace("cell-vertical-align-", "");
+          const isActive = activeValue !== "" && buttonValue === activeValue;
+
+          buttonElement.classList.toggle("is-active", isActive);
+          buttonElement.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
+    }
+
     function getTemplateEditorFormattingTargetCells() {
       const tableSelection = getTemplateEditorActiveTableSelection();
       const templateEditorSurface = getTemplateEditorSurface();
@@ -107,6 +134,8 @@
           fallbackValue: "#ffffff",
         });
       }
+
+      syncTemplateTableVerticalAlignButtons(selectedCell);
     }
 
     return Object.freeze({

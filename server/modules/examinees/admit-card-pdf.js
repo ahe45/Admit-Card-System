@@ -123,7 +123,7 @@ function createAdmitCardPdfService({
       }
       .template-render-sheet table { width: 100%; border-collapse: collapse; margin: 16px 0; table-layout: fixed; }
       .template-render-sheet th,
-      .template-render-sheet td { border: 1px solid #000000; padding: 10px 12px; text-align: left; vertical-align: top; }
+      .template-render-sheet td { border: 1px solid #000000; padding: 5px 6px; text-align: left; vertical-align: top; }
       .template-render-sheet hr { border: 0; border-top: 1px solid #d8e0ea; margin: 18px 0; }
     `;
   }
@@ -264,11 +264,19 @@ function createAdmitCardPdfService({
     }
   }
 
-  async function buildAdmitCardPdfBuffer(examineeNo) {
-    const [examinee, template] = await Promise.all([getExamineeByNo(examineeNo), getActiveTemplate()]);
-    const renderedHtml = await renderTemplateWithExaminee(template.contentHtml, examinee);
+  async function buildAdmitCardPdfBufferFromRecord(record = {}, options = {}) {
+    const template = await getActiveTemplate();
+    const title = String(options.title || `${record?.name || record?.examineeNo || "수험표"} 수험표`).trim() || "수험표";
+    const renderedHtml = await renderTemplateWithExaminee(template.contentHtml, record || {});
 
-    return buildAdmitCardPdfBufferFromSheets(`${examinee.name} 수험표`, [renderedHtml]);
+    return buildAdmitCardPdfBufferFromSheets(title, [renderedHtml]);
+  }
+
+  async function buildAdmitCardPdfBuffer(examineeNo) {
+    const examinee = await getExamineeByNo(examineeNo);
+    return buildAdmitCardPdfBufferFromRecord(examinee, {
+      title: `${examinee.name} 수험표`,
+    });
   }
 
   async function buildBatchAdmitCardPdfBuffer(examineeNos, options = {}) {
@@ -319,6 +327,7 @@ function createAdmitCardPdfService({
 
   return Object.freeze({
     buildAdmitCardPdfBuffer,
+    buildAdmitCardPdfBufferFromRecord,
     buildBatchAdmitCardPdfBuffer,
   });
 }

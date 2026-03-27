@@ -68,7 +68,7 @@ function createExamineeService({ createHttpError, getPool, query }) {
         DATE_FORMAT(e.birth_date, '%Y-%m-%d') AS birth,
         CASE WHEN e.photo_blob IS NULL THEN 0 ELSE 1 END AS hasPhoto,
         DATE_FORMAT(ph.printed_at, '%Y-%m-%d %H:%i:%s') AS printedAt
-      FROM print_history ph
+      FROM print_log ph
       INNER JOIN examinee e ON e.examinee_no = ph.examinee_no
       ORDER BY ph.printed_at DESC, ph.id DESC
     `);

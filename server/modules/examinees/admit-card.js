@@ -23,6 +23,7 @@ function createAdmitCardService({
   });
   const {
     buildAdmitCardPdfBuffer,
+    buildAdmitCardPdfBufferFromRecord,
     buildBatchAdmitCardPdfBuffer,
   } = admitCardPdfService;
 
@@ -41,6 +42,7 @@ function createAdmitCardService({
 
   return Object.freeze({
     buildAdmitCardPdfBuffer,
+    buildAdmitCardPdfBufferFromRecord,
     buildBatchAdmitCardJobPayload,
     buildBatchAdmitCardPdfBuffer,
     createBatchAdmitCardJob,

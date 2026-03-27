@@ -108,6 +108,33 @@
               </button>`
             : ""
         }
+        ${
+          gridKey === "applicantHistoryGrid"
+            ? `<button class="outline-button" type="button" disabled title="준비 중">
+                <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 20V6l8-2 8 2v14"></path>
+                  <path d="M9 9h.01"></path>
+                  <path d="M15 9h.01"></path>
+                  <path d="M9 13h.01"></path>
+                  <path d="M15 13h.01"></path>
+                  <path d="M10 20v-3h4v3"></path>
+                </svg>
+                <span>고사실 배정</span>
+              </button>`
+            : ""
+        }
+        ${
+          gridKey === "applicantHistoryGrid"
+            ? `<button class="outline-button" data-open-modal="applicantSubmissionDownloadModal" type="button">
+                <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 4v10"></path>
+                  <path d="m7.5 10.5 4.5 4.5 4.5-4.5"></path>
+                  <path d="M4 20h16"></path>
+                </svg>
+                <span>다운로드</span>
+              </button>`
+            : ""
+        }
         <button class="outline-button" data-refresh-grid="${gridKey}" type="button">
           <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M20 12a8 8 0 1 1-2.34-5.66"></path>

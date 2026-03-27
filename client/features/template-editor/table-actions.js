@@ -71,6 +71,7 @@
       createTemplateTableCell,
       getTemplateEditorActiveTableSelection,
       getTemplateEditorSelectedCell,
+      ensureTemplateEditorTableColGroup,
       normalizeTemplateEditorTableAppearance,
       setTemplateEditorStatus,
     });
@@ -93,6 +94,36 @@
       equalizeTemplateTableRowHeights,
       getTemplateEditorMedianValue,
     } = tableSizingController;
+
+    function getTemplateEditorTableTargetCells() {
+      const tableSelection = getTemplateEditorActiveTableSelection();
+
+      if (tableSelection?.selectedCells?.length) {
+        return Array.from(new Set(tableSelection.selectedCells.filter(Boolean)));
+      }
+
+      const selectedCell = getTemplateEditorSelectedCell();
+      return selectedCell ? [selectedCell] : [];
+    }
+
+    function applyTemplateEditorCellVerticalAlign(verticalAlign = "top") {
+      const targetCells = getTemplateEditorTableTargetCells();
+
+      if (targetCells.length === 0) {
+        setTemplateEditorStatus("표 안의 셀을 선택한 뒤 배치를 설정하세요.", "warning");
+        return null;
+      }
+
+      const normalizedVerticalAlign = ["top", "middle", "bottom"].includes(String(verticalAlign || "").trim())
+        ? String(verticalAlign || "").trim()
+        : "top";
+
+      targetCells.forEach((cell) => {
+        cell.style.verticalAlign = normalizedVerticalAlign;
+      });
+
+      return targetCells[0] || null;
+    }
 
     function handleTemplateTableAction(action, options = {}) {
       const { colorValue = "" } = options;
@@ -139,6 +170,18 @@
       if (action === "apply-cell-shading") {
         applyTemplateEditorCellShading(colorValue);
         return true;
+      }
+
+      if (action === "cell-vertical-align-top") {
+        focusCell = applyTemplateEditorCellVerticalAlign("top");
+      }
+
+      if (action === "cell-vertical-align-middle") {
+        focusCell = applyTemplateEditorCellVerticalAlign("middle");
+      }
+
+      if (action === "cell-vertical-align-bottom") {
+        focusCell = applyTemplateEditorCellVerticalAlign("bottom");
       }
 
       if (action === "merge-right") {

@@ -20,6 +20,7 @@
       renderLoginScreen,
       state,
       syncCurrentViewFromLocation,
+      syncApplicantSubmissionDetailModal,
       syncExamineeDetailModal,
       syncGridSelectionIndicators,
       syncHeaderSelectOptions,
@@ -97,6 +98,7 @@
         syncGridSelectionIndicators();
         syncPdfGenerationOverlay();
         syncUploadOverlay();
+        syncApplicantSubmissionDetailModal();
         syncExamineeDetailModal();
         syncLoginFormAutofocus();
         return;
@@ -111,6 +113,7 @@
         syncGridSelectionIndicators();
         syncPdfGenerationOverlay();
         syncUploadOverlay();
+        syncApplicantSubmissionDetailModal();
         syncExamineeDetailModal();
         return;
       }
@@ -124,6 +127,7 @@
         syncGridSelectionIndicators();
         syncPdfGenerationOverlay();
         syncUploadOverlay();
+        syncApplicantSubmissionDetailModal();
         syncExamineeDetailModal();
         return;
       }
@@ -141,6 +145,7 @@
       syncOpenGridFilterMenuPosition?.();
       syncPdfGenerationOverlay();
       syncUploadOverlay();
+      syncApplicantSubmissionDetailModal();
       syncExamineeDetailModal();
     }
 

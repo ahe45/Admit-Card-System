@@ -456,7 +456,17 @@
               </div>
             </div>
           </div>
-          ${renderEditorToolbarColorPickerSection({ sectionLabel: "음영", inputId: cellShadingId, inputValue: cellShadingValue, presetColors: EDITOR_TOOLBAR_TEXT_COLOR_PRESETS, colorTableAction: "apply-cell-shading", fallbackValue: "#ffffff" })}
+          <div class="template-toolbar-section-row template-toolbar-section-row-dual">
+            <div class="template-toolbar-section">
+              <span class="template-toolbar-section-label">배치</span>
+              <div class="template-toolbar-group-controls">
+                ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "cell-vertical-align-top", label: "셀 위쪽 정렬", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.cellVerticalAlignTop })}
+                ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "cell-vertical-align-middle", label: "셀 가운데 정렬", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.cellVerticalAlignMiddle })}
+                ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "cell-vertical-align-bottom", label: "셀 아래쪽 정렬", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.cellVerticalAlignBottom })}
+              </div>
+            </div>
+            ${renderEditorToolbarColorPickerSection({ sectionLabel: "음영", inputId: cellShadingId, inputValue: cellShadingValue, presetColors: EDITOR_TOOLBAR_TEXT_COLOR_PRESETS, colorTableAction: "apply-cell-shading", fallbackValue: "#ffffff", sectionClassName: "template-toolbar-section-compact", pickerClassName: "template-toolbar-color-picker-compact template-toolbar-color-picker-align-end" })}
+          </div>
         </div>
         <div class="template-toolbar-group">
           <span class="template-toolbar-group-label">삽입</span>

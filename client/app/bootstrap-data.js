@@ -42,6 +42,7 @@
       clearAutoLogoutCountdownInterval,
       clearAutoLogoutTimer,
       createAccountEditorState,
+      createApplicantManagementState,
       createExamineeDetailState,
       createHeaderFilters,
       createPdfGenerationState,
@@ -205,6 +206,7 @@
         todayPrints: 0,
         totalPrints: 0,
       };
+      state.applicantManager = createApplicantManagementState();
       state.pdfGeneration = createPdfGenerationState();
       state.bootstrap.error = "";
       state.bootstrap.isLoading = false;
@@ -228,7 +230,8 @@
 
     function applyBootstrapPayload(payload) {
       applySystemSettingsPayload(payload.systemSettings);
-      applyLoginNoticePayload(payload.loginNoticeHtml);
+      applyLoginNoticePayload(payload.loginNoticeHtml, { scope: "login" });
+      applyLoginNoticePayload(payload.applicantNoticeHtml, { scope: "applicant" });
       const nextExamineeRows = Array.isArray(payload.examinees) ? payload.examinees.map(normalizeExamineeRecord) : [];
       const nextPrintHistoryRows = Array.isArray(payload.printHistory) ? payload.printHistory.map(normalizeExamineeRecord) : [];
       const nextAccountRows = Array.isArray(payload.accounts) ? payload.accounts.map(normalizeAccountRecord) : [];
@@ -237,6 +240,13 @@
       setPrintHistoryRows(nextPrintHistoryRows);
       setAccountGridRows(nextAccountRows);
       setTemplateCards(Array.isArray(payload.templates) ? payload.templates : []);
+      state.applicantManager = {
+        ...state.applicantManager,
+        fields: Array.isArray(payload.applicantManager?.fields) ? payload.applicantManager.fields : [],
+        recruitmentUnits: Array.isArray(payload.applicantManager?.recruitmentUnits) ? payload.applicantManager.recruitmentUnits : [],
+        submissions: Array.isArray(payload.applicantManager?.submissions) ? payload.applicantManager.submissions : [],
+        settings: payload.applicantManager?.settings || createApplicantManagementState().settings,
+      };
       state.bootstrap.serverDate = String(payload.serverDate || "").trim();
       state.metrics = {
         registeredExaminees: Number(payload.summary?.registeredExaminees || nextExamineeRows.length),

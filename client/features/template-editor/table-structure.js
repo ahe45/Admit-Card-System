@@ -9,6 +9,7 @@
   function createTemplateEditorTableStructureController({
     buildTemplateTableCellMap,
     createTemplateTableCell,
+    ensureTemplateEditorTableColGroup,
     getTemplateEditorActiveTableSelection,
     getTemplateEditorSelectedCell,
     normalizeTemplateEditorTableAppearance,
@@ -426,36 +427,71 @@
       }
 
       const table = selectedCell.closest("table");
-      const rows = Array.from(table.rows).filter((row) => row.cells.length > 0);
-      const maxColumnCount = Math.max(...rows.map((row) => row.cells.length));
+      const currentTableWidth = Math.round(table.getBoundingClientRect().width);
+      const { columns } = ensureTemplateEditorTableColGroup(table);
+      const { matrix, entries } = buildTemplateTableCellMap(table);
+      const selectedEntry = entries.get(selectedCell);
+      const maxColumnCount = matrix.reduce((maxCount, row) => Math.max(maxCount, Array.isArray(row) ? row.length : 0), 0);
 
-      if (maxColumnCount <= 1) {
+      if (!selectedEntry || maxColumnCount <= 1) {
         setTemplateEditorStatus("표에는 최소 한 개의 열이 필요합니다.", "warning");
         return selectedCell;
       }
 
-      let focusCell = null;
+      const targetColumnIndex = selectedEntry.colIndex;
+      columns[targetColumnIndex]?.remove();
+      const processedCells = new Set();
 
-      rows.forEach((row) => {
-        const targetCell = row.cells[selectedCell.cellIndex];
+      matrix.forEach((rowCells) => {
+        const targetCell = rowCells?.[targetColumnIndex] || null;
 
-        if (!targetCell) {
+        if (!targetCell || processedCells.has(targetCell)) {
           return;
         }
 
-        const fallbackCell = row.cells[selectedCell.cellIndex + 1] || row.cells[selectedCell.cellIndex - 1] || row.cells[0];
-        targetCell.remove();
+        const targetEntry = entries.get(targetCell);
 
-        if (row === selectedCell.parentElement) {
-          focusCell =
-            (fallbackCell && fallbackCell !== targetCell ? fallbackCell : null) ||
-            row.cells[Math.max(selectedCell.cellIndex - 1, 0)] ||
-            row.cells[0] ||
-            null;
+        if (!targetEntry) {
+          return;
+        }
+
+        processedCells.add(targetCell);
+
+        if (targetEntry.colSpan > 1) {
+          targetCell.colSpan = targetEntry.colSpan - 1;
+        } else {
+          targetCell.remove();
         }
       });
 
-      return focusCell;
+      normalizeTemplateEditorTableAppearance(table);
+      const { columns: nextColumns } = ensureTemplateEditorTableColGroup(table);
+      const nextTableWidth = nextColumns.reduce((widthSum, columnElement) => {
+        const normalizedWidth = Math.round(Number.parseFloat(String(columnElement.style.width || "").replace("px", "")));
+        return widthSum + (Number.isFinite(normalizedWidth) && normalizedWidth > 0 ? normalizedWidth : Math.round(columnElement.getBoundingClientRect().width));
+      }, 0);
+
+      if (nextTableWidth > 0) {
+        table.style.width = `${nextTableWidth}px`;
+        table.style.maxWidth = "none";
+      } else if (currentTableWidth > 0) {
+        table.style.width = `${currentTableWidth}px`;
+        table.style.maxWidth = "none";
+      }
+
+      if (selectedCell.isConnected) {
+        return selectedCell;
+      }
+
+      const { matrix: nextMatrix } = buildTemplateTableCellMap(table);
+      const fallbackRowCells = nextMatrix[selectedEntry.rowIndex] || [];
+
+      return (
+        fallbackRowCells[targetColumnIndex] ||
+        fallbackRowCells[Math.max(targetColumnIndex - 1, 0)] ||
+        fallbackRowCells.find(Boolean) ||
+        null
+      );
     }
 
     return Object.freeze({

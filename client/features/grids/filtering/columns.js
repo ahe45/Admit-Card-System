@@ -7,6 +7,8 @@
   globalScope.AdmitCardGridFilterColumns = factory();
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   function createGridColumnHelpers({
+    applicantHistoryGridColumns,
+    applicantRecruitmentGridColumns,
     accountGridColumns,
     admitCardLookupGridColumns,
     examineePhotoColumn,
@@ -20,6 +22,10 @@
           ? printHistoryGridColumns
           : gridKey === "accountManagementGrid"
             ? accountGridColumns
+            : gridKey === "applicantHistoryGrid"
+              ? applicantHistoryGridColumns
+              : gridKey === "applicantRecruitmentGrid"
+                ? applicantRecruitmentGridColumns
             : gridKey === "examineeRegistrationGrid"
               ? [...examineeRegistrationGridColumns, examineePhotoColumn]
               : gridKey === "admitCardLookupGrid"
@@ -28,7 +34,9 @@
       const allowFilters =
         gridKey === "examineeRegistrationGrid" ||
         gridKey === "printHistoryGrid" ||
-        gridKey === "accountManagementGrid";
+        gridKey === "accountManagementGrid" ||
+        gridKey === "applicantHistoryGrid" ||
+        gridKey === "applicantRecruitmentGrid";
 
       return baseColumns.map((column) => ({
         ...column,

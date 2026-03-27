@@ -29,6 +29,8 @@
     handleLoginNoticeTableAction,
     insertLoginNoticeImage,
     redoLoginNoticeEditorHistory,
+    renderView,
+    setNoticeManagementScope,
     setLoginNoticeCellSplitPanelVisibility,
     setLoginNoticeTableInsertPanelVisibility,
     state,
@@ -47,6 +49,7 @@
         return false;
       }
 
+      const noticeScopeTrigger = event.target.closest("[data-notice-scope]");
       const noticeCommandTrigger = event.target.closest(".login-notice-editor-shell button[data-notice-command]");
       const noticeActionTrigger = event.target.closest(".login-notice-editor-shell button[data-notice-action]");
       const noticeInsertTrigger = event.target.closest(".login-notice-editor-shell button[data-notice-insert]");
@@ -55,6 +58,12 @@
       const noticeCellSplitToggleTrigger = event.target.closest(".login-notice-editor-shell [data-template-cell-split-toggle]");
       const noticeCellSplitConfirmTrigger = event.target.closest(".login-notice-editor-shell [data-template-cell-split-confirm]");
       const noticeOpenImageTrigger = event.target.closest(".login-notice-editor-shell button[data-notice-open-image]");
+
+      if (noticeScopeTrigger) {
+        setNoticeManagementScope?.(noticeScopeTrigger.dataset.noticeScope);
+        renderView?.();
+        return true;
+      }
 
       if (noticeCellSplitStepTrigger) {
         const splitCountInput = getLoginNoticeCellSplitCountInputElement?.();

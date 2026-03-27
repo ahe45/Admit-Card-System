@@ -19,7 +19,7 @@
     async function loadLoginNoticeData({ render = true } = {}) {
       try {
         const payload = await apiRequest("/api/login-notice");
-        applyLoginNoticePayload(payload.html || payload.loginNoticeHtml || "");
+        applyLoginNoticePayload(payload.html || payload.loginNoticeHtml || "", { scope: "login" });
       } catch (error) {
         // Keep the default in-memory notice when the server payload cannot be loaded.
       } finally {

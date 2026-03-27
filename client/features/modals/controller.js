@@ -9,6 +9,7 @@
   function createModalController({
     TEMPLATE_EDITOR_DEFAULT_FONT_FAMILY,
     TEMPLATE_EDITOR_DEFAULT_FONT_SIZE,
+    clearApplicantRecruitmentUnitUploadFiles,
     clearSelectedUploadFiles,
     clearTemplateEditorActiveCell,
     clearTemplateEditorImageSelection,
@@ -18,6 +19,10 @@
     createTemplateEditorState,
     createTemplatePreviewState,
     getAccountCreateModal,
+    getApplicantSubmissionDownloadModal,
+    getApplicantSubmissionDetailModal,
+    getApplicantRecruitmentUnitModal,
+    getApplicantUnitUploadModal,
     getExamineeDetailCloseConfirmModal,
     getExamineeDetailModal,
     getTemplateEditorDescription,
@@ -36,6 +41,8 @@
     releaseTemplateEditorTableResizeSession,
     releaseTemplateEditorTableSelectionSession,
     resetAccountCreateFormState,
+    resetApplicantRecruitmentUnitEditor,
+    resetApplicantSubmissionDetail,
     resetUploadState,
     saveExamineeDetail,
     setTemplateEditorTableInsertPanelVisibility,
@@ -163,6 +170,10 @@
         clearSelectedUploadFiles();
       }
 
+      if (modalId === "applicantUnitUploadModal") {
+        clearApplicantRecruitmentUnitUploadFiles?.();
+      }
+
       if (modalId === "accountCreateModal") {
         resetAccountCreateFormState();
       }
@@ -174,10 +185,22 @@
 
       modal.classList.add("hidden");
       modal.setAttribute("aria-hidden", "true");
+
+      if (modalId === "applicantSubmissionDetailModal") {
+        resetApplicantSubmissionDetail?.({ render: true });
+      }
+
+      if (modalId === "applicantRecruitmentUnitModal") {
+        resetApplicantRecruitmentUnitEditor?.({ render: true });
+      }
     }
 
     function closeAllModals() {
       [
+        getApplicantSubmissionDownloadModal(),
+        getApplicantSubmissionDetailModal(),
+        getApplicantRecruitmentUnitModal(),
+        getApplicantUnitUploadModal(),
         getUploadModal(),
         getAccountCreateModal(),
         getExamineeDetailModal(),
@@ -195,6 +218,10 @@
 
     async function requestCloseAllModals() {
       const modalList = [
+        getApplicantSubmissionDownloadModal(),
+        getApplicantSubmissionDetailModal(),
+        getApplicantRecruitmentUnitModal(),
+        getApplicantUnitUploadModal(),
         getUploadModal(),
         getAccountCreateModal(),
         getExamineeDetailModal(),

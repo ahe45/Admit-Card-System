@@ -28,11 +28,14 @@
 
   function createGridStateController(deps) {
     const {
+      applicantHistoryGridColumns,
+      applicantRecruitmentGridColumns,
       accountGridColumns,
       admitCardLookupGridColumns,
       createTableState,
       examineePhotoColumn,
       examineeRegistrationGridColumns,
+      getApplicantStatusLabel,
       getAccountGridRows,
       getExamineeGridRows,
       getFilteredLookupRows,
@@ -42,6 +45,7 @@
       getPrintHistoryRows,
       printHistoryGridColumns,
       resultGridColumns,
+      startApplicantRecruitmentUnitEdit,
       state,
     } = deps;
 
@@ -60,11 +64,14 @@
     } = gridTableSettingsController;
 
     const gridFilteringController = createGridFilteringController({
+      applicantHistoryGridColumns,
+      applicantRecruitmentGridColumns,
       accountGridColumns,
       admitCardLookupGridColumns,
       closeAllPageSizeMenus,
       examineePhotoColumn,
       examineeRegistrationGridColumns,
+      getApplicantStatusLabel,
       getAccountGridRows,
       getExamineeGridRows,
       getFilteredLookupRows,
@@ -109,6 +116,7 @@
       getGridRows,
       getTableState,
       openExamineeDetail,
+      startApplicantRecruitmentUnitEdit,
       state,
     });
     const {

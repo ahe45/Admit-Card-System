@@ -12,6 +12,8 @@
   const pageTitles = Object.freeze({
     login: "로그인",
     dashboard: "대시보드",
+    applicantHistory: "접수 이력",
+    applicantFormSettings: "접수 양식 설정",
     examineeRegistration: "수험생 등록",
     admitCardLookup: "수험표 출력",
     printHistory: "수험표 출력 이력",
@@ -19,9 +21,12 @@
     accountManagement: "계정 관리",
     loginNoticeSettings: "공지사항 설정",
     systemSettings: "시스템 설정",
+    systemDataDeletion: "데이터 삭제",
   });
   const viewRouteDefinitions = Object.freeze([
     Object.freeze({ view: defaultView, path: "/dashboard", title: pageTitles.dashboard }),
+    Object.freeze({ view: "applicantFormSettings", path: "/applicant-form-settings", title: pageTitles.applicantFormSettings }),
+    Object.freeze({ view: "applicantHistory", path: "/applicant-history", title: pageTitles.applicantHistory }),
     Object.freeze({ view: "examineeRegistration", path: "/examinee-registration", title: pageTitles.examineeRegistration }),
     Object.freeze({ view: "admitCardLookup", path: "/admit-cards", title: pageTitles.admitCardLookup }),
     Object.freeze({ view: "printHistory", path: "/print-history", title: pageTitles.printHistory }),
@@ -29,10 +34,13 @@
     Object.freeze({ view: "accountManagement", path: "/accounts", title: pageTitles.accountManagement }),
     Object.freeze({ view: "loginNoticeSettings", path: "/login-notice", title: pageTitles.loginNoticeSettings }),
     Object.freeze({ view: "systemSettings", path: "/system-settings", title: pageTitles.systemSettings }),
+    Object.freeze({ view: "systemDataDeletion", path: "/system-data-deletion", title: pageTitles.systemDataDeletion }),
   ]);
   const availableViews = Object.freeze(viewRouteDefinitions.map((definition) => definition.view));
   const roleMenuViews = Object.freeze({
     관리자: Object.freeze([
+      "applicantFormSettings",
+      "applicantHistory",
       "examineeRegistration",
       "admitCardLookup",
       "printHistory",
@@ -40,8 +48,11 @@
       "accountManagement",
       "loginNoticeSettings",
       "systemSettings",
+      "systemDataDeletion",
     ]),
     운영자: Object.freeze([
+      "applicantFormSettings",
+      "applicantHistory",
       "examineeRegistration",
       "admitCardLookup",
       "printHistory",

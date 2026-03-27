@@ -338,7 +338,7 @@
         }
         .template-render-sheet table { width: 100%; border-collapse: collapse; margin: 16px 0; table-layout: fixed; }
         .template-render-sheet th,
-        .template-render-sheet td { border: 1px solid #000000; padding: 10px 12px; text-align: left; vertical-align: top; }
+        .template-render-sheet td { border: 1px solid #000000; padding: 5px 6px; text-align: left; vertical-align: top; }
         .template-render-sheet hr { border: 0; border-top: 1px solid #d8e0ea; margin: 18px 0; }
         @media print {
           body { padding: 0; background: #ffffff; }

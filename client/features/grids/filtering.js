@@ -44,11 +44,14 @@
   const { createPrintHistorySummaryGridHelpers } = printHistoryModule;
 
   function createGridFilteringController({
+    applicantHistoryGridColumns,
+    applicantRecruitmentGridColumns,
     accountGridColumns,
     admitCardLookupGridColumns,
     closeAllPageSizeMenus,
     examineePhotoColumn,
     examineeRegistrationGridColumns,
+    getApplicantStatusLabel,
     getAccountGridRows,
     getExamineeGridRows,
     getFilteredLookupRows,
@@ -60,6 +63,8 @@
     state,
   }) {
     const columnHelpers = createGridColumnHelpers({
+      applicantHistoryGridColumns,
+      applicantRecruitmentGridColumns,
       accountGridColumns,
       admitCardLookupGridColumns,
       examineePhotoColumn,
@@ -80,6 +85,21 @@
 
       if (gridKey === "accountManagementGrid") {
         return getAccountGridRows();
+      }
+
+      if (gridKey === "applicantHistoryGrid") {
+        const expandedSubmissionId = Number(state.applicantManager?.expandedSubmissionId || 0);
+        const submissions = Array.isArray(state.applicantManager?.submissions) ? state.applicantManager.submissions : [];
+
+        return submissions.map((submission) => ({
+          ...submission,
+          statusLabel: getApplicantStatusLabel(submission?.status),
+          isExpanded: expandedSubmissionId > 0 && expandedSubmissionId === Number(submission?.id || 0),
+        }));
+      }
+
+      if (gridKey === "applicantRecruitmentGrid") {
+        return Array.isArray(state.applicantManager?.recruitmentUnits) ? state.applicantManager.recruitmentUnits : [];
       }
 
       return getHeaderFilteredRows(getExamineeGridRows());

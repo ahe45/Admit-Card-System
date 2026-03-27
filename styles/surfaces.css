@@ -296,7 +296,7 @@
 .split-card,
 .timeline-card,
 .account-card {
-  padding: 24px;
+  padding: 10px 24px;
 }
 
 .table-card {

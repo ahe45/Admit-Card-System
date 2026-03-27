@@ -9,8 +9,14 @@ function createSystemService({
   defaultAutoLogoutMinutes,
   defaultInitialPassword,
   defaultSeedAccounts,
+  fs,
+  getDefaultApplicantNoticeHtml,
   formatDateAsYmd,
   getAccounts,
+  getApplicantFormFields,
+  getApplicantRecruitmentUnits,
+  getApplicantSettings,
+  getApplicantSubmissions,
   getDefaultLoginNoticeHtml,
   getExaminees,
   getPool,
@@ -19,7 +25,10 @@ function createSystemService({
   hashPassword,
   isPasswordHash,
   maxAutoLogoutMinutes,
+  path,
+  photoStorageDirName,
   query,
+  rootDir,
 }) {
   const systemSettingsService = createSystemSettingsService({
     createHttpError,
@@ -35,17 +44,22 @@ function createSystemService({
   } = systemSettingsService;
 
   const loginNoticeService = createSystemLoginNoticeService({
+    getDefaultApplicantNoticeHtml,
     defaultInitialPassword,
     getDefaultLoginNoticeHtml,
     parseSystemInitialPassword,
     query,
   });
-  const { getLoginNoticeHtml, updateLoginNoticeHtml } = loginNoticeService;
+  const { getApplicantNoticeHtml, getLoginNoticeHtml, updateLoginNoticeHtml } = loginNoticeService;
 
   const dataCleanupService = createSystemDataCleanupService({
     createHttpError,
+    fs,
     getPool,
+    path,
+    photoStorageDirName,
     query,
+    rootDir,
   });
   const { deleteSystemData } = dataCleanupService;
 
@@ -66,6 +80,11 @@ function createSystemService({
   const summaryService = createSystemSummaryService({
     formatDateAsYmd,
     getAccounts,
+    getApplicantFormFields,
+    getApplicantRecruitmentUnits,
+    getApplicantSettings,
+    getApplicantSubmissions,
+    getApplicantNoticeHtml,
     getExaminees,
     getLoginNoticeHtml,
     getPrintHistory,
@@ -77,7 +96,8 @@ function createSystemService({
 
   return Object.freeze({
     deleteSystemData,
-    getBootstrapPayload,
+      getBootstrapPayload,
+    getApplicantNoticeHtml,
     getLoginNoticeHtml,
     getSystemSettings,
     migrateLegacyAccountPasswords,

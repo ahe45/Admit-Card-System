@@ -20,8 +20,16 @@ function createSystemRoutes(deps) {
     }),
     regexRoute(
       "DELETE",
-      /^\/api\/system-data\/(?<scope>all|photos|print-history)$/,
-      async ({ response, params }) => deps.sendJson(response, 200, await deps.deleteSystemData(params.scope)),
+      /^\/api\/system-data\/(?<scope>all|applicant-settings|applicant-history|examinees|photos|print-history)$/,
+      async ({ request, response, params, authenticatedAccount }) => {
+        const body = await deps.readJsonBody(request);
+
+        if (String(params.scope || "") === "all") {
+          await deps.verifySystemDataDeletionPassword(authenticatedAccount?.id, body?.currentPassword);
+        }
+
+        return deps.sendJson(response, 200, await deps.deleteSystemData(params.scope));
+      },
       { getParams: (match) => decodeRouteParams(match.groups) },
     ),
   ];

@@ -70,11 +70,30 @@ function createPageRequestHandlers({
       return true;
     }
 
+    if (normalizedPath === "/applicant.html") {
+      sendRedirect(response, "/applicant");
+      return true;
+    }
+
     if (normalizedPath === "/") {
       const authPayload = await getAuthSessionPayload(request);
       const nextPath =
         authPayload.authenticated && authPayload.account ? getDefaultAccessiblePath(authPayload.account.role) : loginRoutePath;
       sendRedirect(response, nextPath);
+      return true;
+    }
+
+    if (normalizedPath === "/applicant" || normalizedPath.startsWith("/applicant/")) {
+      if (normalizedPath !== pathname) {
+        sendRedirect(response, normalizedPath);
+        return true;
+      }
+
+      serveStaticFile(response, "/applicant.html", {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      });
       return true;
     }
 

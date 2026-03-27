@@ -26,6 +26,10 @@
     updateLoginNoticeEditorActiveCell,
     updateLoginNoticeFormattingControls,
   }) {
+    function getActiveNoticeScopeLabel() {
+      return state.noticeManagement?.activeScope === "applicant" ? "접수화면" : "로그인화면";
+    }
+
     function syncLoginNoticePreview() {
       const previewElement = getLoginNoticePreviewElement();
 
@@ -81,7 +85,7 @@
       documentElement.innerHTML = snapshot.html || getLoginNoticeEditorEmptyMarkup();
       normalizeTemplateEditorFontNodes(documentElement);
       syncLoginNoticePreview();
-      setLoginNoticeEditorStatus("로그인화면 공지사항을 편집 중입니다.");
+      setLoginNoticeEditorStatus(`${getActiveNoticeScopeLabel()} 공지사항을 편집 중입니다.`);
 
       noticeEditor.focus();
 
@@ -127,7 +131,7 @@
       state.loginNotice.draftHtml = getLoginNoticeSerializedHtml();
       state.loginNotice.selectionSnapshot = createLoginNoticeSelectionSnapshot();
       recordLoginNoticeHistorySnapshot({ force: forceHistory });
-      setLoginNoticeEditorStatus("로그인화면 공지사항을 편집 중입니다.");
+      setLoginNoticeEditorStatus(`${getActiveNoticeScopeLabel()} 공지사항을 편집 중입니다.`);
       updateLoginNoticeEditorActiveCell();
       updateLoginNoticeFormattingControls();
       syncLoginNoticePreview();

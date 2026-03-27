@@ -13,9 +13,11 @@ const viewShellModule = globalThis.AdmitCardViewShell;
 const renderersExamineePhotoUtilsModule = globalThis.AdmitCardExamineePhotoUtils;
 const examineeDetailModalModule = globalThis.AdmitCardExamineeDetailModal;
 const examineePageRenderers = globalThis.AdmitCardExamineePageRenderers;
+const applicantAdminModule = globalThis.AdmitCardApplicantAdmin;
 const printHistoryRenderers = globalThis.AdmitCardPrintHistoryRenderers;
 const templateManagementRenderers = globalThis.AdmitCardTemplateManagementRenderers;
 const dashboardRenderers = globalThis.AdmitCardDashboardRenderers;
+const applicantFormConfigModule = globalThis.AdmitCardApplicantFormConfig;
 
 if (!renderersContentSharedModule) {
   throw new Error("client/features/editor/content-shared.js must be loaded before client/renderers.js.");
@@ -77,6 +79,10 @@ if (!examineePageRenderers) {
   throw new Error("client/features/examinees/renderers.js must be loaded before client/renderers.js.");
 }
 
+if (!applicantAdminModule?.createApplicantAdminController) {
+  throw new Error("client/features/applications/admin.js must be loaded before client/renderers.js.");
+}
+
 if (!printHistoryRenderers) {
   throw new Error("client/features/print-history/renderers.js must be loaded before client/renderers.js.");
 }
@@ -112,7 +118,7 @@ const {
 } = renderersGeneratedObjectModule;
 
 const { getLoginNoticeMarkup, renderLoginScreen } = authRenderers;
-const { renderLoginNoticeEditorToolbar, renderLoginNoticeSettings, renderSystemSettings } = systemRenderers;
+const { renderLoginNoticeEditorToolbar, renderLoginNoticeSettings, renderSystemSettings, renderSystemDataDeletion } = systemRenderers;
 const { renderAccountManagement, renderAccountRoleOptions } = accountRenderers;
 const { createAccountActionController } = accountActionsModule;
 const {
@@ -124,10 +130,40 @@ const { createGridRuntimeController } = gridRuntimeModule;
 const { createModalController } = modalControllerModule;
 const { createViewShellController } = viewShellModule;
 const { renderAdmitCardLookup, renderAdmitCardLookupGridSection, renderExamineeRegistration } = examineePageRenderers;
+const { createApplicantAdminController } = applicantAdminModule;
 const { renderPrintHistory } = printHistoryRenderers;
-const { renderTemplateManagement } = templateManagementRenderers;
+const {
+  renderApplicantFormSettings,
+  renderApplicantHistory,
+  renderApplicantHistoryDetailModalContent,
+  renderTemplateManagement,
+} = templateManagementRenderers;
 const { createDashboardRenderer } = dashboardRenderers;
 const { buildExamineePhotoUrl: renderersBuildExamineePhotoUrl } = renderersExamineePhotoUtilsModule;
+const getApplicantStatusLabel =
+  applicantFormConfigModule?.getApplicantStatusLabel || ((value) => String(value || "접수 완료"));
+
+const applicantHistoryGridColumns = Object.freeze([
+  Object.freeze({ key: "id", label: "접수번호", sortable: true, filterable: true }),
+  Object.freeze({ key: "name", label: "이름", sortable: true, filterable: true }),
+  Object.freeze({ key: "email", label: "이메일", sortable: true, filterable: true }),
+  Object.freeze({ key: "statusLabel", label: "상태", sortable: true, filterable: true }),
+  Object.freeze({ key: "promotedExamineeNo", label: "수험번호", sortable: true, filterable: true }),
+  Object.freeze({ key: "createdAt", label: "접수일시", sortable: true, filterable: true }),
+  Object.freeze({ key: "updatedAt", label: "최종수정", sortable: true, filterable: true }),
+  Object.freeze({ key: "detailAction", label: "답변", sortable: false, filterable: false }),
+]);
+
+const applicantRecruitmentGridColumns = Object.freeze([
+  Object.freeze({ key: "admissionCode", label: "전형코드", sortable: true, filterable: true }),
+  Object.freeze({ key: "admissionName", label: "전형", sortable: true, filterable: true }),
+  Object.freeze({ key: "seriesCode", label: "계열코드", sortable: true, filterable: true }),
+  Object.freeze({ key: "seriesName", label: "계열", sortable: true, filterable: true }),
+  Object.freeze({ key: "unitCode", label: "모집단위코드", sortable: true, filterable: true }),
+  Object.freeze({ key: "unitName", label: "모집단위", sortable: true, filterable: true }),
+  Object.freeze({ key: "majorCode", label: "전공코드", sortable: true, filterable: true }),
+  Object.freeze({ key: "majorName", label: "전공", sortable: true, filterable: true }),
+]);
 
 let viewShellController = null;
 const renderView = (...args) => viewShellController?.renderView(...args);
@@ -261,11 +297,99 @@ const {
   startAccountEdit,
   updateAccountEditorField,
 } = accountActionController;
+const applicantAdminController = createApplicantAdminController({
+  arrayBufferToBase64,
+  apiRequest,
+  buildApiUrl,
+  getApplicantUnitUploadFileInput: () => applicantUnitUploadFileInput,
+  getApplicantUnitUploadFileName: () => applicantUnitUploadFileName,
+  handleAuthenticationFailure,
+  loadBootstrapData,
+  openModal: (...args) => modalController?.openModal(...args),
+  readFileAsArrayBuffer,
+  renderView,
+  requestCloseModal: (...args) => modalController?.requestCloseModal(...args),
+  showToast,
+  state,
+});
+const {
+  activateApplicantRecruitmentUnitCreation,
+  activateApplicantFieldCreation,
+  addApplicantFieldOption,
+  clearApplicantRecruitmentUnitUploadFiles,
+  deleteApplicantRecruitmentUnit,
+  deleteApplicantField,
+  downloadApplicantSubmissionPhotos,
+  downloadApplicantSubmissions,
+  downloadApplicantRecruitmentUnits,
+  downloadApplicantRecruitmentUnitTemplate,
+  moveApplicantField,
+  openApplicantFieldPreview,
+  promoteApplicantSubmissionAction,
+  reorderApplicantField,
+  resetApplicantRecruitmentUnitEditor,
+  resetApplicantFieldEditor,
+  resetApplicantSubmissionDetail,
+  removeApplicantFieldOption,
+  saveApplicantRecruitmentUnit,
+  saveApplicantFieldEditor,
+  saveApplicantSettings,
+  setApplicantSettingsSection,
+  setApplicantManagerTab,
+  startApplicantRecruitmentUnitEdit,
+  startApplicantFieldEdit,
+  toggleApplicantSubmissionDetail,
+  uploadApplicantRecruitmentUnitFile,
+  uploadApplicantSubmissionPhoto,
+  updateApplicantRecruitmentUnitEditorField,
+  updateApplicantFieldEditorField,
+  updateApplicantSettingsField,
+} = applicantAdminController;
 let modalController = null;
+
+function syncApplicantSubmissionDetailModal() {
+  if (!applicantSubmissionDetailBody) {
+    return;
+  }
+
+  const submissions = Array.isArray(state.applicantManager?.submissions) ? state.applicantManager.submissions : [];
+  const expandedSubmissionId = Number(state.applicantManager?.expandedSubmissionId || 0);
+  const selectedSubmission =
+    expandedSubmissionId > 0 ? submissions.find((submission) => Number(submission?.id || 0) === expandedSubmissionId) || null : null;
+  const selectedSubmissionForModal = selectedSubmission
+    ? {
+        ...selectedSubmission,
+        photoUrl:
+          selectedSubmission.hasPhoto === true ||
+          Number(selectedSubmission.hasPhoto) === 1 ||
+          String(selectedSubmission.photoFileName || "").trim() !== ""
+            ? buildApiUrl(
+                `/api/applicant-submissions/${encodeURIComponent(selectedSubmission.id)}/photo?v=${encodeURIComponent(selectedSubmission.updatedAt || "")}`,
+              )
+            : "",
+      }
+    : null;
+  const submissionDetailMetaText = selectedSubmission
+    ? `접수일시 ${selectedSubmission.createdAt || "-"} / 최종수정 ${selectedSubmission.updatedAt || "-"}`
+    : "";
+
+  if (applicantSubmissionDetailMeta) {
+    applicantSubmissionDetailMeta.textContent = submissionDetailMetaText;
+    applicantSubmissionDetailMeta.title = submissionDetailMetaText;
+  }
+
+  applicantSubmissionDetailBody.innerHTML = renderApplicantHistoryDetailModalContent(selectedSubmissionForModal);
+
+  if (applicantSubmissionDetailModal && !selectedSubmission) {
+    applicantSubmissionDetailModal.classList.add("hidden");
+    applicantSubmissionDetailModal.setAttribute("aria-hidden", "true");
+  }
+}
 
 modalController = createModalController({
   TEMPLATE_EDITOR_DEFAULT_FONT_FAMILY: renderersDefaultFontFamily,
   TEMPLATE_EDITOR_DEFAULT_FONT_SIZE: renderersDefaultFontSize,
+  clearApplicantRecruitmentUnitUploadFiles,
   clearSelectedUploadFiles,
   clearTemplateEditorActiveCell,
   clearTemplateEditorImageSelection,
@@ -275,6 +399,10 @@ modalController = createModalController({
   createTemplateEditorState,
   createTemplatePreviewState,
   getAccountCreateModal: () => accountCreateModal,
+  getApplicantSubmissionDownloadModal: () => applicantSubmissionDownloadModal,
+  getApplicantSubmissionDetailModal: () => applicantSubmissionDetailModal,
+  getApplicantRecruitmentUnitModal: () => applicantRecruitmentUnitModal,
+  getApplicantUnitUploadModal: () => applicantUnitUploadModal,
   getExamineeDetailCloseConfirmModal: () => examineeDetailCloseConfirmModal,
   getExamineeDetailModal: () => examineeDetailModal,
   getTemplateEditorDescription: () => templateEditorDescription,
@@ -293,6 +421,8 @@ modalController = createModalController({
   releaseTemplateEditorTableResizeSession,
   releaseTemplateEditorTableSelectionSession,
   resetAccountCreateFormState,
+  resetApplicantRecruitmentUnitEditor,
+  resetApplicantSubmissionDetail,
   resetUploadState,
   saveExamineeDetail,
   setTemplateEditorTableInsertPanelVisibility,
@@ -300,6 +430,8 @@ modalController = createModalController({
   syncEditorToolbarFontSizeControls,
 });
 const gridRuntimeController = createGridRuntimeController({
+  applicantHistoryGridColumns,
+  applicantRecruitmentGridColumns,
   accountGridColumns,
   admitCardLookupGridColumns,
   createTableState,
@@ -307,6 +439,7 @@ const gridRuntimeController = createGridRuntimeController({
   escapeHtml: renderersEscapeHtml,
   examineePhotoColumn,
   examineeRegistrationGridColumns,
+  getApplicantStatusLabel,
   getAccountGridRows,
   getExamineeGridRows,
   getPrintHistoryRows,
@@ -319,6 +452,7 @@ const gridRuntimeController = createGridRuntimeController({
   renderAccountRoleOptions,
   renderView,
   resultGridColumns,
+  startApplicantRecruitmentUnitEdit,
   state,
 });
 const {
@@ -387,6 +521,8 @@ const dashboardRendererController = createDashboardRenderer({
 const { renderDashboard } = dashboardRendererController;
 const renderers = {
   dashboard: renderDashboard,
+  applicantHistory: renderApplicantHistory,
+  applicantFormSettings: renderApplicantFormSettings,
   examineeRegistration: renderExamineeRegistration,
   admitCardLookup: renderAdmitCardLookup,
   printHistory: renderPrintHistory,
@@ -394,6 +530,7 @@ const renderers = {
   accountManagement: renderAccountManagement,
   loginNoticeSettings: renderLoginNoticeSettings,
   systemSettings: renderSystemSettings,
+  systemDataDeletion: renderSystemDataDeletion,
 };
 viewShellController = createViewShellController({
   DEFAULT_VIEW,
@@ -408,6 +545,8 @@ viewShellController = createViewShellController({
   renderLoginScreen,
   state,
   syncCurrentViewFromLocation,
+  syncApplicantSubmissionDetailModal: (...args) =>
+    (typeof syncApplicantSubmissionDetailModal === "function" ? syncApplicantSubmissionDetailModal(...args) : undefined),
   syncExamineeDetailModal: (...args) => (typeof syncExamineeDetailModal === "function" ? syncExamineeDetailModal(...args) : undefined),
   syncGridSelectionIndicators,
   syncHeaderSelectOptions,
@@ -423,6 +562,10 @@ viewShellController = createViewShellController({
 });
 
 Object.assign(globalThis, {
+  AdmitCardSharedGridRenderer: Object.freeze({
+    renderExamineeResultTable,
+    renderGridHeaderActions,
+  }),
   getGridRowId,
   getGridRows,
   getGridSelectedRowIds,

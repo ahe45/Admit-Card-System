@@ -31,8 +31,163 @@
     syncPasswordSetupModal,
     updateAccountEditorField,
   }) {
+    function createEmptySystemScheduleParts() {
+      return {
+        year: "",
+        month: "",
+        day: "",
+        hour: "",
+        minute: "",
+      };
+    }
+
+    function normalizeSystemScheduleParts(parts = {}) {
+      return {
+        year: String(parts?.year || "").trim(),
+        month: String(parts?.month || "").trim(),
+        day: String(parts?.day || "").trim(),
+        hour: String(parts?.hour || "").trim(),
+        minute: String(parts?.minute || "").trim(),
+      };
+    }
+
+    function getSystemScheduleDayCount(yearValue, monthValue) {
+      const normalizedYear = Number(yearValue);
+      const normalizedMonth = Number(monthValue);
+
+      if (!Number.isInteger(normalizedYear) || normalizedYear < 1 || !Number.isInteger(normalizedMonth) || normalizedMonth < 1 || normalizedMonth > 12) {
+        return 31;
+      }
+
+      return new Date(normalizedYear, normalizedMonth, 0).getDate();
+    }
+
+    function padSystemScheduleValue(value) {
+      return String(value || "").padStart(2, "0");
+    }
+
+    function clampSystemScheduleParts(parts = {}) {
+      const normalizedParts = normalizeSystemScheduleParts(parts);
+      const maxDay = getSystemScheduleDayCount(normalizedParts.year, normalizedParts.month);
+      const normalizedDay = Number(normalizedParts.day);
+
+      return {
+        ...normalizedParts,
+        day:
+          Number.isInteger(normalizedDay) && normalizedDay >= 1
+            ? padSystemScheduleValue(Math.min(normalizedDay, maxDay))
+            : padSystemScheduleValue(1),
+      };
+    }
+
+    function buildSystemScheduleDateTime(parts = {}) {
+      const normalizedParts = clampSystemScheduleParts(parts);
+
+      if (Object.values(normalizedParts).some((value) => !value)) {
+        return "";
+      }
+
+      const candidateValue =
+        `${normalizedParts.year}-${normalizedParts.month}-${normalizedParts.day}T${normalizedParts.hour}:${normalizedParts.minute}`;
+      const matchedValue = candidateValue.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+
+      if (!matchedValue) {
+        return "";
+      }
+
+      const [, yearValue, monthValue, dayValue, hourValue, minuteValue] = matchedValue;
+      const parsedDate = new Date(
+        Number(yearValue),
+        Number(monthValue) - 1,
+        Number(dayValue),
+        Number(hourValue),
+        Number(minuteValue),
+        0,
+        0,
+      );
+
+      if (
+        parsedDate.getFullYear() !== Number(yearValue) ||
+        parsedDate.getMonth() + 1 !== Number(monthValue) ||
+        parsedDate.getDate() !== Number(dayValue) ||
+        parsedDate.getHours() !== Number(hourValue) ||
+        parsedDate.getMinutes() !== Number(minuteValue)
+      ) {
+        return "";
+      }
+
+      return candidateValue;
+    }
+
+    function resolveSystemScheduleTargetStateKeys(scheduleTarget = "") {
+      const normalizedTarget = String(scheduleTarget || "").trim();
+
+      if (normalizedTarget === "applicant-end") {
+        return {
+          scheduleTarget: normalizedTarget,
+          partsStateKey: "applicantScheduleEndAtParts",
+          valueStateKey: "applicantScheduleEndAt",
+        };
+      }
+
+      if (normalizedTarget === "admit-card-lookup-start") {
+        return {
+          scheduleTarget: normalizedTarget,
+          partsStateKey: "admitCardLookupScheduleStartAtParts",
+          valueStateKey: "admitCardLookupScheduleStartAt",
+        };
+      }
+
+      if (normalizedTarget === "admit-card-lookup-end") {
+        return {
+          scheduleTarget: normalizedTarget,
+          partsStateKey: "admitCardLookupScheduleEndAtParts",
+          valueStateKey: "admitCardLookupScheduleEndAt",
+        };
+      }
+
+      return {
+        scheduleTarget: "applicant-start",
+        partsStateKey: "applicantScheduleStartAtParts",
+        valueStateKey: "applicantScheduleStartAt",
+      };
+    }
+
+    function applySystemScheduleParts(scheduleTarget = "start", nextParts = {}) {
+      const targetState = resolveSystemScheduleTargetStateKeys(scheduleTarget);
+      const normalizedParts = clampSystemScheduleParts(nextParts);
+
+      state.systemSettings[targetState.partsStateKey] = normalizedParts;
+      state.systemSettings[targetState.valueStateKey] = buildSystemScheduleDateTime(normalizedParts);
+    }
+
+    function shiftSystemScheduleMonth(parts = {}, delta = 0) {
+      const normalizedParts = clampSystemScheduleParts(parts);
+      const currentYear = Number(normalizedParts.year);
+      const currentMonth = Number(normalizedParts.month);
+      const normalizedDelta = Number(delta);
+
+      if (!Number.isInteger(currentYear) || !Number.isInteger(currentMonth) || !Number.isInteger(normalizedDelta) || normalizedDelta === 0) {
+        return normalizedParts;
+      }
+
+      const shiftedDate = new Date(currentYear, currentMonth - 1 + normalizedDelta, 1);
+
+      return clampSystemScheduleParts({
+        ...normalizedParts,
+        year: String(shiftedDate.getFullYear()),
+        month: padSystemScheduleValue(shiftedDate.getMonth() + 1),
+      });
+    }
+
     async function handleClick(event) {
       const target = event.target instanceof Element ? event.target : null;
+      const activeSystemSchedulePopoverTarget = String(state.systemSettings.applicantSchedulePopoverTarget || "").trim();
+      const systemSchedulePopoverRoot = target?.closest("[data-system-settings-schedule-popover-root]") || null;
+      const systemScheduleTrigger = target?.closest("[data-system-settings-schedule-trigger]") || null;
+      const systemScheduleActionTrigger = target?.closest("[data-system-settings-schedule-action]") || null;
+      const systemScheduleNavigationTrigger = target?.closest("[data-system-settings-schedule-nav]") || null;
+      const systemScheduleDayTrigger = target?.closest("[data-system-settings-schedule-day]") || null;
       const openModalTrigger = target?.closest("[data-open-modal]") || null;
       const passwordSetupCloseTrigger = target?.closest("[data-password-setup-close]") || null;
       const closeTrigger = target?.closest("[data-close-modal]") || null;
@@ -46,6 +201,62 @@
       const systemSettingsActionTrigger = target?.closest("[data-system-settings-action]") || null;
       const systemSettingsStepTrigger = target?.closest("[data-system-settings-step]") || null;
       const systemDataDeleteTrigger = target?.closest("[data-system-data-delete]") || null;
+
+      if (activeSystemSchedulePopoverTarget && !systemSchedulePopoverRoot) {
+        state.systemSettings.applicantSchedulePopoverTarget = "";
+        renderView();
+      }
+
+      if (systemScheduleTrigger) {
+        const nextPopoverTarget = String(systemScheduleTrigger.dataset.systemSettingsScheduleTrigger || "").trim();
+        state.systemSettings.applicantSchedulePopoverTarget =
+          activeSystemSchedulePopoverTarget === nextPopoverTarget ? "" : resolveSystemScheduleTargetStateKeys(nextPopoverTarget).scheduleTarget;
+        renderView();
+        const triggerId = String(systemScheduleTrigger.id || "").trim();
+
+        if (triggerId) {
+          document.getElementById(triggerId)?.focus();
+        }
+        return true;
+      }
+
+      if (systemScheduleActionTrigger) {
+        state.systemSettings.applicantSchedulePopoverTarget = "";
+        renderView();
+        return true;
+      }
+
+      if (systemScheduleNavigationTrigger) {
+        const targetState = resolveSystemScheduleTargetStateKeys(activeSystemSchedulePopoverTarget);
+        const currentParts = normalizeSystemScheduleParts(state.systemSettings[targetState.partsStateKey] || createEmptySystemScheduleParts());
+        const direction = String(systemScheduleNavigationTrigger.dataset.systemSettingsScheduleNav || "").trim() === "prev" ? -1 : 1;
+        applySystemScheduleParts(targetState.scheduleTarget, shiftSystemScheduleMonth(currentParts, direction));
+
+        if (state.systemSettings.statusMessage) {
+          setSystemSettingsStatus("");
+        }
+
+        renderView();
+        return true;
+      }
+
+      if (systemScheduleDayTrigger) {
+        const targetState = resolveSystemScheduleTargetStateKeys(systemScheduleDayTrigger.dataset.systemSettingsScheduleDayTarget);
+        const currentParts = normalizeSystemScheduleParts(state.systemSettings[targetState.partsStateKey] || createEmptySystemScheduleParts());
+        applySystemScheduleParts(targetState.scheduleTarget, {
+          ...currentParts,
+          year: String(systemScheduleDayTrigger.dataset.systemSettingsScheduleDayYear || currentParts.year).trim(),
+          month: padSystemScheduleValue(systemScheduleDayTrigger.dataset.systemSettingsScheduleDayMonth || currentParts.month),
+          day: padSystemScheduleValue(systemScheduleDayTrigger.dataset.systemSettingsScheduleDayValue || ""),
+        });
+
+        if (state.systemSettings.statusMessage) {
+          setSystemSettingsStatus("");
+        }
+
+        renderView();
+        return true;
+      }
 
       if (authLogoutTrigger) {
         await logoutCurrentUser();
@@ -144,6 +355,28 @@
     async function handleChange(event) {
       const target = event.target instanceof Element ? event.target : null;
       const accountField = target?.closest("[data-account-field]") || null;
+      const scheduleTarget = String(target?.dataset.systemSettingsScheduleTarget || "").trim();
+      const schedulePart = String(target?.dataset.systemSettingsSchedulePart || "").trim();
+
+      if (scheduleTarget && schedulePart) {
+        const targetState = resolveSystemScheduleTargetStateKeys(scheduleTarget);
+        const nextParts = normalizeSystemScheduleParts(state.systemSettings[targetState.partsStateKey] || createEmptySystemScheduleParts());
+        nextParts[schedulePart] = String(target?.value || "").trim();
+        applySystemScheduleParts(targetState.scheduleTarget, nextParts);
+
+        if (state.systemSettings.statusMessage) {
+          setSystemSettingsStatus("");
+        }
+
+        const targetId = String(target?.id || "").trim();
+        renderView();
+
+        if (targetId) {
+          document.getElementById(targetId)?.focus();
+        }
+
+        return true;
+      }
 
       if (accountField?.dataset.accountField === "role") {
         updateAccountEditorField("draftRole", target?.value);
@@ -152,6 +385,34 @@
 
       if (target?.id === "accountCreateRole") {
         setAccountCreateError("");
+        return true;
+      }
+
+      if (target?.dataset.systemSettingsExamComponentIndex) {
+        const componentIndex = Number(target.dataset.systemSettingsExamComponentIndex);
+
+        if (Number.isInteger(componentIndex) && componentIndex >= 0) {
+          const nextComponents = Array.isArray(state.systemSettings.applicantExamNoComponents)
+            ? [...state.systemSettings.applicantExamNoComponents]
+            : ["admissionCode", "seriesCode", "unitCode", "sequence", ""];
+          nextComponents[componentIndex] = String(target.value || "").trim();
+          state.systemSettings.applicantExamNoComponents = nextComponents;
+
+          if (state.systemSettings.statusMessage) {
+            setSystemSettingsStatus("");
+          }
+          return true;
+        }
+      }
+
+      if (target?.dataset.systemSettingsAdmitCardDataSource) {
+        state.systemSettings.admitCardDataSource = String(target.dataset.systemSettingsAdmitCardDataSource || "").trim() || "examinee";
+
+        if (state.systemSettings.statusMessage) {
+          setSystemSettingsStatus("");
+        }
+
+        renderView();
         return true;
       }
 
@@ -208,6 +469,22 @@
 
       if (target?.id === "systemSettingsAutoLogoutMinutes") {
         state.systemSettings.autoLogoutMinutes = target.value;
+        if (state.systemSettings.statusMessage) {
+          setSystemSettingsStatus("");
+        }
+        return true;
+      }
+
+      if (target?.id === "systemSettingsAdmissionHomepageUrl") {
+        state.systemSettings.admissionHomepageUrl = target.value;
+        if (state.systemSettings.statusMessage) {
+          setSystemSettingsStatus("");
+        }
+        return true;
+      }
+
+      if (target?.id === "systemSettingsApplicantExamNoDigitCount") {
+        state.systemSettings.applicantExamNoDigitCount = target.value;
         if (state.systemSettings.statusMessage) {
           setSystemSettingsStatus("");
         }

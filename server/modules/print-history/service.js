@@ -40,7 +40,7 @@ function createPrintHistoryService({
         }
 
         await connection.query(
-          `INSERT INTO print_history (examinee_no, print_count) VALUES (?, ?)`,
+          `INSERT INTO print_log (examinee_no, print_count) VALUES (?, ?)`,
           [examineeNo, 1],
         );
         insertedHistory.push(examineeNo);
