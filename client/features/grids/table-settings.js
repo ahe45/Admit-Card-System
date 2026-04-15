@@ -44,6 +44,10 @@
     }
 
     function getTotalPages(totalRows, pageSize) {
+      if (Number(pageSize || 0) <= 0) {
+        return 1;
+      }
+
       return Math.max(1, Math.ceil(totalRows / pageSize));
     }
 

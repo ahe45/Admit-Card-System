@@ -32,8 +32,10 @@
     applyEditorToolbarColorTrigger,
     applyLoginNoticeEditorCommand,
     batchPrintSelectedExaminees,
+    cancelBatchPrintJob,
     cancelAccountEdit,
     changeSystemAutoLogoutMinutes,
+    clearSystemBackupRestoreFileSelection,
     clearAllGridFilters,
     clearGridFilter,
     clearHeaderFilters,
@@ -46,8 +48,11 @@
     closeAllPageSizeMenus,
     closeGridFilterMenu,
     closePasswordSetupPrompt,
+    confirmSystemSettingsNavigation,
     deleteAccountAction,
     deleteSystemDataAction,
+    downloadSystemBackupAction,
+    runSystemBackupAutomationNow,
     downloadExamineeGridWorkbook,
     downloadExamineeTemplate,
     downloadPrintHistoryGridWorkbook,
@@ -63,15 +68,20 @@
     getTableState,
     getTotalPages,
     headerFilterFields,
+    hasUnsavedSystemSettingsChanges,
     hideGridCellTooltip,
     handleGridRowClickSelection,
+    handleSelectableGridRowSelection,
     isBusyOverlayActive,
     loadBootstrapData,
+    loadSystemAuditLogs,
     loginNoticeEventHandlers,
     logoutCurrentUser,
     lookupSelectFields,
     lookupTextFields,
     openModal,
+    prepareBatchPrintDownloadModal,
+    applySuperAdminImageFile,
     persistHeaderFilters,
     printExamineeAdmitCard,
     recordAutoLogoutActivity,
@@ -86,11 +96,15 @@
     rerenderGridInteraction,
     rerenderLookupViewInteraction,
     createLookupFilters,
+    importSystemBackupAction,
     resetAccountPasswordAction,
     resetGridPages,
     saveAccountEdit,
+    saveSuperAdminSettings,
+    saveSystemBackupAutomationSettings,
     saveSystemSettings,
     setAccountCreateError,
+    setExamineeUploadMode,
     setEditorToolbarColorPanelVisibility,
     setEditorToolbarFontSizeMenuVisibility,
     setGridFilterValues,
@@ -99,10 +113,15 @@
     startAccountEdit,
     state,
     submitAccountCreate,
+    submitBatchPrintDownloadSelection,
     submitLogin,
     submitPasswordSetup,
+    syncSystemSettingsDirtyState,
     syncLoginErrorMessage,
     syncPasswordSetupModal,
+    toggleSystemBackupAutomationItemSelection,
+    toggleSystemBackupAssetSelection,
+    toggleSystemBackupRestoreSelection,
     templateEditorEventHandlers,
     toggleGridFilterMenu,
     toggleGridFilterValue,
@@ -110,8 +129,13 @@
     toggleGridSelectAll,
     toggleGridSort,
     updateAccountEditorField,
+    updateSuperAdminField,
+    updateSuperAdminImageField,
+    updateBatchPrintOutputMode,
+    updateSystemBackupAutomationField,
     updateLookupTextFilter,
     uploadSelectedExamineeFile,
+    selectSystemBackupRestoreFile,
   }) {
     const gridDocumentEventHandlers = createGridDocumentEventHandlers({
       batchPrintSelectedExaminees,
@@ -135,6 +159,7 @@
       getTableState,
       getTotalPages,
       handleGridRowClickSelection,
+      handleSelectableGridRowSelection,
       headerFilterFields,
       loadBootstrapData,
       lookupSelectFields,
@@ -164,27 +189,49 @@
     const authDocumentEventHandlers = createAuthDocumentEventHandlers({
       cancelAccountEdit,
       changeSystemAutoLogoutMinutes,
+      clearSystemBackupRestoreFileSelection,
       closePasswordSetupPrompt,
+      confirmSystemSettingsNavigation,
       deleteAccountAction,
       deleteSystemDataAction,
+      downloadSystemBackupAction,
+      loadSystemAuditLogs,
+      runSystemBackupAutomationNow,
       downloadExamineeTemplate,
+      hasUnsavedSystemSettingsChanges,
+      importSystemBackupAction,
       logoutCurrentUser,
       openModal,
+      prepareBatchPrintDownloadModal,
+      applySuperAdminImageFile,
       renderView,
       requestCloseModal,
       resetAccountPasswordAction,
       saveAccountEdit,
+      saveSuperAdminSettings,
+      saveSystemBackupAutomationSettings,
       saveSystemSettings,
       setAccountCreateError,
+      setExamineeUploadMode,
       setSystemSettingsStatus,
       startAccountEdit,
       state,
       submitAccountCreate,
+      submitBatchPrintDownloadSelection,
       submitLogin,
       submitPasswordSetup,
+      syncSystemSettingsDirtyState,
       syncLoginErrorMessage,
       syncPasswordSetupModal,
+      toggleSystemBackupAutomationItemSelection,
+      toggleSystemBackupAssetSelection,
+      toggleSystemBackupRestoreSelection,
+      updateSystemBackupAutomationField,
+      updateSuperAdminField,
+      updateSuperAdminImageField,
+      updateBatchPrintOutputMode,
       updateAccountEditorField,
+      selectSystemBackupRestoreFile,
     });
     const editorToolbarDocumentEventHandlers = createEditorToolbarDocumentEventHandlers({
       applyEditorToolbarColorTrigger,
@@ -198,7 +245,21 @@
     });
 
     async function handleClick(event) {
+      const busyOverlayCancelTrigger = event.target instanceof Element ? event.target.closest("[data-cancel-batch-print]") : null;
+      const busyOverlayAllowedTrigger =
+        event.target instanceof Element ? event.target.closest("[data-allow-busy-overlay-click]") : null;
+
       if (isBusyOverlayActive()) {
+        if (busyOverlayCancelTrigger) {
+          event.preventDefault();
+          await cancelBatchPrintJob();
+          return;
+        }
+
+        if (busyOverlayAllowedTrigger) {
+          return;
+        }
+
         event.preventDefault();
         return;
       }
@@ -240,7 +301,16 @@
     }
 
     async function handleKeydown(event) {
+      const target = event.target instanceof Element ? event.target : null;
+      const busyOverlayCancelTrigger = target?.closest("[data-cancel-batch-print]") || null;
+
       if (isBusyOverlayActive()) {
+        if (busyOverlayCancelTrigger && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          await cancelBatchPrintJob();
+          return;
+        }
+
         event.preventDefault();
         return;
       }

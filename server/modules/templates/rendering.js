@@ -43,8 +43,7 @@ function createTemplateRenderingService({
     replaceStyledTemplateTagMarkup,
   } = tagReplacementService;
 
-  async function renderTemplateWithExaminee(templateHtml, examinee) {
-    let markup = sanitizeTemplateRenderHtml(templateHtml);
+  async function renderTemplateMarkupWithExaminee(markup, examinee) {
     markup = replaceStyledTemplateTagMarkup(markup, examinee);
 
     templateTagDefinitions.forEach((definition) => {
@@ -66,8 +65,21 @@ function createTemplateRenderingService({
     return markExamineePhotoTableCells(renderedMarkup);
   }
 
+  function createTemplateExamineeRenderer(templateHtml) {
+    const sanitizedTemplateHtml = sanitizeTemplateRenderHtml(templateHtml);
+
+    return async function renderTemplateMarkup(examinee) {
+      return renderTemplateMarkupWithExaminee(sanitizedTemplateHtml, examinee);
+    };
+  }
+
+  async function renderTemplateWithExaminee(templateHtml, examinee) {
+    return createTemplateExamineeRenderer(templateHtml)(examinee);
+  }
+
   return Object.freeze({
     buildTemplateGeneratedObjectSvg,
+    createTemplateExamineeRenderer,
     renderTemplateWithExaminee,
   });
 }

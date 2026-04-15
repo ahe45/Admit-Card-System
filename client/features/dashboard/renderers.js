@@ -109,12 +109,14 @@
       return `
         <article class="metric-card">
           <p>필터 기준 수험생</p>
-          <strong>${formatDashboardCount(filteredExamineeCount, "명")}</strong>
-          <span class="metric-meta">전체 ${formatDashboardCount(state.metrics.registeredExaminees, "명")} 중 집계</span>
+          <strong data-dashboard-metric="filteredExamineeCount">${formatDashboardCount(filteredExamineeCount, "명")}</strong>
+          <span class="metric-meta">
+            전체 <span data-dashboard-metric="registeredExamineeCount">${formatDashboardCount(state.metrics.registeredExaminees, "명")}</span> 중 집계
+          </span>
         </article>
         <article class="metric-card">
           <p>사진 등록률</p>
-          <strong>${formatDashboardCount(photoRegisteredRate, "%")}</strong>
+          <strong data-dashboard-metric="photoRegisteredRate">${formatDashboardCount(photoRegisteredRate, "%")}</strong>
           <span class="metric-meta">등록 ${formatDashboardCount(photoRegisteredCount, "명")} · 미등록 ${formatDashboardCount(
             missingPhotoCount,
             "명",
@@ -122,12 +124,12 @@
         </article>
         <article class="metric-card">
           <p>오늘 출력</p>
-          <strong>${formatDashboardCount(todayPrintCount, "건")}</strong>
+          <strong data-dashboard-metric="todayPrintCount">${formatDashboardCount(todayPrintCount, "건")}</strong>
           <span class="metric-meta">오늘 생성된 출력 이력 기준</span>
         </article>
         <article class="metric-card">
           <p>누적 출력</p>
-          <strong>${formatDashboardCount(totalPrintCount, "건")}</strong>
+          <strong data-dashboard-metric="totalPrintCount">${formatDashboardCount(totalPrintCount, "건")}</strong>
           <span class="metric-meta">전체 발급 이력 누적 집계</span>
         </article>
       `;

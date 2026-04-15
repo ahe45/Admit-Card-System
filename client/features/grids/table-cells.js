@@ -55,11 +55,39 @@
             column.key,
             `
               <button
-                class="ghost-button small-button"
+                class="icon-button table-inline-icon-button"
                 data-applicant-submission-toggle="${escapeAttribute(row.id)}"
                 type="button"
+                aria-label="답변 보기"
+                title="답변 보기"
               >
-                ${escapeHtml("답변 보기")}
+                <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            `,
+          );
+        }
+
+        if (column.key === "deleteAction") {
+          return renderAccountActionCell(
+            column.key,
+            `
+              <button
+                class="icon-button table-inline-icon-button danger-button"
+                data-applicant-submission-delete="${escapeAttribute(row.id)}"
+                type="button"
+                aria-label="접수 삭제"
+                title="접수 삭제"
+              >
+                <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 7h16"></path>
+                  <path d="M9.5 3.5h5"></path>
+                  <path d="M8 7v11a1.5 1.5 0 0 0 1.5 1.5h5A1.5 1.5 0 0 0 16 18V7"></path>
+                  <path d="M10 10.5v5"></path>
+                  <path d="M14 10.5v5"></path>
+                </svg>
               </button>
             `,
           );
@@ -118,7 +146,18 @@
             : renderAccountActionCell(
                 column.key,
                 `<div class="table-inline-actions table-inline-actions-compact table-inline-actions-dual table-inline-actions-reserved">
-                  <button class="table-inline-button table-inline-button-span-2" data-account-edit="${escapeAttribute(row.id)}" type="button">수정</button>
+                  <button
+                    class="icon-button table-inline-icon-button table-inline-button-span-2"
+                    data-account-edit="${escapeAttribute(row.id)}"
+                    type="button"
+                    aria-label="계정 수정"
+                    title="계정 수정"
+                  >
+                    <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M4 20h4.5L19 9.5 14.5 5 4 15.5V20Z"></path>
+                      <path d="m12.5 7 4.5 4.5"></path>
+                    </svg>
+                  </button>
                 </div>`,
               );
         }
@@ -126,14 +165,43 @@
         if (column.key === "resetAction") {
           return renderAccountActionCell(
             column.key,
-            `<button class="table-inline-button" data-account-reset="${escapeAttribute(row.id)}" type="button">초기화</button>`,
+            `
+              <button
+                class="icon-button table-inline-icon-button"
+                data-account-reset="${escapeAttribute(row.id)}"
+                type="button"
+                aria-label="비밀번호 초기화"
+                title="비밀번호 초기화"
+              >
+                <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M20 12a8 8 0 1 1-2.34-5.66"></path>
+                  <path d="M20 4v6h-6"></path>
+                </svg>
+              </button>
+            `,
           );
         }
 
         if (column.key === "deleteAction") {
           return renderAccountActionCell(
             column.key,
-            `<button class="table-inline-button danger" data-account-delete="${escapeAttribute(row.id)}" type="button">삭제</button>`,
+            `
+              <button
+                class="icon-button table-inline-icon-button danger-button"
+                data-account-delete="${escapeAttribute(row.id)}"
+                type="button"
+                aria-label="계정 삭제"
+                title="계정 삭제"
+              >
+                <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 7h16"></path>
+                  <path d="M9.5 3.5h5"></path>
+                  <path d="M8 7v11a1.5 1.5 0 0 0 1.5 1.5h5A1.5 1.5 0 0 0 16 18V7"></path>
+                  <path d="M10 10.5v5"></path>
+                  <path d="M14 10.5v5"></path>
+                </svg>
+              </button>
+            `,
           );
         }
       }

@@ -11,6 +11,7 @@
       <section class="view-stack table-view-stack">
         ${renderExamineeResultTable({
           title: "수험표 출력 이력",
+          description: "수험표 발급 이력을 조회하고, 조건별로 필터링한 결과를 다운로드합니다.",
           gridKey: "printHistoryGrid",
           showPrintColumn: false,
           selectable: false,

@@ -1,14 +1,18 @@
 function createSystemSummaryService({
   formatDateAsYmd,
   getAccounts,
+  getApplicantAssignments,
   getApplicantFormFields,
   getApplicantRecruitmentUnits,
   getApplicantNoticeHtml,
+  getApplicantSchedules,
   getApplicantSettings,
   getApplicantSubmissions,
   getExaminees,
   getLoginNoticeHtml,
   getPrintHistory,
+  getSystemBackupAutomationSettings,
+  getSuperAdminSettings,
   getSystemSettings,
   getTemplates,
   query,
@@ -30,17 +34,21 @@ function createSystemSummaryService({
   }
 
   async function getBootstrapPayload() {
-    const [examinees, printHistory, templates, accounts, summary, systemSettings, loginNoticeHtml, applicantNoticeHtml, applicantFormFields, applicantRecruitmentUnits, applicantSubmissions, applicantSettings] = await Promise.all([
+    const [examinees, printHistory, templates, accounts, summary, systemSettings, systemBackupAutomation, superAdminSettings, loginNoticeHtml, applicantNoticeHtml, applicantFormFields, applicantRecruitmentUnits, applicantSchedules, applicantAssignments, applicantSubmissions, applicantSettings] = await Promise.all([
       getExaminees(),
       getPrintHistory(),
       getTemplates(),
       getAccounts(),
       getSummary(),
       getSystemSettings(),
+      getSystemBackupAutomationSettings(),
+      getSuperAdminSettings(),
       getLoginNoticeHtml(),
       getApplicantNoticeHtml(),
       getApplicantFormFields(),
       getApplicantRecruitmentUnits(),
+      getApplicantSchedules(),
+      getApplicantAssignments(),
       getApplicantSubmissions(),
       getApplicantSettings(),
     ]);
@@ -49,6 +57,8 @@ function createSystemSummaryService({
       applicantManager: {
         fields: applicantFormFields,
         recruitmentUnits: applicantRecruitmentUnits,
+        schedules: applicantSchedules,
+        assignments: applicantAssignments,
         settings: applicantSettings,
         submissions: applicantSubmissions,
       },
@@ -58,6 +68,8 @@ function createSystemSummaryService({
       accounts,
       summary,
       systemSettings,
+      systemBackupAutomation,
+      superAdminSettings,
       loginNoticeHtml,
       applicantNoticeHtml,
       serverDate: formatDateAsYmd(new Date()),

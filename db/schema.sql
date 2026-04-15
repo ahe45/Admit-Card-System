@@ -13,9 +13,14 @@ CREATE TABLE IF NOT EXISTS examinee (
   examinee_no VARCHAR(30) NOT NULL,
   name VARCHAR(100) NOT NULL,
   birth_date DATE NOT NULL,
+  admission_code VARCHAR(30) NOT NULL DEFAULT '',
+  series_code VARCHAR(30) NOT NULL DEFAULT '',
+  unit_code VARCHAR(30) NOT NULL DEFAULT '',
+  major_code VARCHAR(30) NOT NULL DEFAULT '',
+  building_code VARCHAR(30) NOT NULL DEFAULT '',
+  room_code VARCHAR(30) NOT NULL DEFAULT '',
   photo_name VARCHAR(255) NULL,
   photo_mime VARCHAR(100) NULL,
-  photo_blob MEDIUMBLOB NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
@@ -51,7 +56,7 @@ CREATE TABLE IF NOT EXISTS templates (
 CREATE TABLE IF NOT EXISTS accounts (
   login_id VARCHAR(60) NOT NULL,
   display_name VARCHAR(100) NOT NULL,
-  role ENUM('관리자', '운영자', '조회용') NOT NULL DEFAULT '조회용',
+  role ENUM('슈퍼관리자', '관리자', '운영자', '조회용') NOT NULL DEFAULT '조회용',
   password_value VARCHAR(255) NOT NULL DEFAULT '1111',
   password_temporary TINYINT(1) NOT NULL DEFAULT 1,
   last_login_at DATETIME NULL,
@@ -69,15 +74,29 @@ CREATE TABLE IF NOT EXISTS system_set (
   PRIMARY KEY (setting_key)
 );
 
+CREATE TABLE IF NOT EXISTS system_audit_log (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  account_login_id VARCHAR(100) NOT NULL DEFAULT '',
+  account_display_name VARCHAR(100) NOT NULL DEFAULT '',
+  account_role VARCHAR(30) NOT NULL DEFAULT '',
+  action_type VARCHAR(80) NOT NULL,
+  target_scope VARCHAR(80) NOT NULL DEFAULT '',
+  summary_text VARCHAR(255) NOT NULL DEFAULT '',
+  details_json MEDIUMTEXT NULL,
+  ip_address VARCHAR(100) NOT NULL DEFAULT '',
+  user_agent VARCHAR(500) NOT NULL DEFAULT '',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_system_audit_log_created_at (created_at),
+  KEY idx_system_audit_log_action_type (action_type),
+  KEY idx_system_audit_log_account_login_id (account_login_id)
+);
+
 INSERT IGNORE INTO system_set (setting_key, setting_value)
 VALUES
   ('initialPassword', '1111'),
   ('autoLogoutMinutes', '0'),
   ('admissionHomepageUrl', ''),
-  ('applicantScheduleStartAt', ''),
-  ('applicantScheduleEndAt', ''),
-  ('admitCardLookupScheduleStartAt', ''),
-  ('admitCardLookupScheduleEndAt', ''),
   ('admitCardDataSource', 'examinee'),
   ('applicantExamNoDigitCount', '10'),
   ('applicantExamNoComponentsJson', '["admissionCode","seriesCode","unitCode","sequence",""]'),
@@ -89,7 +108,7 @@ CREATE TABLE IF NOT EXISTS app_form (
   field_key VARCHAR(60) NOT NULL,
   question_text VARCHAR(255) NOT NULL,
   question_description VARCHAR(500) NOT NULL DEFAULT '',
-  input_type ENUM('text', 'textarea', 'select', 'date', 'birthdate', 'time', 'photo', 'phone', 'nationality') NOT NULL DEFAULT 'text',
+  input_type ENUM('text', 'textarea', 'select', 'date', 'birthdate', 'time', 'photo', 'file', 'phone', 'nationality') NOT NULL DEFAULT 'text',
   system_field_key VARCHAR(40) NOT NULL DEFAULT '',
   options_json TEXT NULL,
   required TINYINT(1) NOT NULL DEFAULT 0,
@@ -121,6 +140,7 @@ CREATE TABLE IF NOT EXISTS app_subm (
 CREATE TABLE IF NOT EXISTS app_meta (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   promoted_examinee_no VARCHAR(30) NULL,
+  promotion_override_json MEDIUMTEXT NULL,
   promoted_at DATETIME NULL,
   PRIMARY KEY (id),
   KEY idx_app_meta_promoted (promoted_examinee_no)
@@ -128,10 +148,11 @@ CREATE TABLE IF NOT EXISTS app_meta (
 
 CREATE TABLE IF NOT EXISTS app_unit (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  track_name VARCHAR(100) NOT NULL DEFAULT '',
   admission_code VARCHAR(30) NOT NULL,
   admission_name VARCHAR(100) NOT NULL,
-  track_code VARCHAR(30) NOT NULL,
-  track_name VARCHAR(100) NOT NULL,
+  series_code VARCHAR(30) NOT NULL DEFAULT '',
+  series_name VARCHAR(100) NOT NULL DEFAULT '',
   unit_code VARCHAR(30) NOT NULL,
   unit_name VARCHAR(100) NOT NULL,
   major_code VARCHAR(30) NOT NULL DEFAULT '',
@@ -140,9 +161,48 @@ CREATE TABLE IF NOT EXISTS app_unit (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  UNIQUE KEY uniq_app_unit_codes (admission_code, track_code, unit_code, major_code),
-  UNIQUE KEY uniq_app_unit_names (admission_name, track_name, unit_name, major_name),
+  UNIQUE KEY uniq_app_unit_codes (track_name, admission_code, series_code, unit_code, major_code),
+  UNIQUE KEY uniq_app_unit_names (track_name, admission_name, series_name, unit_name, major_name),
   KEY idx_app_unit_sort_order (sort_order)
+);
+
+CREATE TABLE IF NOT EXISTS app_schedule (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  track_name VARCHAR(100) NOT NULL DEFAULT '',
+  admission_code VARCHAR(30) NOT NULL,
+  admission_name VARCHAR(100) NOT NULL,
+  applicant_schedule_start_at DATETIME NULL,
+  applicant_schedule_end_at DATETIME NULL,
+  admit_card_lookup_schedule_start_at DATETIME NULL,
+  admit_card_lookup_schedule_end_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uniq_app_schedule_track_admission (track_name, admission_code, admission_name),
+  KEY idx_app_schedule_track_name (track_name),
+  KEY idx_app_schedule_admission_name (admission_name)
+);
+
+CREATE TABLE IF NOT EXISTS app_assign (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  track VARCHAR(100) NOT NULL DEFAULT '',
+  admission VARCHAR(100) NOT NULL,
+  series VARCHAR(100) NOT NULL DEFAULT '',
+  unit VARCHAR(100) NOT NULL DEFAULT '',
+  major VARCHAR(100) NOT NULL DEFAULT '',
+  exam_date DATE NOT NULL,
+  `time` VARCHAR(5) NOT NULL,
+  building_code VARCHAR(30) NOT NULL,
+  building VARCHAR(100) NOT NULL,
+  room_code VARCHAR(30) NOT NULL,
+  room VARCHAR(100) NOT NULL,
+  assigned_count INT NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uniq_app_assign_room_slot (exam_date, `time`, building_code, room_code),
+  KEY idx_app_assign_sort_order (sort_order)
 );
 
 CREATE TABLE IF NOT EXISTS app_email_log (
@@ -164,13 +224,24 @@ ALTER TABLE templates
 ALTER TABLE examinee
   ADD COLUMN IF NOT EXISTS series VARCHAR(100) NOT NULL DEFAULT '' AFTER admission,
   ADD COLUMN IF NOT EXISTS `group` VARCHAR(30) NOT NULL DEFAULT '' AFTER room,
-  ADD COLUMN IF NOT EXISTS photo_name VARCHAR(255) NULL AFTER birth_date,
-  ADD COLUMN IF NOT EXISTS photo_mime VARCHAR(100) NULL AFTER photo_name,
-  ADD COLUMN IF NOT EXISTS photo_blob MEDIUMBLOB NULL AFTER photo_mime;
+  ADD COLUMN IF NOT EXISTS admission_code VARCHAR(30) NOT NULL DEFAULT '' AFTER birth_date,
+  ADD COLUMN IF NOT EXISTS series_code VARCHAR(30) NOT NULL DEFAULT '' AFTER admission_code,
+  ADD COLUMN IF NOT EXISTS unit_code VARCHAR(30) NOT NULL DEFAULT '' AFTER series_code,
+  ADD COLUMN IF NOT EXISTS major_code VARCHAR(30) NOT NULL DEFAULT '' AFTER unit_code,
+  ADD COLUMN IF NOT EXISTS building_code VARCHAR(30) NOT NULL DEFAULT '' AFTER major_code,
+  ADD COLUMN IF NOT EXISTS room_code VARCHAR(30) NOT NULL DEFAULT '' AFTER building_code,
+  ADD COLUMN IF NOT EXISTS photo_name VARCHAR(255) NULL AFTER room_code,
+  ADD COLUMN IF NOT EXISTS photo_mime VARCHAR(100) NULL AFTER photo_name;
+
+ALTER TABLE examinee
+  DROP COLUMN IF EXISTS photo_blob;
+
+ALTER TABLE app_meta
+  ADD COLUMN IF NOT EXISTS promotion_override_json MEDIUMTEXT NULL AFTER promoted_examinee_no;
 
 ALTER TABLE accounts
   ADD COLUMN IF NOT EXISTS display_name VARCHAR(100) NOT NULL DEFAULT '' AFTER login_id,
-  ADD COLUMN IF NOT EXISTS role ENUM('관리자', '운영자', '조회용') NOT NULL DEFAULT '조회용' AFTER display_name,
+  ADD COLUMN IF NOT EXISTS role ENUM('슈퍼관리자', '관리자', '운영자', '조회용') NOT NULL DEFAULT '조회용' AFTER display_name,
   ADD COLUMN IF NOT EXISTS password_value VARCHAR(255) NOT NULL DEFAULT '1111' AFTER role,
   ADD COLUMN IF NOT EXISTS password_temporary TINYINT(1) NOT NULL DEFAULT 1 AFTER password_value,
   ADD COLUMN IF NOT EXISTS last_login_at DATETIME NULL AFTER password_temporary;

@@ -10,8 +10,10 @@
     apiRequest,
     applyBootstrapPayload,
     applyLoginNoticePayload,
+    applySuperAdminPayload,
     handleAuthenticationFailure,
     isUserAuthenticated,
+    loadCurrentViewData,
     renderView,
     state,
     updateAuthChrome,
@@ -20,6 +22,7 @@
       try {
         const payload = await apiRequest("/api/login-notice");
         applyLoginNoticePayload(payload.html || payload.loginNoticeHtml || "", { scope: "login" });
+        applySuperAdminPayload(payload.superAdminSettings || {});
       } catch (error) {
         // Keep the default in-memory notice when the server payload cannot be loaded.
       } finally {
@@ -46,6 +49,9 @@
       try {
         const payload = await apiRequest("/api/bootstrap");
         applyBootstrapPayload(payload);
+        if (typeof loadCurrentViewData === "function") {
+          await loadCurrentViewData();
+        }
       } catch (error) {
         if (handleAuthenticationFailure(error)) {
           return;

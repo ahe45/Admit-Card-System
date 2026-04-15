@@ -338,9 +338,14 @@
     function renderEditorToolbarInner({
       commandAttr = "",
       commandSelectAttr = "",
+      actionAttr = "",
       tableActionAttr = "",
       insertAttr = "",
       openImageAttr = "",
+      showLinkAction = false,
+      linkActionValue = "link",
+      tableInsertLocation = "insert-group",
+      tableLayout = "default",
       fontFamilyId = "",
       fontFamilyValue = EDITOR_TOOLBAR_FONT_OPTIONS[0].value,
       fontSizeId = "",
@@ -362,6 +367,46 @@
       imageInputId = "",
     }) {
       const resolvedFontSizeMenuId = `${fontSizeId}Menu`;
+      const shouldRenderTableInsertInTableAddSection = tableInsertLocation === "table-add-section";
+      const shouldRenderTableInsertInInsertGroup = !shouldRenderTableInsertInTableAddSection;
+      const useNoticeTableLayout = tableLayout === "notice";
+      const tableInsertPopoverMarkup = renderEditorToolbarTableInsertPopover({
+        insertAttr,
+        panelId: tableInsertPanelId,
+        rowsId: tableRowsId,
+        columnsId: tableColumnsId,
+      });
+      const tablePlacementSectionMarkup = `
+        <div class="template-toolbar-section">
+          <span class="template-toolbar-section-label">배치</span>
+          <div class="template-toolbar-group-controls">
+            ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "cell-vertical-align-top", label: "셀 위쪽 정렬", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.cellVerticalAlignTop })}
+            ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "cell-vertical-align-middle", label: "셀 가운데 정렬", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.cellVerticalAlignMiddle })}
+            ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "cell-vertical-align-bottom", label: "셀 아래쪽 정렬", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.cellVerticalAlignBottom })}
+          </div>
+        </div>
+      `;
+      const tableFitSectionMarkup = `
+        <div class="template-toolbar-section">
+          <span class="template-toolbar-section-label">맞춤</span>
+          <div class="template-toolbar-group-controls">
+            ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "equalize-column-widths", label: "열 너비 맞춤", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.equalizeColumnWidths })}
+            ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "equalize-row-heights", label: "행 높이 맞춤", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.equalizeRowHeights })}
+          </div>
+        </div>
+      `;
+      const tableShadingSectionMarkup = renderEditorToolbarColorPickerSection({
+        sectionLabel: "음영",
+        inputId: cellShadingId,
+        inputValue: cellShadingValue,
+        presetColors: EDITOR_TOOLBAR_TEXT_COLOR_PRESETS,
+        colorTableAction: "apply-cell-shading",
+        fallbackValue: "#ffffff",
+        sectionClassName: useNoticeTableLayout ? "" : "template-toolbar-section-compact",
+        pickerClassName: useNoticeTableLayout
+          ? ""
+          : "template-toolbar-color-picker-compact template-toolbar-color-picker-align-end",
+      });
 
       return `
         <div class="template-toolbar-group">
@@ -421,6 +466,7 @@
           <div class="template-toolbar-section">
             <span class="template-toolbar-section-label">추가</span>
             <div class="template-toolbar-group-controls">
+              ${shouldRenderTableInsertInTableAddSection ? tableInsertPopoverMarkup : ""}
               ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "insert-row-before", label: "위에 행 추가", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.insertRowBefore })}
               ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "insert-row-after", label: "아래에 행 추가", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.insertRowAfter })}
               ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "insert-column-before", label: "왼쪽에 열 추가", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.insertColumnBefore })}
@@ -434,47 +480,60 @@
               ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "delete-column", label: "열 삭제", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.deleteColumn })}
             </div>
           </div>
-          <div class="template-toolbar-section-row template-toolbar-section-row-dual">
-            <div class="template-toolbar-section">
-              <span class="template-toolbar-section-label">편집</span>
-              <div class="template-toolbar-group-controls">
-                ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "merge-selection", label: "선택한 셀 병합", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.mergeSelection })}
-                ${renderEditorToolbarCellSplitPopover({
-                  panelId: cellSplitPanelId,
-                  countId: cellSplitCountId,
-                  axisName: cellSplitAxisName,
-                  axisRowId: cellSplitAxisRowId,
-                  axisColumnId: cellSplitAxisColumnId,
-                })}
+          ${useNoticeTableLayout
+            ? `
+              <div class="template-toolbar-section-row template-toolbar-section-row-dual">
+                <div class="template-toolbar-section">
+                  <span class="template-toolbar-section-label">편집</span>
+                  <div class="template-toolbar-group-controls">
+                    ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "merge-selection", label: "선택한 셀 병합", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.mergeSelection })}
+                    ${renderEditorToolbarCellSplitPopover({
+                      panelId: cellSplitPanelId,
+                      countId: cellSplitCountId,
+                      axisName: cellSplitAxisName,
+                      axisRowId: cellSplitAxisRowId,
+                      axisColumnId: cellSplitAxisColumnId,
+                    })}
+                  </div>
+                </div>
+                ${tableFitSectionMarkup}
               </div>
-            </div>
-            <div class="template-toolbar-section">
-              <span class="template-toolbar-section-label">맞춤</span>
-              <div class="template-toolbar-group-controls">
-                ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "equalize-column-widths", label: "열 너비 맞춤", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.equalizeColumnWidths })}
-                ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "equalize-row-heights", label: "행 높이 맞춤", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.equalizeRowHeights })}
+              ${tablePlacementSectionMarkup}
+              ${tableShadingSectionMarkup}
+            `
+            : `
+              <div class="template-toolbar-section-row template-toolbar-section-row-dual">
+                <div class="template-toolbar-section">
+                  <span class="template-toolbar-section-label">편집</span>
+                  <div class="template-toolbar-group-controls">
+                    ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "merge-selection", label: "선택한 셀 병합", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.mergeSelection })}
+                    ${renderEditorToolbarCellSplitPopover({
+                      panelId: cellSplitPanelId,
+                      countId: cellSplitCountId,
+                      axisName: cellSplitAxisName,
+                      axisRowId: cellSplitAxisRowId,
+                      axisColumnId: cellSplitAxisColumnId,
+                    })}
+                  </div>
+                </div>
+                ${tableFitSectionMarkup}
               </div>
-            </div>
-          </div>
-          <div class="template-toolbar-section-row template-toolbar-section-row-dual">
-            <div class="template-toolbar-section">
-              <span class="template-toolbar-section-label">배치</span>
-              <div class="template-toolbar-group-controls">
-                ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "cell-vertical-align-top", label: "셀 위쪽 정렬", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.cellVerticalAlignTop })}
-                ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "cell-vertical-align-middle", label: "셀 가운데 정렬", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.cellVerticalAlignMiddle })}
-                ${renderEditorToolbarIconButton({ attributeName: tableActionAttr, attributeValue: "cell-vertical-align-bottom", label: "셀 아래쪽 정렬", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.cellVerticalAlignBottom })}
+              <div class="template-toolbar-section-row template-toolbar-section-row-dual">
+                ${tablePlacementSectionMarkup}
+                ${tableShadingSectionMarkup}
               </div>
-            </div>
-            ${renderEditorToolbarColorPickerSection({ sectionLabel: "음영", inputId: cellShadingId, inputValue: cellShadingValue, presetColors: EDITOR_TOOLBAR_TEXT_COLOR_PRESETS, colorTableAction: "apply-cell-shading", fallbackValue: "#ffffff", sectionClassName: "template-toolbar-section-compact", pickerClassName: "template-toolbar-color-picker-compact template-toolbar-color-picker-align-end" })}
-          </div>
+            `}
         </div>
         <div class="template-toolbar-group">
           <span class="template-toolbar-group-label">삽입</span>
           <div class="template-toolbar-section">
             <span class="template-toolbar-section-label">개체</span>
             <div class="template-toolbar-group-controls">
-              ${renderEditorToolbarTableInsertPopover({ insertAttr, panelId: tableInsertPanelId, rowsId: tableRowsId, columnsId: tableColumnsId })}
+              ${shouldRenderTableInsertInInsertGroup ? tableInsertPopoverMarkup : ""}
               ${renderEditorToolbarIconButton({ attributeName: openImageAttr, attributeValue: "true", label: "이미지 삽입", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.openImage })}
+              ${showLinkAction
+                ? renderEditorToolbarIconButton({ attributeName: actionAttr, attributeValue: linkActionValue, label: "링크 삽입", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.link })
+                : ""}
               ${renderEditorToolbarIconButton({ attributeName: insertAttr, attributeValue: "barcode", label: "바코드 삽입", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.barcode })}
               ${renderEditorToolbarIconButton({ attributeName: insertAttr, attributeValue: "qrcode", label: "QR코드 삽입", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.qrcode })}
               ${renderEditorToolbarIconButton({ attributeName: insertAttr, attributeValue: "rule", label: "구분선", iconMarkup: EDITOR_TOOLBAR_ICON_MARKUP.rule })}

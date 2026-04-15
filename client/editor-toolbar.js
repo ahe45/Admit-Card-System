@@ -270,6 +270,13 @@ const EDITOR_TOOLBAR_ICON_MARKUP = Object.freeze({
       <path d="M4 12h16"></path>
     </svg>
   `,
+  link: `
+    <svg class="template-tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M10 14 8.5 15.5a3 3 0 0 1-4.2-4.2L7.8 7.8a3 3 0 0 1 4.2 0"></path>
+      <path d="M14 10 15.5 8.5a3 3 0 1 1 4.2 4.2l-3.5 3.5a3 3 0 0 1-4.2 0"></path>
+      <path d="m8.5 15.5 7-7"></path>
+    </svg>
+  `,
 });
 
 const editorToolbarMarkupRenderer = editorToolbarMarkupModule.createEditorToolbarMarkupRenderer({

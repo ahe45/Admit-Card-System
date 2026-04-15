@@ -97,6 +97,14 @@
     if (typeof uploadPhotoArchiveName !== "undefined" && uploadPhotoArchiveName) {
       uploadPhotoArchiveName.textContent = "선택된 사진 ZIP이 없습니다.";
     }
+    if (typeof uploadPreviewMount !== "undefined" && uploadPreviewMount) {
+      uploadPreviewMount.innerHTML = `
+        <div class="upload-preview-empty">
+          <strong>업로드 미리보기</strong>
+          <p>XLSX 또는 사진 ZIP 파일을 선택하면 실제 저장 전에 데이터 반영과 사진 매칭 결과를 시뮬레이션합니다.</p>
+        </div>
+      `;
+    }
   }
 
   function buildUploadSummaryMessage(result = {}, { hasPhotoArchive = false } = {}) {
@@ -114,7 +122,7 @@
     }
 
     if (photoSkipped > 0) {
-      messages.push(`${photoSkipped}건은 파일명 불일치 또는 미등록 수험번호로 건너뛰었습니다.`);
+      messages.push(`${photoSkipped}건은 미등록 수험번호, 잘못된 파일명/형식 또는 중복 파일로 건너뛰었습니다.`);
     }
 
     return messages.join(" ") || "업로드를 완료했습니다.";
@@ -170,7 +178,7 @@
         throw new Error(payload?.error || payload || "수험생 데이터 XLSX를 다운로드할 수 없습니다.");
       }
 
-      triggerBlobDownload(await response.blob(), "수험생 등록 데이터.xlsx");
+      triggerBlobDownload(await response.blob(), "수험생 데이터.xlsx");
     } catch (error) {
       showToast(error.message, "error", 4200);
     }

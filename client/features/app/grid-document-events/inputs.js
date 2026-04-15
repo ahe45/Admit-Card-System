@@ -12,6 +12,7 @@
     getGridFilterOptionValues,
     getGridFilterSelectionState,
     getTableState,
+    handleSelectableGridRowSelection,
     headerFilterFields,
     lookupSelectFields,
     lookupTextFields,
@@ -46,7 +47,19 @@
       }
 
       if (gridSelectRowTrigger) {
-        toggleGridRowSelection(gridSelectRowTrigger.dataset.gridKey, gridSelectRowTrigger.dataset.gridSelectRow);
+        const gridKey = gridSelectRowTrigger.dataset.gridKey || "";
+        const rowId = gridSelectRowTrigger.dataset.gridSelectRow || "";
+
+        if (event.shiftKey || event.ctrlKey || event.metaKey) {
+          handleSelectableGridRowSelection(gridKey, rowId, {
+            shiftKey: event.shiftKey,
+            ctrlKey: event.ctrlKey,
+            metaKey: event.metaKey,
+          });
+        } else {
+          toggleGridRowSelection(gridKey, rowId);
+        }
+
         rerenderGridInteraction(gridSelectRowTrigger.dataset.gridKey);
         return true;
       }

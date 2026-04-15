@@ -28,8 +28,10 @@
 
   function createGridStateController(deps) {
     const {
+      applicantAssignmentGridColumns,
       applicantHistoryGridColumns,
       applicantRecruitmentGridColumns,
+      applicantScheduleGridColumns,
       accountGridColumns,
       admitCardLookupGridColumns,
       createTableState,
@@ -45,7 +47,9 @@
       getPrintHistoryRows,
       printHistoryGridColumns,
       resultGridColumns,
+      startApplicantAssignmentEdit,
       startApplicantRecruitmentUnitEdit,
+      startApplicantScheduleEdit,
       state,
     } = deps;
 
@@ -64,8 +68,10 @@
     } = gridTableSettingsController;
 
     const gridFilteringController = createGridFilteringController({
+      applicantAssignmentGridColumns,
       applicantHistoryGridColumns,
       applicantRecruitmentGridColumns,
+      applicantScheduleGridColumns,
       accountGridColumns,
       admitCardLookupGridColumns,
       closeAllPageSizeMenus,
@@ -116,7 +122,9 @@
       getGridRows,
       getTableState,
       openExamineeDetail,
+      startApplicantAssignmentEdit,
       startApplicantRecruitmentUnitEdit,
+      startApplicantScheduleEdit,
       state,
     });
     const {
@@ -126,6 +134,7 @@
       getGridSelectionAnchorRowId,
       getGridSelectionState,
       handleAdmitCardLookupRowSelection,
+      handleSelectableGridRowSelection,
       handleGridRowClickSelection,
       isGridRowClickable,
       isGridRowHighlighted,
@@ -167,6 +176,7 @@
       getTotalPages,
       getVisiblePageNumbers,
       handleAdmitCardLookupRowSelection,
+      handleSelectableGridRowSelection,
       handleGridRowClickSelection,
       hasGridFilter,
       isGridRowClickable,

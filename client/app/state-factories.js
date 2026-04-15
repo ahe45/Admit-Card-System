@@ -137,7 +137,23 @@
       expandedSubmissionId: 0,
       fields: [],
       recruitmentUnits: [],
+      schedules: [],
+      assignments: [],
       submissions: [],
+      promotion: {
+        selectedSubmissionIds: [],
+        previewRows: [],
+        summary: null,
+        allowMissingPhoto: false,
+        allowOverbooking: false,
+        overbookingPercent: "10",
+        sortField1: "examineeNo",
+        sortField2: "",
+        sortField3: "",
+        breakField: "unit",
+        isLoading: false,
+        isCommitting: false,
+      },
       settings: {
         examNoPattern: "AD-{YY}{MM}{DD}-{SEQ:4}",
         examNoSequenceStart: 1,
@@ -159,6 +175,7 @@
       recruitmentUnitEditor: {
         isActive: false,
         editingId: 0,
+        trackName: "",
         admissionCode: "",
         admissionName: "",
         seriesCode: "",
@@ -167,6 +184,34 @@
         unitName: "",
         majorCode: "",
         majorName: "",
+      },
+      scheduleEditor: {
+        isActive: false,
+        editingId: 0,
+        scheduleKey: "",
+        trackName: "",
+        admissionCode: "",
+        admissionName: "",
+        applicantScheduleStartAt: "",
+        applicantScheduleEndAt: "",
+        admitCardLookupScheduleStartAt: "",
+        admitCardLookupScheduleEndAt: "",
+      },
+      assignmentEditor: {
+        isActive: false,
+        editingId: 0,
+        track: "",
+        admission: "",
+        series: "",
+        unit: "",
+        major: "",
+        date: "",
+        time: "",
+        buildingCode: "",
+        building: "",
+        roomCode: "",
+        room: "",
+        assignedCount: "1",
       },
     };
   }
@@ -338,32 +383,6 @@
   }
 
   function normalizeSystemSettingsPayload(payload = {}, options = {}) {
-    const defaultApplicantScheduleRange = getSystemApplicantScheduleDefaultRange(options.referenceDate);
-    const defaultApplicantScheduleStartAt = normalizeSystemApplicantScheduleDateTime(options.defaultApplicantScheduleStartAt, {
-      defaultValue: defaultApplicantScheduleRange.startAt,
-    });
-    const defaultApplicantScheduleEndAt = normalizeSystemApplicantScheduleDateTime(options.defaultApplicantScheduleEndAt, {
-      defaultValue: defaultApplicantScheduleRange.endAt,
-    });
-    const defaultAdmitCardLookupScheduleStartAt = normalizeSystemApplicantScheduleDateTime(options.defaultAdmitCardLookupScheduleStartAt, {
-      defaultValue: defaultApplicantScheduleRange.startAt,
-    });
-    const defaultAdmitCardLookupScheduleEndAt = normalizeSystemApplicantScheduleDateTime(options.defaultAdmitCardLookupScheduleEndAt, {
-      defaultValue: defaultApplicantScheduleRange.endAt,
-    });
-    const applicantScheduleStartAt = normalizeSystemApplicantScheduleDateTime(payload.applicantScheduleStartAt, {
-      defaultValue: defaultApplicantScheduleStartAt,
-    });
-    const applicantScheduleEndAt = normalizeSystemApplicantScheduleDateTime(payload.applicantScheduleEndAt, {
-      defaultValue: defaultApplicantScheduleEndAt,
-    });
-    const admitCardLookupScheduleStartAt = normalizeSystemApplicantScheduleDateTime(payload.admitCardLookupScheduleStartAt, {
-      defaultValue: defaultAdmitCardLookupScheduleStartAt,
-    });
-    const admitCardLookupScheduleEndAt = normalizeSystemApplicantScheduleDateTime(payload.admitCardLookupScheduleEndAt, {
-      defaultValue: defaultAdmitCardLookupScheduleEndAt,
-    });
-
     return {
       initialPassword: normalizeSystemInitialPassword(payload.initialPassword, options.defaultPassword),
       autoLogoutMinutes: String(
@@ -375,14 +394,6 @@
       admissionHomepageUrl: normalizeSystemAdmissionHomepageUrl(payload.admissionHomepageUrl, {
         defaultValue: options.defaultAdmissionHomepageUrl,
       }),
-      applicantScheduleStartAt,
-      applicantScheduleStartAtParts: normalizeSystemApplicantScheduleParts(applicantScheduleStartAt),
-      applicantScheduleEndAt,
-      applicantScheduleEndAtParts: normalizeSystemApplicantScheduleParts(applicantScheduleEndAt),
-      admitCardLookupScheduleStartAt,
-      admitCardLookupScheduleStartAtParts: normalizeSystemApplicantScheduleParts(admitCardLookupScheduleStartAt),
-      admitCardLookupScheduleEndAt,
-      admitCardLookupScheduleEndAtParts: normalizeSystemApplicantScheduleParts(admitCardLookupScheduleEndAt),
       admitCardDataSource: normalizeSystemAdmitCardDataSource(payload.admitCardDataSource, {
         defaultValue: options.defaultAdmitCardDataSource,
       }),
@@ -398,11 +409,27 @@
     };
   }
 
-  function createSystemSettingsState(payload = {}, options = {}) {
+  function cloneSystemSettingsSnapshot(snapshot = {}) {
     return {
-      ...normalizeSystemSettingsPayload(payload, options),
-      applicantSchedulePopoverTarget: "",
+      initialPassword: String(snapshot.initialPassword ?? ""),
+      autoLogoutMinutes: String(snapshot.autoLogoutMinutes ?? ""),
+      admissionHomepageUrl: String(snapshot.admissionHomepageUrl ?? ""),
+      admitCardDataSource: String(snapshot.admitCardDataSource ?? "examinee"),
+      applicantExamNoDigitCount: String(snapshot.applicantExamNoDigitCount ?? ""),
+      applicantExamNoComponents: Array.isArray(snapshot.applicantExamNoComponents)
+        ? snapshot.applicantExamNoComponents.map((value) => String(value ?? ""))
+        : ["admissionCode", "seriesCode", "unitCode", "sequence", ""],
+    };
+  }
+
+  function createSystemSettingsState(payload = {}, options = {}) {
+    const normalizedSettings = normalizeSystemSettingsPayload(payload, options);
+
+    return {
+      ...normalizedSettings,
       isSaving: false,
+      hasUnsavedChanges: false,
+      savedSnapshot: cloneSystemSettingsSnapshot(normalizedSettings),
       statusMessage: "",
       statusType: "",
     };
@@ -410,8 +437,104 @@
 
   function createSystemDataDeletionState() {
     return {
+      isBackingUp: false,
       isDeleting: false,
+      isRestoring: false,
+      isRestoreValidating: false,
       activeScope: "",
+      backupAssetSelections: {
+        database: true,
+        "examinee-photos": true,
+        "applicant-photos": true,
+        "applicant-files": true,
+      },
+      restoreSelections: {
+        database: true,
+        "examinee-photos": true,
+        "applicant-photos": true,
+        "applicant-files": true,
+      },
+      restoreFile: null,
+      restoreFileName: "",
+      isRestoreFileValid: false,
+      restoreValidationRequestId: 0,
+      restoreValidationMessage: "",
+      restoreValidationType: "",
+      restoreValidationSummary: null,
+      restoreUploadProgressPercent: 0,
+      restoreUploadProgressLabel: "",
+      lastBackupDownloadedAt: "",
+      backupAutomation: {
+        enabled: false,
+        scheduleType: "daily",
+        weeklyDay: 1,
+        time: "03:00",
+        retentionCount: 7,
+        includeDatabase: true,
+        includedAssetKeys: ["examinee-photos", "applicant-photos", "applicant-files"],
+        lastRunAt: "",
+        lastSuccessAt: "",
+        lastFailureAt: "",
+        lastErrorMessage: "",
+        lastFileName: "",
+        nextRunAt: "",
+        isRunning: false,
+        isSaving: false,
+        hasUnsavedChanges: false,
+        statusMessage: "",
+        statusType: "",
+        savedSnapshot: {
+          enabled: false,
+          scheduleType: "daily",
+          weeklyDay: 1,
+          time: "03:00",
+          retentionCount: 7,
+          includeDatabase: true,
+          includedAssetKeys: ["examinee-photos", "applicant-photos", "applicant-files"],
+        },
+      },
+      statusMessage: "",
+      statusType: "",
+    };
+  }
+
+  function createSystemAuditLogState() {
+    return {
+      rows: [],
+      limit: 200,
+      isLoading: false,
+      hasLoaded: false,
+      statusMessage: "",
+      statusType: "",
+      lastLoadedAt: "",
+    };
+  }
+
+  function cloneSuperAdminSnapshot(snapshot = {}, normalizeSuperAdminSettings = null) {
+    if (typeof normalizeSuperAdminSettings === "function") {
+      return normalizeSuperAdminSettings(snapshot);
+    }
+
+    return Object.freeze({
+      schoolName: "",
+      logoImageUrl: "",
+      backgroundImageUrl: "",
+      recruitmentEnabled: true,
+    });
+  }
+
+  function createSuperAdminState(payload = {}, options = {}) {
+    const settings = cloneSuperAdminSnapshot(payload, options.normalizeSuperAdminSettings);
+
+    return {
+      schoolName: settings.schoolName,
+      logoImageUrl: settings.logoImageUrl,
+      backgroundImageUrl: settings.backgroundImageUrl,
+      recruitmentEnabled: settings.recruitmentEnabled,
+      savedSnapshot: cloneSuperAdminSnapshot(settings, options.normalizeSuperAdminSettings),
+      isSaving: false,
+      uploadingField: "",
+      hasUnsavedChanges: false,
       statusMessage: "",
       statusType: "",
     };
@@ -450,7 +573,7 @@
     return [
       '<p><span style="display:inline-flex;padding:3px 8px;border-radius:6px;background:#2f63c8;color:#fff;font-weight:800;">접수 안내</span></p>',
       "<p>이메일 인증 후 접수를 진행하고, 접수 완료 후 수험표를 열람하고 인쇄할 수 있습니다.</p>",
-      "<p>관리자가 수험생 등록을 완료하기 전에는 수험표 PDF가 표시되지 않을 수 있습니다.</p>",
+      "<p>관리자가 수험생 데이터 반영을 완료하기 전에는 수험표 PDF가 표시되지 않을 수 있습니다.</p>",
     ].join("");
   }
 
@@ -478,6 +601,7 @@
       ],
       historyIndex: 0,
       isRestoringHistory: false,
+      selectedImageElement: null,
       statusMessage: `${String(statusLabel || "로그인화면")} 공지사항을 편집 중입니다.`,
       statusType: "",
     };
@@ -502,6 +626,8 @@
   function createBatchPrintState() {
     return {
       isLoading: false,
+      isCancelling: false,
+      outputMode: "combined-pdf",
     };
   }
 
@@ -512,6 +638,9 @@
       progressMode: "hidden",
       progressValue: 0,
       progressLabel: "",
+      isCancelable: false,
+      isCanceling: false,
+      cancelLabel: "작업 취소",
     };
   }
 
@@ -535,6 +664,8 @@
     createLoginNoticeState,
     createLookupFilters,
     createPdfGenerationState,
+    createSuperAdminState,
+    createSystemAuditLogState,
     createSystemDataDeletionState,
     createSystemSettingsState,
     createTableState,

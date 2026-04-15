@@ -9,6 +9,7 @@
   function createModalController({
     TEMPLATE_EDITOR_DEFAULT_FONT_FAMILY,
     TEMPLATE_EDITOR_DEFAULT_FONT_SIZE,
+    clearApplicantAssignmentUploadFiles,
     clearApplicantRecruitmentUnitUploadFiles,
     clearSelectedUploadFiles,
     clearTemplateEditorActiveCell,
@@ -19,10 +20,16 @@
     createTemplateEditorState,
     createTemplatePreviewState,
     getAccountCreateModal,
+    getApplicantAssignmentModal,
+    getApplicantAssignmentUploadModal,
+    getApplicantPromotionModal,
+    getApplicantScheduleModal,
     getApplicantSubmissionDownloadModal,
     getApplicantSubmissionDetailModal,
     getApplicantRecruitmentUnitModal,
     getApplicantUnitUploadModal,
+    getBatchPrintDownloadModal,
+    getSystemAuditLogModal,
     getExamineeDetailCloseConfirmModal,
     getExamineeDetailModal,
     getTemplateEditorDescription,
@@ -35,12 +42,16 @@
     getTemplatePreviewModal,
     getTemplatePreviewStage,
     getUploadModal,
+    getUploadTypeModal,
     isExamineeDetailDirty,
     prepareAccountCreateModal,
+    resetApplicantAssignmentEditor,
     promptExamineeDetailCloseAction,
     releaseTemplateEditorTableResizeSession,
     releaseTemplateEditorTableSelectionSession,
     resetAccountCreateFormState,
+    resetApplicantPromotionWorkflow,
+    resetApplicantScheduleEditor,
     resetApplicantRecruitmentUnitEditor,
     resetApplicantSubmissionDetail,
     resetUploadState,
@@ -174,6 +185,10 @@
         clearApplicantRecruitmentUnitUploadFiles?.();
       }
 
+      if (modalId === "applicantAssignmentUploadModal") {
+        clearApplicantAssignmentUploadFiles?.();
+      }
+
       if (modalId === "accountCreateModal") {
         resetAccountCreateFormState();
       }
@@ -190,18 +205,37 @@
         resetApplicantSubmissionDetail?.({ render: true });
       }
 
+      if (modalId === "applicantPromotionModal") {
+        resetApplicantPromotionWorkflow?.({ render: true });
+      }
+
+      if (modalId === "applicantScheduleModal") {
+        resetApplicantScheduleEditor?.({ render: true });
+      }
+
       if (modalId === "applicantRecruitmentUnitModal") {
         resetApplicantRecruitmentUnitEditor?.({ render: true });
+      }
+
+      if (modalId === "applicantAssignmentModal") {
+        resetApplicantAssignmentEditor?.({ render: true });
       }
     }
 
     function closeAllModals() {
       [
+        getApplicantAssignmentModal(),
+        getApplicantAssignmentUploadModal(),
+        getApplicantScheduleModal(),
         getApplicantSubmissionDownloadModal(),
         getApplicantSubmissionDetailModal(),
+        getApplicantPromotionModal(),
         getApplicantRecruitmentUnitModal(),
         getApplicantUnitUploadModal(),
+        getBatchPrintDownloadModal?.(),
+        getSystemAuditLogModal?.(),
         getUploadModal(),
+        getUploadTypeModal?.(),
         getAccountCreateModal(),
         getExamineeDetailModal(),
         getExamineeDetailCloseConfirmModal(),
@@ -218,11 +252,18 @@
 
     async function requestCloseAllModals() {
       const modalList = [
+        getApplicantAssignmentModal(),
+        getApplicantAssignmentUploadModal(),
+        getApplicantScheduleModal(),
         getApplicantSubmissionDownloadModal(),
         getApplicantSubmissionDetailModal(),
+        getApplicantPromotionModal(),
         getApplicantRecruitmentUnitModal(),
         getApplicantUnitUploadModal(),
+        getBatchPrintDownloadModal?.(),
+        getSystemAuditLogModal?.(),
         getUploadModal(),
+        getUploadTypeModal?.(),
         getAccountCreateModal(),
         getExamineeDetailModal(),
         getTemplatePreviewModal(),

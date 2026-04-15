@@ -1,5 +1,37 @@
 (function () {
   const applicantFormConfig = globalThis.AdmitCardApplicantFormConfig || {};
+  const loginNoticeLinkUtilsModule = globalThis.AdmitCardLoginNoticeLinkUtils || {};
+  const findApplicantScheduleRecord = applicantFormConfig.findApplicantScheduleRecord || (() => null);
+  const getApplicantAggregateScheduleState =
+    applicantFormConfig.getApplicantAggregateScheduleState ||
+    (() => ({
+      isConfigured: false,
+      isOpen: false,
+      reason: "not_configured",
+      applicantScheduleStartAt: "",
+      applicantScheduleEndAt: "",
+      admitCardLookupScheduleStartAt: "",
+      admitCardLookupScheduleEndAt: "",
+    }));
+  const getApplicantSubmissionScheduleStateForSchedule =
+    applicantFormConfig.getApplicantSubmissionScheduleState ||
+    ((schedule = {}) => ({
+      applicantScheduleStartAt: String(schedule?.applicantScheduleStartAt || "").trim(),
+      applicantScheduleEndAt: String(schedule?.applicantScheduleEndAt || "").trim(),
+      isConfigured: false,
+      isOpen: false,
+      reason: "not_configured",
+    }));
+  const getApplicantLookupScheduleStateForSchedule =
+    applicantFormConfig.getApplicantAdmitCardLookupScheduleState ||
+    ((schedule = {}) => ({
+      admitCardLookupScheduleStartAt: String(schedule?.admitCardLookupScheduleStartAt || "").trim(),
+      admitCardLookupScheduleEndAt: String(schedule?.admitCardLookupScheduleEndAt || "").trim(),
+      isConfigured: false,
+      isOpen: false,
+      reason: "not_configured",
+    }));
+  const { buildLoginNoticeMarkup } = loginNoticeLinkUtilsModule;
   const root = document.getElementById("applicantPageRoot");
 
   if (!root) {
@@ -29,18 +61,25 @@
     "lookup-summary": "접수결과 조회",
     "lookup-ticket": "수험표 조회",
   });
+  const DEFAULT_LOGIN_BRAND_MARK_PATH = "/client/assets/logo.png";
+  const DEFAULT_LOGIN_BACKGROUND_PATH = "/client/assets/bg.png";
+  const INITIAL_SUPER_ADMIN_SETTINGS =
+    globalThis.AdmitCardInitialSuperAdminSettings && typeof globalThis.AdmitCardInitialSuperAdminSettings === "object"
+      ? globalThis.AdmitCardInitialSuperAdminSettings
+      : {};
   const APPLICANT_LOOKUP_TARGETS = Object.freeze({
     result: "result",
     ticket: "ticket",
   });
   const APPLICANT_CUSTOM_SELECT_VALUE = "__applicant_custom__";
   const APPLICANT_RECRUITMENT_SELECTION_FIELDS = Object.freeze([
+    Object.freeze({ key: "track", unitKey: "trackName", label: "모집시기" }),
     Object.freeze({ key: "admission", unitKey: "admissionName", label: "전형" }),
     Object.freeze({ key: "series", unitKey: "seriesName", label: "계열" }),
     Object.freeze({ key: "unit", unitKey: "unitName", label: "모집단위" }),
     Object.freeze({ key: "major", unitKey: "majorName", label: "전공" }),
   ]);
-  const APPLICANT_SUMMARY_PRIORITY_SYSTEM_FIELDS = Object.freeze(["admission", "series", "unit", "major"]);
+  const APPLICANT_SUMMARY_PRIORITY_SYSTEM_FIELDS = Object.freeze(["track", "admission", "series", "unit", "major"]);
   let verificationCountdownTimerId = 0;
   let applicantToastTimerId = 0;
   const applicantToastRoot =
@@ -62,13 +101,14 @@
     formConfig: {
       fields: [],
       recruitmentUnits: [],
+      schedules: [],
       settings: {},
+      superAdminSettings: {
+        logoImageUrl: String(INITIAL_SUPER_ADMIN_SETTINGS?.logoImageUrl || "").trim(),
+        backgroundImageUrl: String(INITIAL_SUPER_ADMIN_SETTINGS?.backgroundImageUrl || "").trim(),
+      },
       systemSettings: {
         admissionHomepageUrl: "",
-        applicantScheduleStartAt: `${new Date().getFullYear()}-01-01T00:00`,
-        applicantScheduleEndAt: `${new Date().getFullYear()}-12-31T23:59`,
-        admitCardLookupScheduleStartAt: `${new Date().getFullYear()}-01-01T00:00`,
-        admitCardLookupScheduleEndAt: `${new Date().getFullYear()}-12-31T23:59`,
         admitCardDataSource: "examinee",
       },
       noticeHtml: "",
@@ -76,6 +116,11 @@
     message: {
       type: "",
       text: "",
+    },
+    dialog: {
+      isOpen: false,
+      title: "",
+      message: "",
     },
     verification: {
       name: "",
@@ -101,6 +146,7 @@
       source: "",
     },
     recruitment: {
+      track: "",
       admission: "",
       series: "",
       unit: "",
@@ -171,6 +217,62 @@
 
   function escapeAttribute(value) {
     return escapeHtml(value);
+  }
+
+  function normalizeApplicantBrandSettings(settings = {}) {
+    return {
+      logoImageUrl: String(settings?.logoImageUrl || "").trim(),
+      backgroundImageUrl: String(settings?.backgroundImageUrl || "").trim(),
+    };
+  }
+
+  function getApplicantBrandSettings() {
+    return normalizeApplicantBrandSettings(state.formConfig?.superAdminSettings || {});
+  }
+
+  function getApplicantBrandLogoUrl() {
+    return getApplicantBrandSettings().logoImageUrl || DEFAULT_LOGIN_BRAND_MARK_PATH;
+  }
+
+  function getApplicantBrandBackgroundUrl() {
+    return getApplicantBrandSettings().backgroundImageUrl || DEFAULT_LOGIN_BACKGROUND_PATH;
+  }
+
+  function getApplicantBackgroundMediaElement() {
+    let backgroundMediaElement = document.getElementById("applicantPublicBackgroundMedia");
+
+    if (backgroundMediaElement instanceof HTMLElement) {
+      return backgroundMediaElement;
+    }
+
+    backgroundMediaElement = document.createElement("div");
+    backgroundMediaElement.id = "applicantPublicBackgroundMedia";
+    backgroundMediaElement.className = "applicant-public-background-media";
+    backgroundMediaElement.setAttribute("aria-hidden", "true");
+    backgroundMediaElement.innerHTML = `<img class="applicant-public-background-image" alt="" />`;
+    document.body.prepend(backgroundMediaElement);
+    return backgroundMediaElement;
+  }
+
+  function syncApplicantBranding() {
+    const bodyElement = document.body;
+
+    if (!(bodyElement instanceof HTMLElement)) {
+      return;
+    }
+
+    const backgroundImageUrl = getApplicantBrandBackgroundUrl();
+
+    const backgroundMediaElement = getApplicantBackgroundMediaElement();
+    const backgroundImageElement = backgroundMediaElement.querySelector(".applicant-public-background-image");
+
+    if (!(backgroundImageElement instanceof HTMLImageElement)) {
+      return;
+    }
+
+    if (backgroundImageElement.getAttribute("src") !== backgroundImageUrl) {
+      backgroundImageElement.setAttribute("src", backgroundImageUrl);
+    }
   }
 
   function getApplicantHomeActionIconMarkup(iconKey = "") {
@@ -390,15 +492,47 @@
     return payload;
   }
 
+  function getApplicantFormFieldByKey(fieldKey = "") {
+    const normalizedFieldKey = String(fieldKey || "").trim();
+    return (Array.isArray(state.formConfig.fields) ? state.formConfig.fields : []).find((field) => String(field?.fieldKey || "").trim() === normalizedFieldKey) || null;
+  }
+
+  function isApplicantUploadField(field = {}) {
+    const inputType = String(field?.inputType || "").trim();
+    return inputType === "photo" || inputType === "file";
+  }
+
+  function buildApplicantUploadDraftValue(inputType = "", value = {}) {
+    const normalizedInputType = String(inputType || "").trim();
+    const normalizedValue = value && typeof value === "object" ? value : {};
+
+    if (normalizedInputType === "photo") {
+      return {
+        hasPhoto: normalizedValue?.hasPhoto === true || normalizedValue?.file instanceof File,
+        fileName: String(normalizedValue?.fileName || normalizedValue?.file?.name || ""),
+      };
+    }
+
+    return {
+      hasFile: normalizedValue?.hasFile === true || normalizedValue?.file instanceof File,
+      fileName: String(normalizedValue?.fileName || normalizedValue?.file?.name || ""),
+    };
+  }
+
   function createSerializableDraftAnswers() {
     return Object.fromEntries(
       Object.entries(state.draftAnswers || {}).map(([fieldKey, value]) => {
+        const field = getApplicantFormFieldByKey(fieldKey);
+
+        if (isApplicantUploadField(field) && value && typeof value === "object") {
+          return [fieldKey, buildApplicantUploadDraftValue(field.inputType, value)];
+        }
+
         if (value && typeof value === "object") {
           return [
             fieldKey,
             {
-              hasPhoto: value?.hasPhoto === true || value?.file instanceof File,
-              fileName: String(value?.fileName || value?.file?.name || ""),
+              ...value,
             },
           ];
         }
@@ -455,6 +589,7 @@
             source: state.identity.source,
           },
           recruitment: {
+            track: String(state.recruitment.track || ""),
             admission: String(state.recruitment.admission || ""),
             series: String(state.recruitment.series || ""),
             unit: String(state.recruitment.unit || ""),
@@ -516,6 +651,7 @@
 
       if (snapshot?.recruitment && typeof snapshot.recruitment === "object") {
         state.recruitment = {
+          track: String(snapshot.recruitment.track || ""),
           admission: String(snapshot.recruitment.admission || ""),
           series: String(snapshot.recruitment.series || ""),
           unit: String(snapshot.recruitment.unit || ""),
@@ -558,25 +694,6 @@
 
   function hasApplicantFormConfigured() {
     return Array.isArray(state.formConfig.fields) && state.formConfig.fields.length > 0;
-  }
-
-  function getValidApplicantScheduleReferenceDate(referenceDate = new Date()) {
-    if (referenceDate instanceof Date && Number.isFinite(referenceDate.getTime())) {
-      return referenceDate;
-    }
-
-    const parsedDate = new Date(referenceDate);
-    return Number.isFinite(parsedDate.getTime()) ? parsedDate : new Date();
-  }
-
-  function getDefaultApplicantScheduleRange(referenceDate = new Date()) {
-    const validReferenceDate = getValidApplicantScheduleReferenceDate(referenceDate);
-    const year = validReferenceDate.getFullYear();
-
-    return {
-      startAt: `${year}-01-01T00:00`,
-      endAt: `${year}-12-31T23:59`,
-    };
   }
 
   function normalizeApplicantScheduleDateTime(value, { defaultValue = "" } = {}) {
@@ -645,58 +762,39 @@
     return `${String(dateValue || "").replaceAll("-", ".")} ${String(timeValue || "")}`;
   }
 
-  function getApplicantSubmissionScheduleState(referenceDate = new Date()) {
-    const defaultApplicantScheduleRange = getDefaultApplicantScheduleRange(referenceDate);
-    const applicantScheduleStartAt = normalizeApplicantScheduleDateTime(state.formConfig.systemSettings?.applicantScheduleStartAt, {
-      defaultValue: defaultApplicantScheduleRange.startAt,
-    });
-    const applicantScheduleEndAt = normalizeApplicantScheduleDateTime(state.formConfig.systemSettings?.applicantScheduleEndAt, {
-      defaultValue: defaultApplicantScheduleRange.endAt,
-    });
+  function getApplicantSchedules() {
+    return Array.isArray(state.formConfig.schedules) ? state.formConfig.schedules : [];
+  }
 
-    const currentTimestamp = referenceDate instanceof Date ? referenceDate.getTime() : new Date(referenceDate).getTime();
-    const applicantScheduleStartDate = getApplicantScheduleDate(applicantScheduleStartAt);
-    const applicantScheduleEndDate = getApplicantScheduleDate(applicantScheduleEndAt, {
-      inclusiveEndMinute: true,
-    });
+  function isApplicantRecruitmentUnitOpen(unit = {}, referenceDate = new Date()) {
+    const matchedSchedule = findApplicantScheduleRecord(getApplicantSchedules(), unit);
+    return getApplicantSubmissionScheduleStateForSchedule(matchedSchedule, referenceDate).isOpen === true;
+  }
 
-    if (!Number.isFinite(currentTimestamp) || !applicantScheduleStartDate || !applicantScheduleEndDate) {
-      return {
-        applicantScheduleStartAt,
-        applicantScheduleEndAt,
-        isConfigured: true,
-        isOpen: false,
-        reason: "invalid",
-      };
-    }
+  function getApplicantRecruitmentScheduleTarget(selection = state.recruitment) {
+    const track = String(selection?.track || "").trim();
+    const admission = String(selection?.admission || "").trim();
 
-    if (currentTimestamp < applicantScheduleStartDate.getTime()) {
-      return {
-        applicantScheduleStartAt,
-        applicantScheduleEndAt,
-        isConfigured: true,
-        isOpen: false,
-        reason: "before_start",
-      };
-    }
-
-    if (currentTimestamp > applicantScheduleEndDate.getTime()) {
-      return {
-        applicantScheduleStartAt,
-        applicantScheduleEndAt,
-        isConfigured: true,
-        isOpen: false,
-        reason: "after_end",
-      };
+    if (!track || !admission) {
+      return null;
     }
 
     return {
-      applicantScheduleStartAt,
-      applicantScheduleEndAt,
-      isConfigured: true,
-      isOpen: true,
-      reason: "open",
+      track,
+      admission,
     };
+  }
+
+  function getApplicantEditableScheduleTarget() {
+    return getApplicantRecruitmentScheduleTarget() || state.currentSubmission;
+  }
+
+  function getApplicantSubmissionScheduleState(referenceDate = new Date(), target = getApplicantEditableScheduleTarget()) {
+    if (target) {
+      return getApplicantSubmissionScheduleStateForSchedule(findApplicantScheduleRecord(getApplicantSchedules(), target), referenceDate);
+    }
+
+    return getApplicantAggregateScheduleState(getApplicantSchedules(), "submission", referenceDate);
   }
 
   function getApplicantSubmissionSchedulePeriodLabel(scheduleState = getApplicantSubmissionScheduleState()) {
@@ -708,8 +806,12 @@
   }
 
   function getApplicantSubmissionScheduleStatusMessage(scheduleState = getApplicantSubmissionScheduleState()) {
+    if (scheduleState.reason === "not_configured") {
+      return "접수 기간이 아직 설정되지 않았습니다.";
+    }
+
     if (!scheduleState.isConfigured) {
-      return "";
+      return "접수 기간 설정을 확인하세요.";
     }
 
     if (scheduleState.reason === "before_start") {
@@ -723,58 +825,12 @@
     return "현재 접수 가능합니다.";
   }
 
-  function getApplicantLookupScheduleState(referenceDate = new Date()) {
-    const defaultApplicantScheduleRange = getDefaultApplicantScheduleRange(referenceDate);
-    const admitCardLookupScheduleStartAt = normalizeApplicantScheduleDateTime(state.formConfig.systemSettings?.admitCardLookupScheduleStartAt, {
-      defaultValue: defaultApplicantScheduleRange.startAt,
-    });
-    const admitCardLookupScheduleEndAt = normalizeApplicantScheduleDateTime(state.formConfig.systemSettings?.admitCardLookupScheduleEndAt, {
-      defaultValue: defaultApplicantScheduleRange.endAt,
-    });
-
-    const currentTimestamp = referenceDate instanceof Date ? referenceDate.getTime() : new Date(referenceDate).getTime();
-    const admitCardLookupScheduleStartDate = getApplicantScheduleDate(admitCardLookupScheduleStartAt);
-    const admitCardLookupScheduleEndDate = getApplicantScheduleDate(admitCardLookupScheduleEndAt, {
-      inclusiveEndMinute: true,
-    });
-
-    if (!Number.isFinite(currentTimestamp) || !admitCardLookupScheduleStartDate || !admitCardLookupScheduleEndDate) {
-      return {
-        admitCardLookupScheduleStartAt,
-        admitCardLookupScheduleEndAt,
-        isConfigured: true,
-        isOpen: false,
-        reason: "invalid",
-      };
+  function getApplicantLookupScheduleState(referenceDate = new Date(), target = null) {
+    if (target) {
+      return getApplicantLookupScheduleStateForSchedule(findApplicantScheduleRecord(getApplicantSchedules(), target), referenceDate);
     }
 
-    if (currentTimestamp < admitCardLookupScheduleStartDate.getTime()) {
-      return {
-        admitCardLookupScheduleStartAt,
-        admitCardLookupScheduleEndAt,
-        isConfigured: true,
-        isOpen: false,
-        reason: "before_start",
-      };
-    }
-
-    if (currentTimestamp > admitCardLookupScheduleEndDate.getTime()) {
-      return {
-        admitCardLookupScheduleStartAt,
-        admitCardLookupScheduleEndAt,
-        isConfigured: true,
-        isOpen: false,
-        reason: "after_end",
-      };
-    }
-
-    return {
-      admitCardLookupScheduleStartAt,
-      admitCardLookupScheduleEndAt,
-      isConfigured: true,
-      isOpen: true,
-      reason: "open",
-    };
+    return getApplicantAggregateScheduleState(getApplicantSchedules(), "lookup", referenceDate);
   }
 
   function getApplicantLookupSchedulePeriodLabel(scheduleState = getApplicantLookupScheduleState()) {
@@ -786,8 +842,12 @@
   }
 
   function getApplicantLookupScheduleStatusMessage(scheduleState = getApplicantLookupScheduleState()) {
+    if (scheduleState.reason === "not_configured") {
+      return "수험표 조회 기간이 아직 설정되지 않았습니다.";
+    }
+
     if (!scheduleState.isConfigured) {
-      return "";
+      return "수험표 조회 기간 설정을 확인하세요.";
     }
 
     if (scheduleState.reason === "before_start") {
@@ -801,8 +861,8 @@
     return "현재 수험표 조회 가능합니다.";
   }
 
-  function getApplicantApplyAvailabilityState() {
-    const scheduleState = getApplicantSubmissionScheduleState();
+  function getApplicantApplyAvailabilityState({ target = getApplicantEditableScheduleTarget() } = {}) {
+    const scheduleState = getApplicantSubmissionScheduleState(new Date(), target);
     const isFormConfigured = hasApplicantFormConfigured();
     const isAvailable =
       !state.isLoadingForm &&
@@ -817,8 +877,8 @@
     };
   }
 
-  function getApplicantLookupAvailabilityState() {
-    const scheduleState = getApplicantLookupScheduleState();
+  function getApplicantLookupAvailabilityState({ target = null } = {}) {
+    const scheduleState = getApplicantLookupScheduleState(new Date(), target);
     const isAvailable = !state.loadError && scheduleState.isOpen;
 
     return {
@@ -847,6 +907,10 @@
       return "접수 양식이 아직 설정되지 않았습니다.";
     }
 
+    if (applyAvailabilityState.scheduleState.reason === "not_configured") {
+      return "접수 기간이 아직 설정되지 않았습니다.";
+    }
+
     if (applyAvailabilityState.scheduleState.reason === "before_start") {
       const periodLabel = getApplicantSubmissionSchedulePeriodLabel(applyAvailabilityState.scheduleState);
       return `아직 접수 기간이 아닙니다.${periodLabel ? ` 접수 가능 기간: ${periodLabel}` : ""}`;
@@ -860,6 +924,16 @@
     return "현재는 접수를 진행할 수 없습니다.";
   }
 
+  function getApplicantFormEditAvailabilityState() {
+    const applyAvailabilityState = getApplicantApplyAvailabilityState({ target: getApplicantEditableScheduleTarget() });
+
+    return {
+      isEditable: APPLICANT_IS_PREVIEW_MODE || applyAvailabilityState.isAvailable,
+      disabledMessage: APPLICANT_IS_PREVIEW_MODE ? "" : getApplicantApplyDisabledMessage(applyAvailabilityState),
+      applyAvailabilityState,
+    };
+  }
+
   function getApplicantLookupDisabledMessage(lookupAvailabilityState = getApplicantLookupAvailabilityState()) {
     if (state.isLoadingForm) {
       return "수험표 조회 페이지를 준비하는 중입니다.";
@@ -867,6 +941,10 @@
 
     if (state.loadError) {
       return state.loadError || "수험표 조회 페이지를 준비하지 못했습니다.";
+    }
+
+    if (lookupAvailabilityState.scheduleState.reason === "not_configured") {
+      return "수험표 조회 기간이 아직 설정되지 않았습니다.";
     }
 
     if (lookupAvailabilityState.scheduleState.reason === "before_start") {
@@ -895,11 +973,49 @@
   }
 
   function canEnterApplicantVerification() {
-    return APPLICANT_IS_PREVIEW_MODE || getApplicantApplyAvailabilityState().isAvailable;
+    return APPLICANT_IS_PREVIEW_MODE || getApplicantApplyEntryAvailabilityState().isAvailable;
   }
 
-  function getApplicantRecruitmentUnits() {
-    return Array.isArray(state.formConfig.recruitmentUnits) ? state.formConfig.recruitmentUnits : [];
+  function getApplicantRecruitmentUnits(referenceDate = new Date()) {
+    const recruitmentUnits = Array.isArray(state.formConfig.recruitmentUnits) ? state.formConfig.recruitmentUnits : [];
+
+    if (APPLICANT_IS_PREVIEW_MODE) {
+      return recruitmentUnits;
+    }
+
+    return recruitmentUnits.filter((unit) => isApplicantRecruitmentUnitOpen(unit, referenceDate));
+  }
+
+  function getApplicantApplyEntryAvailabilityState(referenceDate = new Date()) {
+    const isFormConfigured = hasApplicantFormConfigured();
+    const hasOpenRecruitmentUnits = getApplicantRecruitmentUnits(referenceDate).length > 0;
+    const isAvailable = !state.isLoadingForm && !state.loadError && isFormConfigured && hasOpenRecruitmentUnits;
+
+    return {
+      isAvailable,
+      isFormConfigured,
+      hasOpenRecruitmentUnits,
+    };
+  }
+
+  function getApplicantApplyEntryDisabledMessage(entryAvailabilityState = getApplicantApplyEntryAvailabilityState()) {
+    if (state.isLoadingForm) {
+      return "접수 양식을 불러오는 중입니다.";
+    }
+
+    if (state.loadError) {
+      return state.loadError || "접수 페이지를 준비하지 못했습니다.";
+    }
+
+    if (!entryAvailabilityState.isFormConfigured) {
+      return "접수 양식이 아직 설정되지 않았습니다.";
+    }
+
+    if (!entryAvailabilityState.hasOpenRecruitmentUnits) {
+      return "현재 접수중인 전형이 없습니다.";
+    }
+
+    return "현재는 접수를 진행할 수 없습니다.";
   }
 
   function getApplicantRecruitmentSelectionOptions(fieldKey = "", selection = state.recruitment) {
@@ -990,6 +1106,7 @@
 
   function syncApplicantRecruitmentSelection({ preserveExisting = true } = {}) {
     const nextSelection = {
+      track: "",
       admission: "",
       series: "",
       unit: "",
@@ -1020,6 +1137,7 @@
 
   function getApplicantRecruitmentSelectionFromSubmission(submission = null) {
     const nextSelection = {
+      track: "",
       admission: "",
       series: "",
       unit: "",
@@ -1037,6 +1155,10 @@
 
       if (systemFieldKey === "admission") {
         nextSelection.admission = value;
+      }
+
+      if (systemFieldKey === "track") {
+        nextSelection.track = value;
       }
 
       if (systemFieldKey === "series") {
@@ -1059,6 +1181,10 @@
     const fields = Array.isArray(state.formConfig.fields) ? state.formConfig.fields : [];
 
     fields.forEach((field) => {
+      if (field.systemFieldKey === "track") {
+        state.draftAnswers[field.fieldKey] = state.recruitment.track || "";
+      }
+
       if (field.systemFieldKey === "admission") {
         state.draftAnswers[field.fieldKey] = state.recruitment.admission || "";
       }
@@ -1201,6 +1327,52 @@
     }
   }
 
+  function closeApplicantDialog({ shouldRender = true } = {}) {
+    state.dialog = {
+      isOpen: false,
+      title: "",
+      message: "",
+    };
+
+    if (shouldRender) {
+      render();
+    }
+  }
+
+  function openApplicantDialog({ title = "", message = "" } = {}) {
+    hideApplicantToast();
+    state.dialog = {
+      isOpen: true,
+      title: String(title || "").trim() || "안내",
+      message: String(message || "").trim(),
+    };
+    render();
+  }
+
+  function shouldUseApplicantEntryDialog(entryAvailabilityState = getApplicantApplyEntryAvailabilityState()) {
+    return (
+      !state.isLoadingForm &&
+      !state.loadError &&
+      entryAvailabilityState.isFormConfigured === true &&
+      entryAvailabilityState.hasOpenRecruitmentUnits === false
+    );
+  }
+
+  function notifyApplicantApplyEntryUnavailable(entryAvailabilityState = getApplicantApplyEntryAvailabilityState()) {
+    const message = getApplicantApplyEntryDisabledMessage(entryAvailabilityState);
+
+    if (shouldUseApplicantEntryDialog(entryAvailabilityState)) {
+      openApplicantDialog({
+        title: "접수 안내",
+        message,
+      });
+      return;
+    }
+
+    setMessage("error", message);
+    render();
+  }
+
   function showApplicantToast(message = "", type = "error") {
     const normalizedMessage = String(message || "").trim();
 
@@ -1236,6 +1408,56 @@
     };
   }
 
+  function renderApplicantDialog() {
+    if (state.dialog?.isOpen !== true) {
+      return "";
+    }
+
+    return `
+      <div class="applicant-public-dialog-layer" data-applicant-dialog-layer="true">
+        <button
+          class="applicant-public-dialog-backdrop"
+          data-applicant-dialog-close="true"
+          type="button"
+          aria-label="안내 닫기"
+        ></button>
+        <section
+          class="applicant-public-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="applicantPublicDialogTitle"
+          aria-describedby="applicantPublicDialogMessage"
+        >
+          <div class="applicant-public-dialog-copy">
+            <span class="applicant-public-form-section-kicker">Notice</span>
+            <h2 id="applicantPublicDialogTitle">${escapeHtml(state.dialog.title || "안내")}</h2>
+            <p id="applicantPublicDialogMessage">${escapeHtml(state.dialog.message || "")}</p>
+          </div>
+          <div class="applicant-public-actions applicant-public-dialog-actions">
+            <button
+              class="primary-button"
+              data-applicant-dialog-close="true"
+              data-applicant-dialog-primary="true"
+              type="button"
+            >확인</button>
+          </div>
+        </section>
+      </div>
+    `;
+  }
+
+  function syncApplicantDialogUi() {
+    if (state.dialog?.isOpen !== true) {
+      return;
+    }
+
+    const confirmButton = root.querySelector("[data-applicant-dialog-primary='true']");
+
+    if (confirmButton instanceof HTMLButtonElement) {
+      confirmButton.focus();
+    }
+  }
+
   function resetIdentity() {
     state.identity = {
       name: "",
@@ -1245,6 +1467,7 @@
       source: "",
     };
     state.recruitment = {
+      track: "",
       admission: "",
       series: "",
       unit: "",
@@ -1451,7 +1674,7 @@
         return draft;
       }
 
-      draft[field.fieldKey] = answerMap[field.fieldKey] ?? (field.inputType === "photo" ? { hasPhoto: false, fileName: "" } : "");
+      draft[field.fieldKey] = answerMap[field.fieldKey] ?? (isApplicantUploadField(field) ? buildApplicantUploadDraftValue(field.inputType) : "");
       return draft;
     }, {});
   }
@@ -1488,6 +1711,7 @@
     state.nationalityPicker.openFieldKey = "";
     state.currentSubmission = submission || null;
     state.recruitment = {
+      track: submissionRecruitment.track || state.recruitment.track || "",
       admission: submissionRecruitment.admission || state.recruitment.admission || "",
       series: submissionRecruitment.series || state.recruitment.series || "",
       unit: submissionRecruitment.unit || state.recruitment.unit || "",
@@ -1672,7 +1896,7 @@
     for (const field of fields) {
       const currentValue = state.draftAnswers[field.fieldKey];
 
-      if (field.inputType !== "photo") {
+      if (!isApplicantUploadField(field)) {
         answerPayload[field.fieldKey] = currentValue ?? "";
         continue;
       }
@@ -1694,6 +1918,7 @@
 
   function buildApplicantRecruitmentSelectionPayload() {
     return {
+      track: String(state.recruitment.track || "").trim(),
       admission: String(state.recruitment.admission || "").trim(),
       series: String(state.recruitment.series || "").trim(),
       unit: String(state.recruitment.unit || "").trim(),
@@ -1701,15 +1926,32 @@
     };
   }
 
-  function getApplicantStatusLabel(status = "") {
+  function getApplicantStatusLabel(status = "", options = {}) {
+    const scheduleState = options?.scheduleState || getApplicantSubmissionScheduleState();
+    const isScheduleOpen =
+      typeof options?.isApplicantScheduleOpen === "boolean" ? options.isApplicantScheduleOpen : scheduleState?.isOpen === true;
+
     return applicantFormConfig?.getApplicantStatusLabel
-      ? applicantFormConfig.getApplicantStatusLabel(status)
-      : String(status || "접수 완료");
+      ? applicantFormConfig.getApplicantStatusLabel(status, {
+          ...options,
+          isApplicantScheduleOpen: isScheduleOpen,
+        })
+      : String(status || "").trim() === "promoted"
+        ? "배정 완료"
+        : isScheduleOpen
+          ? "접수 중"
+          : "접수 완료";
   }
 
   function getApplicantNoticeMarkup(html, placeholder = "공지사항이 없습니다.") {
     const normalizedHtml = String(html || "").trim();
-    return normalizedHtml || `<p>${escapeHtml(placeholder)}</p>`;
+    const fallbackMarkup = `<p>${escapeHtml(placeholder)}</p>`;
+
+    if (typeof buildLoginNoticeMarkup === "function") {
+      return buildLoginNoticeMarkup(normalizedHtml, fallbackMarkup);
+    }
+
+    return normalizedHtml || fallbackMarkup;
   }
 
   function renderMessage() {
@@ -1775,14 +2017,14 @@
 
   function renderHome() {
     const admissionHomepageUrl = getAdmissionHomepageUrl();
-    const applyAvailabilityState = getApplicantApplyAvailabilityState();
+    const entryAvailabilityState = getApplicantApplyEntryAvailabilityState();
+    const applyAvailabilityState = getApplicantApplyAvailabilityState({ target: null });
     const applicantScheduleState = applyAvailabilityState.scheduleState;
     const resultLookupAvailabilityState = getApplicantResultLookupAvailabilityState();
-    const ticketLookupAvailabilityState = getApplicantLookupAvailabilityState();
+    const ticketLookupAvailabilityState = getApplicantLookupAvailabilityState({ target: null });
     const lookupScheduleState = ticketLookupAvailabilityState.scheduleState;
-    const formNotReady = !state.isLoadingForm && !state.loadError && !applyAvailabilityState.isFormConfigured;
-    const isApplyDisabled = !applyAvailabilityState.isAvailable;
-    const applyButtonTitle = isApplyDisabled ? getApplicantApplyDisabledMessage(applyAvailabilityState) : "접수하기";
+    const formNotReady = !state.isLoadingForm && !state.loadError && !entryAvailabilityState.isFormConfigured;
+    const applyButtonTitle = "접수하기";
     const resultLookupButtonTitle = !resultLookupAvailabilityState.isAvailable
       ? getApplicantLookupActionDisabledMessage(APPLICANT_LOOKUP_TARGETS.result, resultLookupAvailabilityState)
       : "접수결과 조회";
@@ -1816,7 +2058,7 @@
           <article class="applicant-public-panel applicant-public-action-grid login-panel-card login-stage-panel">
             <div class="applicant-public-action-header">
               <div class="applicant-public-brand login-stage-brand">
-                <img class="applicant-public-brand-mark" src="/client/assets/login-stage-brand-mark.png" alt="" />
+                <img class="applicant-public-brand-mark" src="${escapeAttribute(getApplicantBrandLogoUrl())}" alt="" />
                 <div class="applicant-public-brand-copy login-stage-brand-copy">
                   <span>Admit Card System</span>
                   <strong>수험생 접수</strong>
@@ -1844,7 +2086,6 @@
                 class="primary-button"
                 data-applicant-action="go-verify"
                 type="button"
-                ${isApplyDisabled ? "disabled" : ""}
                 title="${escapeAttribute(applyButtonTitle)}"
               >${renderApplicantHomeActionButtonLabel("접수하기", "apply")}</button>
               <button
@@ -1871,27 +2112,53 @@
   }
 
   function renderVerify() {
+    const formEditAvailabilityState = getApplicantFormEditAvailabilityState();
+    const isVerificationDisabled = !formEditAvailabilityState.isEditable;
+
     return `
       <section class="applicant-public-step">
         <article class="applicant-public-slab">
           <h2>이메일 인증</h2>
           <p>이름과 이메일을 입력한 뒤 인증 코드를 확인하면 다음 단계로 이동합니다.</p>
           ${renderMessage()}
+          ${
+            !APPLICANT_IS_PREVIEW_MODE && isVerificationDisabled
+              ? `<div class="applicant-public-preview-note">${escapeHtml(formEditAvailabilityState.disabledMessage)}</div>`
+              : ""
+          }
 
           <div class="applicant-public-form applicant-public-verify-form">
             <div class="applicant-public-field">
               <label for="verificationName">이름 <span class="applicant-public-required">*</span></label>
-              <input id="verificationName" data-applicant-model="verification.name" type="text" value="${escapeAttribute(state.verification.name)}" />
+              <input
+                id="verificationName"
+                data-applicant-model="verification.name"
+                type="text"
+                value="${escapeAttribute(state.verification.name)}"
+                ${isVerificationDisabled ? "disabled" : ""}
+              />
             </div>
             <div class="applicant-public-field">
               <label for="verificationEmail">이메일 <span class="applicant-public-required">*</span></label>
-              <input id="verificationEmail" data-applicant-model="verification.email" type="email" value="${escapeAttribute(state.verification.email)}" />
+              <input
+                id="verificationEmail"
+                data-applicant-model="verification.email"
+                type="email"
+                value="${escapeAttribute(state.verification.email)}"
+                ${isVerificationDisabled ? "disabled" : ""}
+              />
             </div>
           </div>
 
           <div class="applicant-public-actions">
             <button class="ghost-button" data-applicant-action="back-home" type="button">뒤로</button>
-            <button class="primary-button" data-applicant-action="send-code" type="button" ${state.verification.isSending ? "disabled" : ""}>
+            <button
+              class="primary-button"
+              data-applicant-action="send-code"
+              type="button"
+              ${state.verification.isSending || isVerificationDisabled ? "disabled" : ""}
+              title="${isVerificationDisabled ? escapeAttribute(formEditAvailabilityState.disabledMessage) : "인증 코드 발송"}"
+            >
               ${state.verification.isSending ? "발송 중..." : "인증 코드 발송"}
             </button>
           </div>
@@ -1899,7 +2166,14 @@
           <form class="applicant-public-form" data-applicant-form="verify-code">
             <div class="applicant-public-field">
               <label for="verificationCode">인증 코드 <span class="applicant-public-required">*</span></label>
-              <input id="verificationCode" data-applicant-model="verification.code" type="text" maxlength="12" value="${escapeAttribute(state.verification.code)}" />
+              <input
+                id="verificationCode"
+                data-applicant-model="verification.code"
+                type="text"
+                maxlength="12"
+                value="${escapeAttribute(state.verification.code)}"
+                ${isVerificationDisabled ? "disabled" : ""}
+              />
               ${renderVerificationCountdownMarkup()}
               ${
                 state.verification.debugCode
@@ -1910,7 +2184,12 @@
 
             <div class="applicant-public-actions">
               <button class="ghost-button" data-applicant-action="back-home" type="button">뒤로</button>
-              <button class="primary-button" type="submit" ${state.verification.isVerifying ? "disabled" : ""}>
+              <button
+                class="primary-button"
+                type="submit"
+                ${state.verification.isVerifying || isVerificationDisabled ? "disabled" : ""}
+                title="${isVerificationDisabled ? escapeAttribute(formEditAvailabilityState.disabledMessage) : "인증 확인"}"
+              >
                 ${state.verification.isVerifying ? "확인 중..." : "인증 확인"}
               </button>
             </div>
@@ -1930,7 +2209,7 @@
     `;
   }
 
-  function renderApplicantPasswordFields() {
+  function renderApplicantPasswordFields(isReadOnly = false) {
     const hasExistingPassword = state.currentSubmission?.hasPassword === true;
     const passwordConfirmError = getApplicantPasswordConfirmError();
 
@@ -1954,6 +2233,7 @@
           value="${escapeAttribute(state.application.password)}"
           placeholder="${hasExistingPassword ? "변경할 때만 입력" : "비밀번호를 입력하세요"}"
           autocomplete="new-password"
+          ${isReadOnly ? "disabled" : ""}
         />
       </div>
       <div class="applicant-public-field applicant-public-password-field ${passwordConfirmError ? "is-invalid" : ""}" data-applicant-password-confirm-field="true">
@@ -1970,6 +2250,7 @@
           placeholder="${hasExistingPassword ? "변경한 비밀번호를 다시 입력" : "비밀번호를 다시 입력하세요"}"
           autocomplete="new-password"
           aria-invalid="${passwordConfirmError ? "true" : "false"}"
+          ${isReadOnly ? "disabled" : ""}
         />
         <span class="applicant-public-input-error ${passwordConfirmError ? "is-visible" : ""}" data-applicant-password-confirm-error="true">${escapeHtml(passwordConfirmError)}</span>
       </div>
@@ -2020,9 +2301,9 @@
     `;
   }
 
-  function renderApplicantField(field) {
+  function renderApplicantField(field, options = {}) {
     const fieldValue = state.draftAnswers[field.fieldKey];
-    const isReadOnly = field.systemFieldKey === "name";
+    const isReadOnly = options.isReadOnly === true || field.systemFieldKey === "name";
     const requiredBadge = field.required ? `<span class="applicant-public-required">*</span>` : "";
     const fieldDescription = String(field.questionDescription || "").trim();
     const fieldDescriptionMarkup = fieldDescription
@@ -2113,12 +2394,17 @@
       `;
     }
 
-    if (field.inputType === "photo") {
-      const photoLabel =
+    if (isApplicantUploadField(field)) {
+      const isPhotoField = field.inputType === "photo";
+      const uploadLabel =
         fieldValue?.file instanceof File
           ? fieldValue.file.name
-          : fieldValue?.hasPhoto
-            ? fieldValue.fileName || "기존 사진이 등록되어 있습니다."
+          : isPhotoField
+            ? fieldValue?.hasPhoto
+              ? fieldValue.fileName || "기존 사진이 등록되어 있습니다."
+              : "선택된 파일이 없습니다."
+            : fieldValue?.hasFile
+            ? fieldValue.fileName || "기존 파일이 등록되어 있습니다."
             : "선택된 파일이 없습니다.";
 
       return `
@@ -2132,11 +2418,12 @@
               data-applicant-field-key="${escapeAttribute(field.fieldKey)}"
               ${fieldTypeAttribute}
               type="file"
-              accept="image/*"
+              ${isPhotoField ? 'accept="image/*"' : ""}
+              ${isReadOnly ? "disabled" : ""}
             />
             <label class="applicant-public-file-display" for="field-${escapeAttribute(field.fieldKey)}">
               <span class="applicant-public-file-button">파일 선택</span>
-              <span class="applicant-public-file-name">${escapeHtml(photoLabel)}</span>
+              <span class="applicant-public-file-name">${escapeHtml(uploadLabel)}</span>
             </label>
           </div>
         </div>
@@ -2211,7 +2498,7 @@
       return fields;
     }
 
-    return fields.filter((field) => !["admission", "series", "unit", "major"].includes(String(field?.systemFieldKey || "").trim()));
+    return fields.filter((field) => !["track", "admission", "series", "unit", "major"].includes(String(field?.systemFieldKey || "").trim()));
   }
 
   function renderApplicantRecruitmentSelectionSummary() {
@@ -2242,7 +2529,7 @@
     `;
   }
 
-  function renderApplicantRecruitmentSelectionFields() {
+  function renderApplicantRecruitmentSelectionFields(isReadOnly = false) {
     return APPLICANT_RECRUITMENT_SELECTION_FIELDS.map((definition) => {
       const globalOptions = getApplicantRecruitmentSelectionOptions(definition.key, {});
       const previousDefinition =
@@ -2267,7 +2554,7 @@
           <select
             id="applicationSelection-${escapeAttribute(definition.key)}"
             data-applicant-model="recruitment.${escapeAttribute(definition.key)}"
-            ${!isEnabled || options.length === 0 ? "disabled" : ""}
+            ${isReadOnly || !isEnabled || options.length === 0 ? "disabled" : ""}
           >
             <option value="">${escapeHtml(placeholderLabel)}</option>
             ${options
@@ -2293,6 +2580,10 @@
   }
 
   function renderApply() {
+    const entryAvailabilityState = getApplicantApplyEntryAvailabilityState();
+    const isReadOnly = !APPLICANT_IS_PREVIEW_MODE && !entryAvailabilityState.isAvailable;
+    const disabledMessage = APPLICANT_IS_PREVIEW_MODE ? "" : getApplicantApplyEntryDisabledMessage(entryAvailabilityState);
+
     return `
       <section class="applicant-public-step applicant-public-application-step">
         <article class="applicant-public-slab applicant-public-application-panel">
@@ -2304,21 +2595,32 @@
             ${renderApplicantApplicationHeaderActions()}
           </div>
           ${renderMessage()}
+          ${
+            !APPLICANT_IS_PREVIEW_MODE && isReadOnly
+              ? `<div class="applicant-public-preview-note">${escapeHtml(disabledMessage)}</div>`
+              : ""
+          }
           <div class="applicant-public-form applicant-public-application-form">
             <div class="applicant-public-form-section">
               <div class="applicant-public-form-section-head">
                 <span class="applicant-public-form-section-kicker">Selection</span>
                 <h3>지원 정보를 선택하세요</h3>
-                <p>접수 설정 기준으로 전형, 계열, 모집단위, 전공을 순서대로 선택합니다.</p>
+                <p>전형 관리 기준으로 모집시기, 전형, 계열, 모집단위, 전공을 순서대로 선택합니다.</p>
               </div>
               <div class="applicant-public-form-stack">
-                ${renderApplicantRecruitmentSelectionFields()}
+                ${renderApplicantRecruitmentSelectionFields(isReadOnly)}
               </div>
             </div>
 
             <div class="applicant-public-actions applicant-public-application-actions">
               <button class="ghost-button" data-applicant-action="back-verify" type="button">이전</button>
-              <button class="primary-button" data-applicant-action="continue-application" type="button">다음</button>
+              <button
+                class="primary-button"
+                data-applicant-action="continue-application"
+                type="button"
+                ${isReadOnly ? "disabled" : ""}
+                title="${isReadOnly ? escapeAttribute(disabledMessage) : "다음"}"
+              >다음</button>
             </div>
           </div>
         </article>
@@ -2326,13 +2628,13 @@
     `;
   }
 
-  function renderApplicationConfiguredFields() {
+  function renderApplicationConfiguredFields(isReadOnly = false) {
     const fields = getVisibleApplicantFormFields();
     const renderedFields = [];
     let insertedEmailAndPassword = false;
 
     fields.forEach((field) => {
-      renderedFields.push(renderApplicantField(field));
+      renderedFields.push(renderApplicantField(field, { isReadOnly }));
 
       if (!insertedEmailAndPassword && field.systemFieldKey === "name") {
         renderedFields.push(
@@ -2343,13 +2645,13 @@
             helperText: "이메일 인증이 완료된 주소입니다.",
           }),
         );
-        renderedFields.push(renderApplicantPasswordFields());
+        renderedFields.push(renderApplicantPasswordFields(isReadOnly));
         insertedEmailAndPassword = true;
       }
     });
 
     if (!insertedEmailAndPassword) {
-      renderedFields.unshift(renderApplicantPasswordFields());
+      renderedFields.unshift(renderApplicantPasswordFields(isReadOnly));
       renderedFields.unshift(
         renderApplicantStaticField({
           fieldId: "applicationEmail",
@@ -2373,7 +2675,12 @@
 
   function renderForm() {
     const isPreviewMode = APPLICANT_IS_PREVIEW_MODE;
-    const submissionStatus = state.currentSubmission?.status ? getApplicantStatusLabel(state.currentSubmission.status) : "";
+    const formEditAvailabilityState = getApplicantFormEditAvailabilityState();
+    const isReadOnly = !isPreviewMode && !formEditAvailabilityState.isEditable;
+    const applicantScheduleState = getApplicantSubmissionScheduleState();
+    const submissionStatus = state.currentSubmission?.status
+      ? getApplicantStatusLabel(state.currentSubmission.status, { scheduleState: applicantScheduleState })
+      : "";
     const statusMarkup =
       submissionStatus || isPreviewMode
         ? `<span class="applicant-public-application-status ${isPreviewMode ? "is-preview" : ""}">${escapeHtml(isPreviewMode ? "미리보기" : submissionStatus)}</span>`
@@ -2393,6 +2700,8 @@
           ${
             isPreviewMode
               ? `<div class="applicant-public-preview-note">관리자 미리보기 화면입니다. 입력값은 저장되지 않습니다.</div>`
+              : isReadOnly
+                ? `<div class="applicant-public-preview-note">${escapeHtml(formEditAvailabilityState.disabledMessage)}</div>`
               : ""
           }
           <form class="applicant-public-form applicant-public-application-form" data-applicant-form="application">
@@ -2403,7 +2712,7 @@
               </div>
               ${renderApplicantRecruitmentSelectionSummary()}
               <div class="applicant-public-form-stack">
-                ${renderApplicationConfiguredFields()}
+                ${renderApplicationConfiguredFields(isReadOnly)}
               </div>
             </div>
 
@@ -2416,7 +2725,12 @@
                   `
                   : `
                     <button class="ghost-button" data-applicant-action="back-form" type="button">이전</button>
-                    <button class="primary-button" type="submit" ${state.isSaving ? "disabled" : ""}>
+                    <button
+                      class="primary-button"
+                      type="submit"
+                      ${state.isSaving || isReadOnly ? "disabled" : ""}
+                      title="${isReadOnly ? escapeAttribute(formEditAvailabilityState.disabledMessage) : "접수 완료"}"
+                    >
                       ${state.isSaving ? "저장 중..." : "접수 완료"}
                     </button>
                   `
@@ -2483,6 +2797,10 @@
                 ? answerItem?.value?.hasPhoto
                   ? answerItem?.value?.fileName || "등록된 사진"
                   : "미등록"
+                : answerItem?.inputType === "file"
+                  ? answerItem?.value?.hasFile
+                    ? answerItem?.value?.fileName || "등록된 파일"
+                    : "미등록"
                 : String(answerItem?.value || "").trim() || "-";
 
             return `
@@ -2571,6 +2889,8 @@
 
   function renderLookupSummaryResult() {
     const submission = state.currentSubmission;
+    const formEditAvailabilityState = getApplicantFormEditAvailabilityState();
+    const isEditDisabled = !formEditAvailabilityState.isEditable;
 
     return `
       <section class="applicant-public-step">
@@ -2582,7 +2902,13 @@
           ${renderSummaryItems(submission?.answerItems)}
 
           <div class="applicant-public-actions">
-            <button class="ghost-button" data-applicant-action="edit-application" type="button">수정</button>
+            <button
+              class="ghost-button"
+              data-applicant-action="edit-application"
+              type="button"
+              ${isEditDisabled ? "disabled" : ""}
+              title="${isEditDisabled ? escapeAttribute(formEditAvailabilityState.disabledMessage) : "접수 내용 수정"}"
+            >수정</button>
             <button class="primary-button" data-applicant-action="back-home" type="button">홈</button>
           </div>
         </article>
@@ -2592,6 +2918,8 @@
 
   function renderLookupTicketResult() {
     const submission = state.currentSubmission;
+    const formEditAvailabilityState = getApplicantFormEditAvailabilityState();
+    const isEditDisabled = !formEditAvailabilityState.isEditable;
     const admitCardDataSource = String(state.formConfig.systemSettings?.admitCardDataSource || "").trim() || "examinee";
     const isSubmissionAdmitCardSource = admitCardDataSource === "submission";
     const pdfUrl =
@@ -2610,7 +2938,7 @@
       : `
         <div class="applicant-public-empty-state">
           <strong>수험표가 아직 발급되지 않았습니다.</strong>
-          <span>관리자에서 수험생 등록으로 이동하면 이 화면에서 PDF가 표시됩니다.</span>
+          <span>관리자가 수험생 데이터 메뉴에서 반영을 완료하면 이 화면에서 PDF가 표시됩니다.</span>
         </div>
       `;
 
@@ -2623,7 +2951,13 @@
               <p>수험표 PDF를 열람하고 인쇄합니다.</p>
             </div>
             <div class="applicant-public-actions">
-              <button class="ghost-button" data-applicant-action="edit-application" type="button">수정</button>
+              <button
+                class="ghost-button"
+                data-applicant-action="edit-application"
+                type="button"
+                ${isEditDisabled ? "disabled" : ""}
+                title="${isEditDisabled ? escapeAttribute(formEditAvailabilityState.disabledMessage) : "접수 내용 수정"}"
+              >수정</button>
               <button class="primary-button" data-applicant-action="back-home" type="button">홈</button>
             </div>
           </div>
@@ -2649,15 +2983,17 @@
               : state.mode === "lookup-summary"
                 ? renderLookupSummaryResult()
                 : state.mode === "lookup-ticket"
-                  ? renderLookupTicketResult()
+                ? renderLookupTicketResult()
                 : renderHome();
 
-    root.innerHTML = markup;
+    root.innerHTML = `${markup}${renderApplicantDialog()}`;
+    syncApplicantBranding();
     updateApplicantDocumentTitle();
     persistApplicantPublicState();
     syncVerificationCountdown();
     syncVerificationCountdownUi();
     syncApplicantPasswordConfirmValidationUI();
+    syncApplicantDialogUi();
   }
 
   async function loadFormConfig() {
@@ -2674,12 +3010,11 @@
       state.formConfig = {
         fields: Array.isArray(payload?.fields) ? payload.fields : [],
         recruitmentUnits: Array.isArray(payload?.recruitmentUnits) ? payload.recruitmentUnits : [],
+        schedules: Array.isArray(payload?.schedules) ? payload.schedules : [],
         settings: payload?.settings || {},
+        superAdminSettings: normalizeApplicantBrandSettings(payload?.superAdminSettings),
         systemSettings: {
           admissionHomepageUrl: "",
-          ...getDefaultApplicantScheduleRange(),
-          admitCardLookupScheduleStartAt: getDefaultApplicantScheduleRange().startAt,
-          admitCardLookupScheduleEndAt: getDefaultApplicantScheduleRange().endAt,
           admitCardDataSource: "examinee",
           ...(payload?.systemSettings && typeof payload.systemSettings === "object" ? payload.systemSettings : {}),
         },
@@ -2703,15 +3038,10 @@
 
   async function sendVerificationCode() {
     resetMessage();
-    const applicantScheduleState = getApplicantSubmissionScheduleState();
+    const entryAvailabilityState = getApplicantApplyEntryAvailabilityState();
 
-    if (!applicantScheduleState.isOpen) {
-      setMessage("error", getApplicantApplyDisabledMessage({
-        isAvailable: false,
-        isFormConfigured: hasApplicantFormConfigured(),
-        scheduleState: applicantScheduleState,
-      }));
-      render();
+    if (!entryAvailabilityState.isAvailable) {
+      notifyApplicantApplyEntryUnavailable(entryAvailabilityState);
       return;
     }
 
@@ -2741,6 +3071,12 @@
 
   async function verifyCode() {
     resetMessage();
+    const entryAvailabilityState = getApplicantApplyEntryAvailabilityState();
+
+    if (!APPLICANT_IS_PREVIEW_MODE && !entryAvailabilityState.isAvailable) {
+      notifyApplicantApplyEntryUnavailable(entryAvailabilityState);
+      return;
+    }
 
     if (Number(state.verification.expiresAt || 0) > 0 && isVerificationCodeExpired()) {
       setMessage("error", "인증 코드가 만료되었습니다. 새 코드를 다시 발송하세요.");
@@ -2784,6 +3120,13 @@
 
   async function saveApplication() {
     resetMessage();
+    const formEditAvailabilityState = getApplicantFormEditAvailabilityState();
+
+    if (!APPLICANT_IS_PREVIEW_MODE && !formEditAvailabilityState.isEditable) {
+      setMessage("error", formEditAvailabilityState.disabledMessage);
+      render();
+      return;
+    }
 
     if (hasApplicantRecruitmentSelectionStep() && !hasCompletedApplicantRecruitmentSelection()) {
       setMessage("error", "접수 신청 정보를 먼저 선택하세요.");
@@ -2915,6 +3258,18 @@
   root.addEventListener("click", async (event) => {
     const clickedElement = event.target instanceof Element ? event.target : null;
     const nationalityOption = clickedElement?.closest("[data-applicant-nationality-value]");
+    const noticeLink = clickedElement?.closest(".login-notice-content a[href]") || null;
+
+    if (noticeLink instanceof HTMLAnchorElement) {
+      event.preventDefault();
+      window.open(noticeLink.href, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    if (clickedElement?.closest("[data-applicant-dialog-close]")) {
+      closeApplicantDialog();
+      return;
+    }
 
     if (nationalityOption instanceof HTMLElement) {
       const fieldKey = String(nationalityOption.dataset.applicantNationalityFieldKey || "").trim();
@@ -2952,11 +3307,10 @@
     const action = String(target.dataset.applicantAction || "").trim();
 
     if (action === "go-verify") {
-      const applyAvailabilityState = getApplicantApplyAvailabilityState();
+      const entryAvailabilityState = getApplicantApplyEntryAvailabilityState();
 
-      if (!applyAvailabilityState.isAvailable) {
-        setMessage("error", getApplicantApplyDisabledMessage(applyAvailabilityState));
-        render();
+      if (!entryAvailabilityState.isAvailable) {
+        notifyApplicantApplyEntryUnavailable(entryAvailabilityState);
         return;
       }
 
@@ -3013,6 +3367,12 @@
 
     if (action === "continue-application") {
       resetMessage();
+      const entryAvailabilityState = getApplicantApplyEntryAvailabilityState();
+
+      if (!APPLICANT_IS_PREVIEW_MODE && !entryAvailabilityState.isAvailable) {
+        notifyApplicantApplyEntryUnavailable(entryAvailabilityState);
+        return;
+      }
 
       if (!hasCompletedApplicantRecruitmentSelection()) {
         const nextRequiredField =
@@ -3028,6 +3388,14 @@
           }) || null;
 
         setMessage("error", `${nextRequiredField?.label || "접수 신청 정보"}을(를) 선택하세요.`);
+        return;
+      }
+
+      const formEditAvailabilityState = getApplicantFormEditAvailabilityState();
+
+      if (!APPLICANT_IS_PREVIEW_MODE && !formEditAvailabilityState.isEditable) {
+        setMessage("error", formEditAvailabilityState.disabledMessage);
+        render();
         return;
       }
 
@@ -3056,6 +3424,14 @@
 
     if (action === "edit-application") {
       resetMessage();
+      const formEditAvailabilityState = getApplicantFormEditAvailabilityState();
+
+      if (!APPLICANT_IS_PREVIEW_MODE && !formEditAvailabilityState.isEditable) {
+        setMessage("error", formEditAvailabilityState.disabledMessage);
+        render();
+        return;
+      }
+
       state.application.password = "";
       state.application.passwordConfirm = "";
       state.application.passwordConfirmTouched = false;
@@ -3268,6 +3644,7 @@
 
     if (element instanceof HTMLInputElement && element.type === "file") {
       const fieldKey = String(element.dataset.applicantFieldKey || "").trim();
+      const fieldType = String(element.dataset.applicantFieldType || getApplicantFormFieldByKey(fieldKey)?.inputType || "").trim();
       const file = element.files?.[0] || null;
 
       if (!fieldKey) {
@@ -3275,15 +3652,18 @@
       }
 
       state.draftAnswers[fieldKey] = file
-        ? {
-            file,
-            fileName: file.name,
-            hasPhoto: true,
-          }
-        : {
-            hasPhoto: false,
-            fileName: "",
-          };
+        ? fieldType === "photo"
+          ? {
+              file,
+              fileName: file.name,
+              hasPhoto: true,
+            }
+          : {
+              file,
+              fileName: file.name,
+              hasFile: true,
+            }
+        : buildApplicantUploadDraftValue(fieldType);
       persistApplicantPublicState();
       render();
       return;
@@ -3394,6 +3774,13 @@
 
   window.addEventListener("popstate", () => {
     applyApplicantRouteFromLocation();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && state.dialog?.isOpen === true) {
+      event.preventDefault();
+      closeApplicantDialog();
+    }
   });
 
   const initialMode = getApplicantModeFromPathname(window.location.pathname);

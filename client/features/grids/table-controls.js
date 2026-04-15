@@ -6,6 +6,21 @@
 
   globalScope.AdmitCardGridTableControls = factory();
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
+  const applicantFormConfig = globalThis.AdmitCardApplicantFormConfig || {};
+  const findApplicantScheduleRecord = applicantFormConfig.findApplicantScheduleRecord || (() => null);
+  const getApplicantSubmissionScheduleState =
+    applicantFormConfig.getApplicantSubmissionScheduleState ||
+    (() => ({
+      isConfigured: false,
+      isOpen: false,
+      reason: "not_configured",
+      applicantScheduleStartAt: "",
+      applicantScheduleEndAt: "",
+    }));
+  const buildApplicantScheduleContextLabel =
+    applicantFormConfig.buildApplicantScheduleContextLabel || ((value = {}) => String(value?.track || value?.trackName || "선택한 전형"));
+  const buildApplicantScheduleRangeLabel = applicantFormConfig.buildApplicantScheduleRangeLabel || (() => "");
+
   function createGridTableControlController({
     escapeAttribute,
     escapeHtml,
@@ -88,7 +103,161 @@
       `;
     }
 
+    function formatApplicantScheduleRangeForTitle(value = "") {
+      return String(value || "").trim().replaceAll("T", " ");
+    }
+
+    function getApplicantSelectedSubmissions(statuses = []) {
+      const selectedRowIds =
+        Array.isArray(state.tableSettings?.applicantHistoryGrid?.selectedRowIds) ? state.tableSettings.applicantHistoryGrid.selectedRowIds : [];
+      const selectedRowIdSet = new Set(
+        selectedRowIds
+          .map((value) => String(value || "").trim())
+          .filter(Boolean),
+      );
+      const allowedStatuses = new Set(
+        (Array.isArray(statuses) ? statuses : [statuses])
+          .map((value) => String(value || "").trim())
+          .filter(Boolean),
+      );
+      const submissions = Array.isArray(state.applicantManager?.submissions) ? state.applicantManager.submissions : [];
+
+      return submissions.filter((submission) => {
+        const submissionId = String(submission?.id || "").trim();
+
+        if (!submissionId || !selectedRowIdSet.has(submissionId)) {
+          return false;
+        }
+
+        if (allowedStatuses.size === 0) {
+          return true;
+        }
+
+        return allowedStatuses.has(String(submission?.status || "submitted").trim() || "submitted");
+      });
+    }
+
+    function getApplicantPromotionAvailability() {
+      const selectedSubmissions = getApplicantSelectedSubmissions(["submitted"]);
+      const schedules = Array.isArray(state.applicantManager?.schedules) ? state.applicantManager.schedules : [];
+      const handledScheduleKeys = new Set();
+      const scheduleEntries = [];
+
+      selectedSubmissions.forEach((submission) => {
+        const matchedSchedule = findApplicantScheduleRecord(schedules, submission);
+        const scheduleKey =
+          String(matchedSchedule?.scheduleKey || submission?.scheduleKey || `${submission?.track || ""}|${submission?.admissionCode || ""}|${submission?.admission || ""}`).trim();
+
+        if (scheduleKey && handledScheduleKeys.has(scheduleKey)) {
+          return;
+        }
+
+        if (scheduleKey) {
+          handledScheduleKeys.add(scheduleKey);
+        }
+
+        scheduleEntries.push({
+          submission,
+          scheduleState: getApplicantSubmissionScheduleState(matchedSchedule),
+        });
+      });
+
+      const blockingEntry = scheduleEntries.find((entry) => entry.scheduleState.reason !== "after_end") || null;
+
+      return {
+        isAvailable: selectedSubmissions.length > 0 && !blockingEntry,
+        blockingEntry,
+        selectedSubmissions,
+      };
+    }
+
+    function getApplicantPromotionBlockedTitle(blockingEntry = null) {
+      if (!blockingEntry) {
+        return "접수기간 종료 후에만 고사실 배정을 진행할 수 있습니다.";
+      }
+
+      const contextLabel = buildApplicantScheduleContextLabel(blockingEntry.submission);
+      const scheduleRangeLabel = formatApplicantScheduleRangeForTitle(
+        buildApplicantScheduleRangeLabel(blockingEntry.scheduleState, "submission"),
+      );
+
+      if (blockingEntry.scheduleState.reason === "not_configured") {
+        return `${contextLabel} 접수 기간이 설정되지 않아 고사실 배정을 진행할 수 없습니다.`;
+      }
+
+      if (blockingEntry.scheduleState.reason === "before_start") {
+        return `${contextLabel} 접수 일정이 아직 시작되지 않았습니다.${scheduleRangeLabel ? ` 접수 기간: ${scheduleRangeLabel}` : ""}`;
+      }
+
+      if (blockingEntry.scheduleState.reason === "invalid") {
+        return `${contextLabel} 접수 기간 설정을 확인한 뒤 다시 시도하세요.`;
+      }
+
+      return `${contextLabel} 접수기간 중에는 고사실 배정을 진행할 수 없습니다.${scheduleRangeLabel ? ` 접수 기간: ${scheduleRangeLabel}` : ""}`;
+    }
+
+    function getApplicantHistorySelectionCounts() {
+      const selectedRowIds =
+        Array.isArray(state.tableSettings?.applicantHistoryGrid?.selectedRowIds)
+          ? state.tableSettings.applicantHistoryGrid.selectedRowIds
+          : [];
+      const selectedRowIdSet = new Set(
+        selectedRowIds
+          .map((value) => String(value || "").trim())
+          .filter(Boolean),
+      );
+      const submissions = Array.isArray(state.applicantManager?.submissions) ? state.applicantManager.submissions : [];
+      let submittedCount = 0;
+      let promotedCount = 0;
+
+      submissions.forEach((submission) => {
+        const submissionId = String(submission?.id || "").trim();
+
+        if (!submissionId || !selectedRowIdSet.has(submissionId)) {
+          return;
+        }
+
+        if (String(submission?.status || "submitted").trim() === "promoted") {
+          promotedCount += 1;
+          return;
+        }
+
+        submittedCount += 1;
+      });
+
+      return {
+        selectedCount: submittedCount + promotedCount,
+        submittedCount,
+        promotedCount,
+      };
+    }
+
     function renderGridHeaderActions({ gridKey, includeBatchPrint = false }) {
+      const applicantHistorySelectionCounts =
+        gridKey === "applicantHistoryGrid"
+          ? getApplicantHistorySelectionCounts()
+          : { selectedCount: 0, submittedCount: 0, promotedCount: 0 };
+      const applicantPromotionAvailability =
+        gridKey === "applicantHistoryGrid"
+          ? getApplicantPromotionAvailability()
+          : { isAvailable: false, blockingEntry: null };
+      const applicantPromotionAvailable = gridKey === "applicantHistoryGrid" && applicantPromotionAvailability.isAvailable;
+      const applicantPromotionLabel = `고사실 배정(${applicantHistorySelectionCounts.submittedCount}명)`;
+      const applicantPromotionResetLabel = `배정 초기화(${applicantHistorySelectionCounts.promotedCount}명)`;
+      const applicantPromotionTitle = applicantPromotionAvailable
+        ? "배정표 관리 메뉴에 저장된 고사실 순서와 배정 기준으로 선택한 접수 이력을 자동 배정합니다."
+        : applicantHistorySelectionCounts.selectedCount === 0
+          ? "배정할 접수 이력을 먼저 선택하세요."
+          : applicantHistorySelectionCounts.submittedCount === 0
+            ? "선택한 접수 이력 중 접수 완료 상태만 고사실 배정할 수 있습니다."
+            : getApplicantPromotionBlockedTitle(applicantPromotionAvailability.blockingEntry);
+      const applicantPromotionResetTitle =
+        applicantHistorySelectionCounts.promotedCount > 0
+          ? "선택한 접수 이력의 고사실 배정 결과를 초기화하고 제출 상태로 되돌립니다."
+          : applicantHistorySelectionCounts.selectedCount > 0
+            ? "선택한 접수 이력 중 배정 완료 상태만 배정 초기화할 수 있습니다."
+            : "배정 초기화할 접수 이력을 먼저 선택하세요.";
+
       return `
         ${includeBatchPrint ? renderBatchPrintButton() : ""}
         ${
@@ -110,7 +279,13 @@
         }
         ${
           gridKey === "applicantHistoryGrid"
-            ? `<button class="outline-button" type="button" disabled title="준비 중">
+            ? `<button
+                class="outline-button"
+                data-applicant-submission-promotion-open="true"
+                type="button"
+                title="${escapeAttribute(applicantPromotionTitle)}"
+                ${!applicantPromotionAvailable || applicantHistorySelectionCounts.submittedCount === 0 ? "disabled" : ""}
+              >
                 <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path d="M4 20V6l8-2 8 2v14"></path>
                   <path d="M9 9h.01"></path>
@@ -119,7 +294,25 @@
                   <path d="M15 13h.01"></path>
                   <path d="M10 20v-3h4v3"></path>
                 </svg>
-                <span>고사실 배정</span>
+                <span>${escapeHtml(applicantPromotionLabel)}</span>
+              </button>`
+            : ""
+        }
+        ${
+          gridKey === "applicantHistoryGrid"
+            ? `<button
+                class="outline-button danger-button"
+                data-applicant-submission-promotion-reset="true"
+                type="button"
+                title="${escapeAttribute(applicantPromotionResetTitle)}"
+                ${applicantHistorySelectionCounts.promotedCount === 0 ? "disabled" : ""}
+              >
+                <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                  <path d="M3 4v5h5"></path>
+                  <path d="M12 8v4l3 2"></path>
+                </svg>
+                <span>${escapeHtml(applicantPromotionResetLabel)}</span>
               </button>`
             : ""
         }
@@ -155,7 +348,7 @@
           </svg>
           <span>다운로드</span>
         </button>
-        <button class="primary-button" data-open-modal="uploadModal" type="button">
+        <button class="primary-button" data-open-modal="uploadTypeModal" type="button">
           <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 16V4"></path>
             <path d="M7.5 8.5 12 4l4.5 4.5"></path>
@@ -170,23 +363,20 @@
       const selectedCount = typeof getSelectedAdmitCardExamineeCount === "function" ? getSelectedAdmitCardExamineeCount() : 0;
       const isLoading = Boolean(state.batchPrint?.isLoading);
       const label = isLoading
-        ? "PDF 생성 중..."
-        : selectedCount > 0
-          ? `일괄 인쇄 (${selectedCount}명)`
-          : "일괄 인쇄";
+        ? "파일 생성 중..."
+        : `일괄 다운로드(${selectedCount}명)`;
 
       return `
         <button
           class="secondary-button"
-          data-batch-print="true"
+          data-open-modal="batchPrintDownloadModal"
           type="button"
           ${selectedCount === 0 || isLoading ? "disabled" : ""}
         >
           <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M7 8V4.5h10V8"></path>
-            <path d="M6 18H5a2 2 0 0 1-2-2v-5a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v5a2 2 0 0 1-2 2h-1"></path>
-            <path d="M7 14h10v5.5H7z"></path>
-            <path d="M16 11.5h2"></path>
+            <path d="M12 4v10"></path>
+            <path d="m7.5 10.5 4.5 4.5 4.5-4.5"></path>
+            <path d="M4 20h16"></path>
           </svg>
           <span>${escapeHtml(label)}</span>
         </button>
@@ -194,6 +384,10 @@
     }
 
     function renderGridPagination({ currentPage, endRowNumber, gridKey, startRowNumber, tableState, totalPages, totalRows, visiblePageNumbers }) {
+      const pageSizeOptions = [10, 20, 50, 100, 500, 1000, 2000, 0];
+      const currentPageSize = Number(tableState.pageSize || 0);
+      const pageSizeLabel = currentPageSize > 0 ? `${currentPageSize}개` : "모두 표시";
+
       return `
         <div class="table-pagination">
           <div class="table-page-size">
@@ -206,22 +400,22 @@
                 data-page-size-trigger="true"
                 aria-expanded="${tableState.pageSizeMenuOpen ? "true" : "false"}"
               >
-                <span>${tableState.pageSize}개</span>
+                <span>${escapeHtml(pageSizeLabel)}</span>
                 <span class="page-size-caret">${tableState.pageSizeMenuOpen ? "▴" : "▾"}</span>
               </button>
               ${
                 tableState.pageSizeMenuOpen
                   ? `<div class="page-size-menu">
-                      ${[10, 20, 50, 100]
+                      ${pageSizeOptions
                         .map(
                           (size) => `
                             <button
                               type="button"
-                              class="page-size-option ${size === tableState.pageSize ? "active" : ""}"
+                              class="page-size-option ${size === currentPageSize ? "active" : ""}"
                               data-grid-key="${gridKey}"
                               data-page-size-option="${size}"
                             >
-                              ${size}개
+                              ${size > 0 ? `${size}개` : "모두 표시"}
                             </button>
                           `,
                         )

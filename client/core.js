@@ -117,17 +117,20 @@ if (!systemSettingsModule?.createSystemSettingsController) {
 const {
   accountRoleOptions,
   availableViews,
+  buildRoleMenuVisibilityFromSuperAdminSettings,
   defaultView: DEFAULT_VIEW,
-  getDefaultAccessibleView: getDefaultAccessibleViewForRole,
+  getDefaultAccessibleView: getDefaultAccessibleViewForRoleConfig,
   getViewFromPathname,
   getViewRoutePath,
   getAccessibleViewsForRole: getAccessibleViewsForRoleConfig,
   getVisibleMenuViewsForRole: getVisibleMenuViewsForRoleConfig,
   isLoginRoutePath,
-  isViewAccessibleForRole,
+  isViewAccessibleForRole: isViewAccessibleForRoleConfig,
   loginRoutePath: LOGIN_ROUTE_PATH,
+  normalizeSuperAdminSettings,
   normalizeRoutePath,
   pageTitles,
+  superAdminRole,
   templateTagDefinitions,
 } = appConfig;
 const {
@@ -146,10 +149,13 @@ const {
 const SYSTEM_DATA_DELETE_CONFIG = Object.freeze({
   all: Object.freeze({
     confirmMessage:
-      "전체 데이터를 삭제하시겠습니까?\n\n수험생 데이터, 사진 데이터, 접수 설정 데이터, 수험표 출력 이력, 접수 이력 데이터가 모두 삭제되며 복구할 수 없습니다.",
+      "전체 데이터를 삭제하시겠습니까?\n\n수험생 데이터, 사진 데이터, 전형 관리 데이터, 배정표 데이터, 수험표 출력 이력, 접수 이력 데이터가 모두 삭제되며 복구할 수 없습니다.",
   }),
   "applicant-settings": Object.freeze({
-    confirmMessage: "접수 설정 데이터를 삭제하시겠습니까?\n\n접수 설정 데이터가 모두 삭제되며 복구할 수 없습니다.",
+    confirmMessage: "전형 관리 데이터를 삭제하시겠습니까?\n\n전형 관리 데이터가 모두 삭제되며 복구할 수 없습니다.",
+  }),
+  "applicant-assignments": Object.freeze({
+    confirmMessage: "배정표 데이터를 삭제하시겠습니까?\n\n배정표 데이터가 모두 삭제되며 복구할 수 없습니다.",
   }),
   examinees: Object.freeze({
     confirmMessage:
@@ -176,6 +182,8 @@ const {
   createBatchPrintState,
   createExamineeDetailState,
   createPdfGenerationState,
+  createSuperAdminState: createSuperAdminStateBase,
+  createSystemAuditLogState,
   createSystemDataDeletionState,
   createTableState,
   createTemplateCardEditorState,
@@ -206,6 +214,13 @@ const createSystemSettingsState = (payload = {}) =>
     defaultAutoLogoutMinutes: DEFAULT_SYSTEM_AUTO_LOGOUT_MINUTES,
     maxAutoLogoutMinutes: MAX_SYSTEM_AUTO_LOGOUT_MINUTES,
   });
+const createSuperAdminState = (payload = {}) =>
+  createSuperAdminStateBase(
+    payload && Object.keys(payload).length > 0 ? payload : globalThis.AdmitCardInitialSuperAdminSettings || {},
+    {
+      normalizeSuperAdminSettings,
+    },
+  );
 const {
   apiRequest,
   apiRequestForBlobWithProgress,
@@ -275,6 +290,8 @@ const appStateController = createAppStateController({
   createLoginNoticeState,
   createLookupFilters,
   createPdfGenerationState,
+  createSuperAdminState,
+  createSystemAuditLogState,
   createSystemDataDeletionState,
   createSystemSettingsState,
   createTableState,
@@ -307,13 +324,27 @@ const {
   accountCreateModal,
   accountCreateName,
   accountCreateRole,
+  applicantAssignmentModal,
+  applicantAssignmentUploadFileInput,
+  applicantAssignmentUploadFileName,
+  applicantAssignmentUploadPreviewMount,
+  applicantAssignmentUploadModal,
+  applicantScheduleModal,
+  applicantPromotionModal,
   applicantSubmissionDownloadModal,
+  batchPrintDownloadForm,
+  batchPrintDownloadModal,
+  batchPrintDownloadModeCombinedPdf,
+  batchPrintDownloadModeZip,
+  batchPrintDownloadSelectionMeta,
+  batchPrintDownloadSubmit,
   applicantSubmissionDetailBody,
   applicantSubmissionDetailMeta,
   applicantSubmissionDetailModal,
   applicantRecruitmentUnitModal,
   applicantUnitUploadFileInput,
   applicantUnitUploadFileName,
+  applicantUnitUploadPreviewMount,
   applicantUnitUploadModal,
   appShell,
   autoLogoutCountdown,
@@ -339,6 +370,7 @@ const {
   passwordSetupNext,
   pdfGenerationMessage,
   pdfGenerationOverlay,
+  pdfGenerationCancelButton,
   pdfGenerationProgress,
   pdfGenerationProgressBar,
   pdfGenerationProgressFill,
@@ -346,6 +378,8 @@ const {
   pdfGenerationProgressValue,
   registeredExamineeCount,
   sidebar,
+  systemAuditLogModal,
+  systemAuditLogModalBody,
   templateEditorDescription,
   templateEditorModal,
   templateEditorName,
@@ -363,6 +397,7 @@ const {
   uploadFileInput,
   uploadFileName,
   uploadModal,
+  uploadTypeModal,
   uploadOverlay,
   uploadOverlayMessage,
   uploadOverlayProgress,
@@ -371,6 +406,7 @@ const {
   uploadOverlayProgressLabel,
   uploadOverlayProgressValue,
   uploadOverlayTitle,
+  uploadPreviewMount,
   uploadPhotoArchiveInput,
   uploadPhotoArchiveName,
   viewRoot,
@@ -443,25 +479,47 @@ const {
   syncAccountCreateDescription,
 } = authAccountStateController;
 syncAccountCreateDescription();
+let confirmPendingSystemSettingsNavigation = async () => true;
+let hasPendingSystemSettingsChanges = () => false;
+const getSavedRoleMenuVisibility = () =>
+  buildRoleMenuVisibilityFromSuperAdminSettings(state.superAdmin?.savedSnapshot || state.superAdmin || {});
+const applySuperAdminPayload = (payload = {}) => {
+  state.superAdmin = createSuperAdminState(payload);
+};
+const getAccessibleViewsForRole = (role = "") =>
+  getAccessibleViewsForRoleConfig(role, {
+    roleMenuVisibility: getSavedRoleMenuVisibility(),
+  });
+const getDefaultAccessibleViewForRole = (role = "") =>
+  getDefaultAccessibleViewForRoleConfig(role, {
+    roleMenuVisibility: getSavedRoleMenuVisibility(),
+  });
+const getVisibleMenuViewsForRole = (role = "") =>
+  getVisibleMenuViewsForRoleConfig(role, {
+    roleMenuVisibility: getSavedRoleMenuVisibility(),
+  });
+const isViewAccessibleForRole = (view, role = "") =>
+  isViewAccessibleForRoleConfig(view, role, {
+    roleMenuVisibility: getSavedRoleMenuVisibility(),
+  });
 const navigationController = createNavigationController({
-  getAccessibleViewsForRoleConfig,
+  confirmNavigation: (...args) => confirmPendingSystemSettingsNavigation(...args),
+  getAccessibleViewsForRoleConfig: (...args) => getAccessibleViewsForRole(...args),
   getCurrentRoutePath,
-  getDefaultAccessibleViewForRole,
+  getDefaultAccessibleViewForRole: (...args) => getDefaultAccessibleViewForRole(...args),
   getRequestedViewFromLocation,
   getViewRoutePath,
-  getVisibleMenuViewsForRoleConfig,
+  getVisibleMenuViewsForRoleConfig: (...args) => getVisibleMenuViewsForRole(...args),
   isLoginPage,
   isUserAuthenticated,
-  isViewAccessibleForRole,
+  isViewAccessibleForRole: (...args) => isViewAccessibleForRole(...args),
   loadCurrentViewFromLocation,
   loginRoutePath: LOGIN_ROUTE_PATH,
   normalizeRoutePath,
   state,
 });
 const {
-  getAccessibleViewsForRole,
   getDefaultAccessibleView,
-  getVisibleMenuViewsForRole,
   isRouteNavigating,
   isViewAccessible,
   navigateToLogin,
@@ -537,6 +595,7 @@ const bootstrapDataController = createBootstrapDataController({
   EXAMINEE_DETAIL_FIELD_KEYS,
   HEADER_FILTER_STORAGE_KEY,
   applyLoginNoticePayload,
+  applySystemBackupAutomationPayload: (...args) => applySystemBackupAutomationPayload(...args),
   applySystemSettingsPayload: (...args) => applySystemSettingsPayload(...args),
   cancelAccountEdit: (...args) => {
     if (typeof cancelAccountEdit === "function") {
@@ -552,6 +611,8 @@ const bootstrapDataController = createBootstrapDataController({
   createExamineeDetailState,
   createHeaderFilters,
   createPdfGenerationState,
+  createSuperAdminState,
+  createSystemAuditLogState,
   createSystemDataDeletionState,
   createTemplatePreviewState,
   getAccountGridRows,
@@ -616,6 +677,7 @@ const bootstrapLoaderController = createBootstrapLoaderController({
   apiRequest,
   applyBootstrapPayload,
   applyLoginNoticePayload,
+  applySuperAdminPayload,
   handleAuthenticationFailure: (...args) => {
     if (typeof handleAuthenticationFailure === "function") {
       return handleAuthenticationFailure(...args);
@@ -624,6 +686,13 @@ const bootstrapLoaderController = createBootstrapLoaderController({
     return false;
   },
   isUserAuthenticated,
+  loadCurrentViewData: async () => {
+    if (state.currentView !== "systemAuditLog" || typeof loadSystemAuditLogs !== "function") {
+      return;
+    }
+
+    await loadSystemAuditLogs({ silent: true });
+  },
   renderView: (...args) => {
     if (typeof globalThis.renderView === "function") {
       return globalThis.renderView(...args);
@@ -705,6 +774,7 @@ const accountSystemRuntimeController = createAccountSystemRuntimeController({
   accountCreateRole,
   accountRoleOptions,
   apiRequest,
+  apiRequestWithUploadProgress,
   appendAccountRecord: appendAccountGridRow,
   closeModal: (...args) => {
     if (typeof globalThis.closeModal === "function") {
@@ -734,6 +804,7 @@ const accountSystemRuntimeController = createAccountSystemRuntimeController({
   handleAuthenticationFailure,
   loadBootstrapData,
   normalizeAccountRecord,
+  normalizeSuperAdminSettings,
   normalizeSystemAutoLogoutMinutes,
   normalizeSystemSettingsPayload,
   renderView: (...args) => {
@@ -749,23 +820,54 @@ const accountSystemRuntimeController = createAccountSystemRuntimeController({
   syncAutoLogoutTimer,
 });
 const {
+  applySystemBackupAutomationPayload,
+  applySuperAdminImageFile,
+  applySuperAdminPayload: applySuperAdminSettingsPayload,
   applySystemSettingsPayload,
   changeSystemAutoLogoutMinutes,
+  clearSystemBackupRestoreFileSelection,
+  confirmSystemSettingsNavigation,
   deleteSystemDataAction,
+  downloadSystemBackupAction,
   getDefaultAccountRole,
   getSystemDataDeletionStatusElement,
+  loadSystemAuditLogs,
+  runSystemBackupAutomationNow,
   getSystemSettingsStatusElement,
   getValidatedSystemSettingsPayload,
+  getSystemSettingsChangeSummaries,
+  hasUnsavedSystemSettingsChanges,
+  importSystemBackupAction,
   prepareAccountCreateModal,
   resetAccountCreateFormState,
+  saveSuperAdminSettings,
+  saveSystemBackupAutomationSettings,
   saveSystemSettings,
+  selectSystemBackupRestoreFile,
   setAccountCreateError,
+  setSystemBackupAutomationStatus,
+  setSuperAdminStatus,
   setSystemDataDeletionStatus,
   setSystemSettingsStatus,
   submitAccountCreate,
+  syncSuperAdminDirtyState,
+  syncSystemBackupAutomationDirtyState,
+  syncSystemSettingsDirtyState,
   syncAccountCreateRoleOptions,
   syncAccountCreateSubmitButton,
+  toggleSystemBackupAutomationItemSelection,
+  toggleSystemBackupAssetSelection,
+  toggleSystemBackupRestoreSelection,
+  updateSystemBackupAutomationField,
+  updateSuperAdminField,
+  updateSuperAdminImageField,
 } = accountSystemRuntimeController;
+confirmPendingSystemSettingsNavigation = (...args) => confirmSystemSettingsNavigation(...args);
+hasPendingSystemSettingsChanges = () => hasUnsavedSystemSettingsChanges();
+Object.assign(globalThis, {
+  confirmPendingSystemSettingsNavigation: (...args) => confirmPendingSystemSettingsNavigation(...args),
+  hasPendingSystemSettingsChanges: () => hasPendingSystemSettingsChanges(),
+});
 const workflowRuntimeController = createWorkflowRuntimeController({
   BATCH_PRINT_JOB_TIMEOUT_MS,
   BATCH_PRINT_STATUS_POLL_INTERVAL_MS,
@@ -777,11 +879,26 @@ const workflowRuntimeController = createWorkflowRuntimeController({
   buildApiUrl,
   buildUploadSummaryMessage,
   clearSelectedUploadFiles,
+  closeModal: (modalId) => {
+    if (typeof globalThis.closeModal === "function") {
+      return globalThis.closeModal(modalId);
+    }
+
+    return undefined;
+  },
   createAdmitCardWorkflowController,
   createBusyOverlayController,
   createExamineeUploadWorkflowController,
   createPdfGenerationState,
   createUploadState,
+  getBatchPrintDownloadElements: () => ({
+    formElement: batchPrintDownloadForm,
+    modal: batchPrintDownloadModal,
+    combinedPdfOption: batchPrintDownloadModeCombinedPdf,
+    pdfZipOption: batchPrintDownloadModeZip,
+    selectionMetaElement: batchPrintDownloadSelectionMeta,
+    submitButton: batchPrintDownloadSubmit,
+  }),
   getDocumentBody: () => document.body,
   getExamineeGridRows,
   getGridRowId: (...args) => (typeof getGridRowId === "function" ? getGridRowId(...args) : ""),
@@ -790,6 +907,7 @@ const workflowRuntimeController = createWorkflowRuntimeController({
   getPdfGenerationElements: () => ({
     overlay: pdfGenerationOverlay,
     messageElement: pdfGenerationMessage,
+    cancelButtonElement: pdfGenerationCancelButton,
     progressElement: pdfGenerationProgress,
     progressLabelElement: pdfGenerationProgressLabel,
     progressValueElement: pdfGenerationProgressValue,
@@ -807,6 +925,7 @@ const workflowRuntimeController = createWorkflowRuntimeController({
     progressBarElement: uploadOverlayProgressBar,
     progressFillElement: uploadOverlayProgressFill,
   }),
+  getUploadPreviewMount: () => uploadPreviewMount,
   getUploadPhotoArchiveInput: () => uploadPhotoArchiveInput,
   handleAuthenticationFailure,
   hideToast,
@@ -839,6 +958,7 @@ const {
   buildUploadOverlayMessage,
   closeUploadOverlayWithAlert,
   closeUploadOverlayWithToast,
+  clearExamineeUploadPreview,
   fetchExamineeAdmitCardPdfUrl,
   getSelectedAdmitCardExamineeCount,
   getSelectedAdmitCardExaminees,
@@ -848,6 +968,10 @@ const {
   normalizeExamineeNoList,
   normalizeProgressValue,
   openPdfWindow,
+  cancelBatchPrintJob,
+  previewSelectedExamineeImportFile,
+  previewSelectedExamineePhotoArchiveFile,
+  prepareBatchPrintDownloadModal,
   printExamineeAdmitCard,
   printPdfUrl,
   readUploadFileAsBase64,
@@ -855,12 +979,16 @@ const {
   resetPdfGenerationState,
   resetUploadState,
   runWithPdfGenerationLock,
+  setExamineeUploadMode,
   setPdfGenerationState,
   setUploadOverlayState,
   showUploadFailureAlert,
+  submitBatchPrintDownloadSelection,
   syncAppBusyState,
   syncPdfGenerationOverlay,
   syncUploadOverlay,
+  updateBatchPrintOutputMode,
+  updateExamineeImportExistingDataPolicy,
   uploadPhotoArchiveFile,
   uploadSelectedExamineeFile,
 } = workflowRuntimeController;

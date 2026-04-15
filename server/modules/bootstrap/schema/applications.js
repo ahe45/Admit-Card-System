@@ -4,7 +4,7 @@ function createApplicantSchemaBootstrap({
   hasTable,
   query,
 }) {
-  const applicantFieldInputTypeSql = "ENUM('text', 'textarea', 'select', 'date', 'birthdate', 'time', 'photo', 'phone', 'nationality')";
+  const applicantFieldInputTypeSql = "ENUM('text', 'textarea', 'select', 'date', 'birthdate', 'time', 'photo', 'file', 'phone', 'nationality')";
   const applicantSubmissionStatusSql = "ENUM('submitted', 'promoted')";
 
   async function renameLegacyTableIfNeeded(legacyTableName, nextTableName) {
@@ -21,6 +21,7 @@ function createApplicantSchemaBootstrap({
       CREATE TABLE IF NOT EXISTS app_meta (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
         promoted_examinee_no VARCHAR(30) NULL,
+        promotion_override_json MEDIUMTEXT NULL,
         promoted_at DATETIME NULL,
         PRIMARY KEY (id),
         KEY idx_app_meta_promoted (promoted_examinee_no)
@@ -52,10 +53,11 @@ function createApplicantSchemaBootstrap({
     await query(`
       CREATE TABLE IF NOT EXISTS app_unit (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        track_name VARCHAR(100) NOT NULL DEFAULT '',
         admission_code VARCHAR(30) NOT NULL,
         admission_name VARCHAR(100) NOT NULL,
-        track_code VARCHAR(30) NOT NULL,
-        track_name VARCHAR(100) NOT NULL,
+        series_code VARCHAR(30) NOT NULL DEFAULT '',
+        series_name VARCHAR(100) NOT NULL DEFAULT '',
         unit_code VARCHAR(30) NOT NULL,
         unit_name VARCHAR(100) NOT NULL,
         major_code VARCHAR(30) NOT NULL DEFAULT '',
@@ -64,11 +66,115 @@ function createApplicantSchemaBootstrap({
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
-        UNIQUE KEY uniq_app_unit_codes (admission_code, track_code, unit_code, major_code),
-        UNIQUE KEY uniq_app_unit_names (admission_name, track_name, unit_name, major_name),
+        UNIQUE KEY uniq_app_unit_codes (track_name, admission_code, series_code, unit_code, major_code),
+        UNIQUE KEY uniq_app_unit_names (track_name, admission_name, series_name, unit_name, major_name),
         KEY idx_app_unit_sort_order (sort_order)
       )
     `);
+  }
+
+  async function createApplicantScheduleTable() {
+    await query(`
+      CREATE TABLE IF NOT EXISTS app_schedule (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        track_name VARCHAR(100) NOT NULL DEFAULT '',
+        admission_code VARCHAR(30) NOT NULL,
+        admission_name VARCHAR(100) NOT NULL,
+        applicant_schedule_start_at DATETIME NULL,
+        applicant_schedule_end_at DATETIME NULL,
+        admit_card_lookup_schedule_start_at DATETIME NULL,
+        admit_card_lookup_schedule_end_at DATETIME NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_app_schedule_track_admission (track_name, admission_code, admission_name),
+        KEY idx_app_schedule_track_name (track_name),
+        KEY idx_app_schedule_admission_name (admission_name)
+      )
+    `);
+  }
+
+  async function createApplicantAssignmentTable() {
+    await query(`
+      CREATE TABLE IF NOT EXISTS app_assign (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        track VARCHAR(100) NOT NULL DEFAULT '',
+        admission VARCHAR(100) NOT NULL,
+        series VARCHAR(100) NOT NULL DEFAULT '',
+        unit VARCHAR(100) NOT NULL DEFAULT '',
+        major VARCHAR(100) NOT NULL DEFAULT '',
+        exam_date DATE NOT NULL,
+        \`time\` VARCHAR(5) NOT NULL,
+        building_code VARCHAR(30) NOT NULL,
+        building VARCHAR(100) NOT NULL,
+        room_code VARCHAR(30) NOT NULL,
+        room VARCHAR(100) NOT NULL,
+        assigned_count INT NOT NULL,
+        sort_order INT NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_app_assign_room_slot (exam_date, \`time\`, building_code, room_code),
+        KEY idx_app_assign_sort_order (sort_order)
+      )
+    `);
+  }
+
+  async function ensureApplicantAssignmentSchema() {
+    await createApplicantAssignmentTable();
+
+    let applicantAssignmentColumns =
+      typeof getTableColumns === "function" && typeof hasColumn === "function"
+        ? await getTableColumns("app_assign")
+        : await query(`SHOW COLUMNS FROM app_assign`);
+    const columnExists = (columnName) =>
+      typeof hasColumn === "function"
+        ? hasColumn(applicantAssignmentColumns, columnName)
+        : applicantAssignmentColumns.some((column) => String(column?.Field || "") === columnName);
+
+    if (!columnExists("track")) {
+      await query(`ALTER TABLE app_assign ADD COLUMN track VARCHAR(100) NOT NULL DEFAULT '' AFTER id`);
+      applicantAssignmentColumns =
+        typeof getTableColumns === "function" && typeof hasColumn === "function"
+          ? await getTableColumns("app_assign")
+          : await query(`SHOW COLUMNS FROM app_assign`);
+    }
+
+    if (!columnExists("series")) {
+      await query(`ALTER TABLE app_assign ADD COLUMN series VARCHAR(100) NOT NULL DEFAULT '' AFTER admission`);
+      applicantAssignmentColumns =
+        typeof getTableColumns === "function" && typeof hasColumn === "function"
+          ? await getTableColumns("app_assign")
+          : await query(`SHOW COLUMNS FROM app_assign`);
+    }
+
+    if (!columnExists("unit")) {
+      await query(`ALTER TABLE app_assign ADD COLUMN unit VARCHAR(100) NOT NULL DEFAULT '' AFTER series`);
+      applicantAssignmentColumns =
+        typeof getTableColumns === "function" && typeof hasColumn === "function"
+          ? await getTableColumns("app_assign")
+          : await query(`SHOW COLUMNS FROM app_assign`);
+    }
+
+    if (!columnExists("major")) {
+      await query(`ALTER TABLE app_assign ADD COLUMN major VARCHAR(100) NOT NULL DEFAULT '' AFTER unit`);
+      applicantAssignmentColumns =
+        typeof getTableColumns === "function" && typeof hasColumn === "function"
+          ? await getTableColumns("app_assign")
+          : await query(`SHOW COLUMNS FROM app_assign`);
+    }
+
+    const refreshedIndexes = await query(`SHOW INDEX FROM app_assign`);
+    const hasRoomSlotIndex = refreshedIndexes.some((index) => String(index.Key_name || "") === "uniq_app_assign_room_slot");
+    const hasSortOrderIndex = refreshedIndexes.some((index) => String(index.Key_name || "") === "idx_app_assign_sort_order");
+
+    if (!hasRoomSlotIndex) {
+      await query(`ALTER TABLE app_assign ADD UNIQUE KEY uniq_app_assign_room_slot (exam_date, \`time\`, building_code, room_code)`);
+    }
+
+    if (!hasSortOrderIndex) {
+      await query(`ALTER TABLE app_assign ADD KEY idx_app_assign_sort_order (sort_order)`);
+    }
   }
 
   function parseLegacyAnswerItems(rawAnswerItems = "") {
@@ -201,13 +307,21 @@ function createApplicantSchemaBootstrap({
     await createApplicantRecruitmentUnitTable();
 
     const applicantUnitColumns = await getTableColumns("app_unit");
+    const hadLegacyTrackCodeColumn = hasColumn(applicantUnitColumns, "track_code");
+    const hadTrackNameColumn = hasColumn(applicantUnitColumns, "track_name");
+    const hadSeriesCodeColumn = hasColumn(applicantUnitColumns, "series_code");
+    const hadSeriesNameColumn = hasColumn(applicantUnitColumns, "series_name");
 
-    if (hasColumn(applicantUnitColumns, "series_code") && !hasColumn(applicantUnitColumns, "track_code")) {
-      await query(`ALTER TABLE app_unit CHANGE COLUMN series_code track_code VARCHAR(30) NOT NULL`);
+    if (!hadTrackNameColumn) {
+      await query(`ALTER TABLE app_unit ADD COLUMN track_name VARCHAR(100) NOT NULL DEFAULT '' AFTER id`);
     }
 
-    if (hasColumn(applicantUnitColumns, "series_name") && !hasColumn(applicantUnitColumns, "track_name")) {
-      await query(`ALTER TABLE app_unit CHANGE COLUMN series_name track_name VARCHAR(100) NOT NULL`);
+    if (!hadSeriesCodeColumn) {
+      await query(`ALTER TABLE app_unit ADD COLUMN series_code VARCHAR(30) NOT NULL DEFAULT '' AFTER admission_name`);
+    }
+
+    if (!hadSeriesNameColumn) {
+      await query(`ALTER TABLE app_unit ADD COLUMN series_name VARCHAR(100) NOT NULL DEFAULT '' AFTER series_code`);
     }
 
     const refreshedApplicantUnitColumns = await getTableColumns("app_unit");
@@ -220,13 +334,56 @@ function createApplicantSchemaBootstrap({
       await query(`ALTER TABLE app_unit ADD COLUMN major_name VARCHAR(100) NOT NULL DEFAULT '' AFTER major_code`);
     }
 
-    const appUnitIndexes = await query(`SHOW INDEX FROM app_unit`);
-    const legacyIndexNames = ["uniq_applicant_recruitment_unit_codes", "uniq_applicant_recruitment_unit_names", "idx_applicant_recruitment_units_sort_order"];
+    if ((!hadSeriesCodeColumn || !hadSeriesNameColumn) && hasColumn(refreshedApplicantUnitColumns, "track_code")) {
+      await query(`
+        UPDATE app_unit
+        SET
+          series_code = CASE WHEN series_code = '' THEN track_code ELSE series_code END,
+          series_name = CASE WHEN series_name = '' THEN track_name ELSE series_name END
+        WHERE (track_code <> '' OR track_name <> '')
+      `);
+    }
 
-    for (const legacyIndexName of legacyIndexNames) {
-      if (appUnitIndexes.some((index) => String(index.Key_name || "") === legacyIndexName)) {
-        await query(`ALTER TABLE app_unit DROP INDEX \`${legacyIndexName}\``);
+    if ((!hadSeriesCodeColumn || !hadSeriesNameColumn) && hadLegacyTrackCodeColumn && hadTrackNameColumn) {
+      await query(`
+        UPDATE app_unit
+        SET
+          track_name = ''
+        WHERE series_name = track_name
+          AND (track_code <> '' OR track_name <> '')
+      `);
+    }
+
+    const appUnitIndexes = await query(`SHOW INDEX FROM app_unit`);
+    const legacyTrackCodeIndexNames = Array.from(
+      new Set(
+        appUnitIndexes
+          .filter(
+            (index) =>
+              String(index.Key_name || "") !== "PRIMARY" && String(index.Column_name || "") === "track_code",
+          )
+          .map((index) => String(index.Key_name || "")),
+      ),
+    );
+    const removableIndexNames = Array.from(
+      new Set([
+        "uniq_app_unit_codes",
+        "uniq_app_unit_names",
+        "uniq_applicant_recruitment_unit_codes",
+        "uniq_applicant_recruitment_unit_names",
+        "idx_applicant_recruitment_units_sort_order",
+        ...legacyTrackCodeIndexNames,
+      ]),
+    );
+
+    for (const indexName of removableIndexNames) {
+      if (appUnitIndexes.some((index) => String(index.Key_name || "") === indexName)) {
+        await query(`ALTER TABLE app_unit DROP INDEX \`${indexName}\``);
       }
+    }
+
+    if (hasColumn(await getTableColumns("app_unit"), "track_code")) {
+      await query(`ALTER TABLE app_unit DROP COLUMN track_code`);
     }
 
     const refreshedIndexes = await query(`SHOW INDEX FROM app_unit`);
@@ -235,15 +392,87 @@ function createApplicantSchemaBootstrap({
     const hasSortIndex = refreshedIndexes.some((index) => String(index.Key_name || "") === "idx_app_unit_sort_order");
 
     if (!hasCodeIndex) {
-      await query(`ALTER TABLE app_unit ADD UNIQUE KEY uniq_app_unit_codes (admission_code, track_code, unit_code, major_code)`);
+      await query(`ALTER TABLE app_unit ADD UNIQUE KEY uniq_app_unit_codes (track_name, admission_code, series_code, unit_code, major_code)`);
     }
 
     if (!hasNameIndex) {
-      await query(`ALTER TABLE app_unit ADD UNIQUE KEY uniq_app_unit_names (admission_name, track_name, unit_name, major_name)`);
+      await query(`ALTER TABLE app_unit ADD UNIQUE KEY uniq_app_unit_names (track_name, admission_name, series_name, unit_name, major_name)`);
     }
 
     if (!hasSortIndex) {
       await query(`ALTER TABLE app_unit ADD KEY idx_app_unit_sort_order (sort_order)`);
+    }
+
+    await query(`
+      ALTER TABLE app_unit
+      MODIFY COLUMN track_name VARCHAR(100) NOT NULL DEFAULT '' AFTER id,
+      MODIFY COLUMN admission_code VARCHAR(30) NOT NULL AFTER track_name,
+      MODIFY COLUMN admission_name VARCHAR(100) NOT NULL AFTER admission_code,
+      MODIFY COLUMN series_code VARCHAR(30) NOT NULL DEFAULT '' AFTER admission_name,
+      MODIFY COLUMN series_name VARCHAR(100) NOT NULL DEFAULT '' AFTER series_code,
+      MODIFY COLUMN unit_code VARCHAR(30) NOT NULL AFTER series_name,
+      MODIFY COLUMN unit_name VARCHAR(100) NOT NULL AFTER unit_code,
+      MODIFY COLUMN major_code VARCHAR(30) NOT NULL DEFAULT '' AFTER unit_name,
+      MODIFY COLUMN major_name VARCHAR(100) NOT NULL DEFAULT '' AFTER major_code,
+      MODIFY COLUMN sort_order INT NOT NULL DEFAULT 0 AFTER major_name
+    `);
+  }
+
+  async function ensureApplicantScheduleSchema() {
+    await createApplicantScheduleTable();
+
+    const applicantScheduleColumns =
+      typeof getTableColumns === "function" && typeof hasColumn === "function"
+        ? await getTableColumns("app_schedule")
+        : await query(`SHOW COLUMNS FROM app_schedule`);
+    const columnExists = (columnName) =>
+      typeof hasColumn === "function"
+        ? hasColumn(applicantScheduleColumns, columnName)
+        : applicantScheduleColumns.some((column) => String(column?.Field || "") === columnName);
+
+    if (!columnExists("track_name")) {
+      await query(`ALTER TABLE app_schedule ADD COLUMN track_name VARCHAR(100) NOT NULL DEFAULT '' AFTER id`);
+    }
+
+    if (!columnExists("admission_code")) {
+      await query(`ALTER TABLE app_schedule ADD COLUMN admission_code VARCHAR(30) NOT NULL AFTER track_name`);
+    }
+
+    if (!columnExists("admission_name")) {
+      await query(`ALTER TABLE app_schedule ADD COLUMN admission_name VARCHAR(100) NOT NULL AFTER admission_code`);
+    }
+
+    if (!columnExists("applicant_schedule_start_at")) {
+      await query(`ALTER TABLE app_schedule ADD COLUMN applicant_schedule_start_at DATETIME NULL AFTER admission_name`);
+    }
+
+    if (!columnExists("applicant_schedule_end_at")) {
+      await query(`ALTER TABLE app_schedule ADD COLUMN applicant_schedule_end_at DATETIME NULL AFTER applicant_schedule_start_at`);
+    }
+
+    if (!columnExists("admit_card_lookup_schedule_start_at")) {
+      await query(`ALTER TABLE app_schedule ADD COLUMN admit_card_lookup_schedule_start_at DATETIME NULL AFTER applicant_schedule_end_at`);
+    }
+
+    if (!columnExists("admit_card_lookup_schedule_end_at")) {
+      await query(`ALTER TABLE app_schedule ADD COLUMN admit_card_lookup_schedule_end_at DATETIME NULL AFTER admit_card_lookup_schedule_start_at`);
+    }
+
+    const refreshedIndexes = await query(`SHOW INDEX FROM app_schedule`);
+    const hasTrackAdmissionIndex = refreshedIndexes.some((index) => String(index.Key_name || "") === "uniq_app_schedule_track_admission");
+    const hasTrackNameIndex = refreshedIndexes.some((index) => String(index.Key_name || "") === "idx_app_schedule_track_name");
+    const hasAdmissionNameIndex = refreshedIndexes.some((index) => String(index.Key_name || "") === "idx_app_schedule_admission_name");
+
+    if (!hasTrackAdmissionIndex) {
+      await query(`ALTER TABLE app_schedule ADD UNIQUE KEY uniq_app_schedule_track_admission (track_name, admission_code, admission_name)`);
+    }
+
+    if (!hasTrackNameIndex) {
+      await query(`ALTER TABLE app_schedule ADD KEY idx_app_schedule_track_name (track_name)`);
+    }
+
+    if (!hasAdmissionNameIndex) {
+      await query(`ALTER TABLE app_schedule ADD KEY idx_app_schedule_admission_name (admission_name)`);
     }
   }
 
@@ -276,7 +505,11 @@ function createApplicantSchemaBootstrap({
         await query(`ALTER TABLE app_form ADD COLUMN question_description VARCHAR(500) NOT NULL DEFAULT '' AFTER question_text`);
       }
 
-      if (!String(inputTypeColumn?.Type || "").includes("'phone'") || !String(inputTypeColumn?.Type || "").includes("'nationality'")) {
+      if (
+        !String(inputTypeColumn?.Type || "").includes("'phone'") ||
+        !String(inputTypeColumn?.Type || "").includes("'nationality'") ||
+        !String(inputTypeColumn?.Type || "").includes("'file'")
+      ) {
         await query(`ALTER TABLE app_form MODIFY COLUMN input_type ${applicantFieldInputTypeSql} NOT NULL DEFAULT 'text'`);
       }
     } else {
@@ -287,7 +520,11 @@ function createApplicantSchemaBootstrap({
         await query(`ALTER TABLE app_form ADD COLUMN question_description VARCHAR(500) NOT NULL DEFAULT '' AFTER question_text`);
       }
 
-      if (!String(inputTypeColumn?.Type || "").includes("'phone'") || !String(inputTypeColumn?.Type || "").includes("'nationality'")) {
+      if (
+        !String(inputTypeColumn?.Type || "").includes("'phone'") ||
+        !String(inputTypeColumn?.Type || "").includes("'nationality'") ||
+        !String(inputTypeColumn?.Type || "").includes("'file'")
+      ) {
         await query(`ALTER TABLE app_form MODIFY COLUMN input_type ${applicantFieldInputTypeSql} NOT NULL DEFAULT 'text'`);
       }
     }
@@ -345,6 +582,15 @@ function createApplicantSchemaBootstrap({
         await query(`ALTER TABLE app_subm MODIFY COLUMN status ${applicantSubmissionStatusSql} NOT NULL DEFAULT 'submitted'`);
       }
     }
+
+    const applicantMetaColumns =
+      typeof getTableColumns === "function" && typeof hasColumn === "function"
+        ? await getTableColumns("app_meta")
+        : await query(`SHOW COLUMNS FROM app_meta`);
+
+    if (!(typeof hasColumn === "function" ? hasColumn(applicantMetaColumns, "promotion_override_json") : applicantMetaColumns.some((column) => String(column?.Field || "") === "promotion_override_json"))) {
+      await query(`ALTER TABLE app_meta ADD COLUMN promotion_override_json MEDIUMTEXT NULL AFTER promoted_examinee_no`);
+    }
   }
 
   async function ensureApplicantSchema() {
@@ -352,11 +598,14 @@ function createApplicantSchemaBootstrap({
     await renameLegacyTableIfNeeded("applicant_submission_meta", "app_meta");
     await renameLegacyTableIfNeeded("applicant_submissions", "app_subm");
     await renameLegacyTableIfNeeded("applicant_recruitment_units", "app_unit");
+    await renameLegacyTableIfNeeded("applicant_assignments", "app_assign");
     await renameLegacyTableIfNeeded("applicant_email_verifications", "app_email_log");
 
     await ensureApplicantFormSchema();
     await ensureApplicantUnitSchema();
+    await ensureApplicantScheduleSchema();
     await ensureApplicantSubmissionSchema();
+    await ensureApplicantAssignmentSchema();
 
     await query(`
       CREATE TABLE IF NOT EXISTS app_email_log (
@@ -366,11 +615,53 @@ function createApplicantSchemaBootstrap({
         code_value VARCHAR(12) NOT NULL,
         expires_at DATETIME NOT NULL,
         verified_at DATETIME NULL,
+        delivery_status ENUM('pending', 'sent', 'failed') NOT NULL DEFAULT 'sent',
+        delivery_message_id VARCHAR(255) NULL,
+        sent_at DATETIME NULL,
+        failed_at DATETIME NULL,
+        delivery_error VARCHAR(500) NOT NULL DEFAULT '',
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
         KEY idx_app_email_log_lookup (email, applicant_name),
         KEY idx_app_email_log_expires (expires_at)
       )
+    `);
+
+    const applicantEmailLogColumns =
+      typeof getTableColumns === "function" && typeof hasColumn === "function"
+        ? await getTableColumns("app_email_log")
+        : await query(`SHOW COLUMNS FROM app_email_log`);
+
+    if (!(typeof hasColumn === "function" ? hasColumn(applicantEmailLogColumns, "delivery_status") : applicantEmailLogColumns.some((column) => String(column?.Field || "") === "delivery_status"))) {
+      await query(`ALTER TABLE app_email_log ADD COLUMN delivery_status ENUM('pending', 'sent', 'failed') NOT NULL DEFAULT 'sent' AFTER verified_at`);
+    }
+
+    if (!(typeof hasColumn === "function" ? hasColumn(applicantEmailLogColumns, "delivery_message_id") : applicantEmailLogColumns.some((column) => String(column?.Field || "") === "delivery_message_id"))) {
+      await query(`ALTER TABLE app_email_log ADD COLUMN delivery_message_id VARCHAR(255) NULL AFTER delivery_status`);
+    }
+
+    if (!(typeof hasColumn === "function" ? hasColumn(applicantEmailLogColumns, "sent_at") : applicantEmailLogColumns.some((column) => String(column?.Field || "") === "sent_at"))) {
+      await query(`ALTER TABLE app_email_log ADD COLUMN sent_at DATETIME NULL AFTER delivery_message_id`);
+    }
+
+    if (!(typeof hasColumn === "function" ? hasColumn(applicantEmailLogColumns, "failed_at") : applicantEmailLogColumns.some((column) => String(column?.Field || "") === "failed_at"))) {
+      await query(`ALTER TABLE app_email_log ADD COLUMN failed_at DATETIME NULL AFTER sent_at`);
+    }
+
+    if (!(typeof hasColumn === "function" ? hasColumn(applicantEmailLogColumns, "delivery_error") : applicantEmailLogColumns.some((column) => String(column?.Field || "") === "delivery_error"))) {
+      await query(`ALTER TABLE app_email_log ADD COLUMN delivery_error VARCHAR(500) NOT NULL DEFAULT '' AFTER failed_at`);
+    }
+
+    await query(`
+      UPDATE app_email_log
+      SET
+        delivery_status = CASE
+          WHEN verified_at IS NOT NULL OR sent_at IS NOT NULL THEN 'sent'
+          ELSE delivery_status
+        END,
+        sent_at = COALESCE(sent_at, created_at)
+      WHERE delivery_status = 'sent'
+        AND sent_at IS NULL
     `);
   }
 

@@ -1,7 +1,17 @@
+const fs = require("fs");
 const AdmZip = require("adm-zip");
 const path = require("path");
 
-function createExamineePhotoService({ createHttpError, getPool, normalizeExamineeRecord, query }) {
+function createExamineePhotoService({
+  createHttpError,
+  getPool,
+  normalizeExamineeRecord,
+  photoStorageDirName = "photo",
+  query,
+  rootDir = process.cwd(),
+}) {
+  const photoStorageDirectoryPath = path.join(rootDir, photoStorageDirName);
+
   function getExamineePhotoMimeType(extension) {
     if (extension === ".jpg" || extension === ".jpeg") {
       return "image/jpeg";
@@ -12,6 +22,142 @@ function createExamineePhotoService({ createHttpError, getPool, normalizeExamine
     }
 
     return "";
+  }
+
+  function resolveStoredExamineePhotoExtension({ fileName = "", mimeType = "" } = {}) {
+    const normalizedFileName = path.basename(String(fileName || "").trim());
+    const normalizedMimeType = String(mimeType || "").trim().toLowerCase();
+    const fileExtension = path.extname(normalizedFileName).toLowerCase();
+
+    if (fileExtension === ".jpg" || fileExtension === ".jpeg" || fileExtension === ".png") {
+      return fileExtension;
+    }
+
+    if (normalizedMimeType === "image/png") {
+      return ".png";
+    }
+
+    if (normalizedMimeType === "image/jpeg" || normalizedMimeType === "image/jpg") {
+      return ".jpg";
+    }
+
+    return ".jpg";
+  }
+
+  function buildStoredExamineePhotoFileRecord(photo = {}) {
+    const normalizedExamineeNo = String(photo.examineeNo || "").trim();
+    const fileBuffer = Buffer.isBuffer(photo.fileBuffer) ? photo.fileBuffer : null;
+
+    if (!normalizedExamineeNo) {
+      throw createHttpError(400, "수험번호가 필요합니다.");
+    }
+
+    if (!fileBuffer || fileBuffer.length === 0) {
+      throw createHttpError(400, "사진 파일 데이터가 없습니다.");
+    }
+
+    const extension = resolveStoredExamineePhotoExtension(photo);
+    const fileName = `${normalizedExamineeNo}${extension}`;
+
+    return {
+      examineeNo: normalizedExamineeNo,
+      fileBuffer,
+      fileName,
+      filePath: path.join(photoStorageDirectoryPath, fileName),
+      mimeType: getExamineePhotoMimeType(extension) || String(photo.mimeType || "").trim() || "image/jpeg",
+    };
+  }
+
+  async function persistStoredExamineePhotoFile(storedPhotoRecord = null) {
+    if (!storedPhotoRecord?.filePath || !Buffer.isBuffer(storedPhotoRecord.fileBuffer) || storedPhotoRecord.fileBuffer.length === 0) {
+      return null;
+    }
+
+    const normalizedFilePath = String(storedPhotoRecord.filePath || "").trim();
+    const parsedFilePath = path.parse(normalizedFilePath);
+
+    await fs.promises.mkdir(parsedFilePath.dir, { recursive: true });
+    await fs.promises.writeFile(normalizedFilePath, storedPhotoRecord.fileBuffer);
+
+    await Promise.all(
+      [".jpg", ".jpeg", ".png"]
+        .filter((candidateExtension) => candidateExtension !== parsedFilePath.ext)
+        .map(async (candidateExtension) => {
+          const candidatePath = path.join(parsedFilePath.dir, `${parsedFilePath.name}${candidateExtension}`);
+
+          try {
+            await fs.promises.unlink(candidatePath);
+          } catch (error) {
+            if (error?.code !== "ENOENT") {
+              throw error;
+            }
+          }
+        }),
+    );
+
+    return storedPhotoRecord;
+  }
+
+  function getStoredExamineePhotoCandidateFileNames(examineeNo, photoName = "") {
+    const normalizedExamineeNo = String(examineeNo || "").trim();
+    const normalizedPhotoName = path.basename(String(photoName || "").trim());
+
+    return Array.from(
+      new Set(
+        [
+          normalizedPhotoName,
+          normalizedExamineeNo ? `${normalizedExamineeNo}.jpg` : "",
+          normalizedExamineeNo ? `${normalizedExamineeNo}.jpeg` : "",
+          normalizedExamineeNo ? `${normalizedExamineeNo}.png` : "",
+        ].filter(Boolean),
+      ),
+    );
+  }
+
+  async function readStoredExamineePhotoFile(examineeNo, photoName = "") {
+    const candidateFileNames = getStoredExamineePhotoCandidateFileNames(examineeNo, photoName);
+
+    for (const candidateFileName of candidateFileNames) {
+      const normalizedCandidateFileName = path.basename(candidateFileName);
+      const candidateFilePath = path.join(photoStorageDirectoryPath, normalizedCandidateFileName);
+
+      try {
+        const photoBlob = await fs.promises.readFile(candidateFilePath);
+
+        if (Buffer.isBuffer(photoBlob) && photoBlob.length > 0) {
+          const fileExtension = path.extname(normalizedCandidateFileName).toLowerCase();
+
+          return {
+            photoBlob,
+            photoMime: getExamineePhotoMimeType(fileExtension) || "application/octet-stream",
+            photoName: normalizedCandidateFileName,
+          };
+        }
+      } catch (error) {
+        if (error?.code !== "ENOENT") {
+          throw error;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  async function hydrateExamineeWithStoredPhoto(examinee = {}) {
+    const normalizedExaminee = normalizeExamineeRecord(examinee);
+    const storedPhoto = await readStoredExamineePhotoFile(normalizedExaminee.examineeNo, normalizedExaminee.photoName);
+
+    if (!storedPhoto) {
+      return {
+        ...normalizedExaminee,
+        photoBlob: null,
+      };
+    }
+
+    return {
+      ...normalizedExaminee,
+      ...storedPhoto,
+    };
   }
 
   function parseExamineePhotoFile(fileName, fileBuffer, { expectedExamineeNo = "" } = {}) {
@@ -66,16 +212,30 @@ function createExamineePhotoService({ createHttpError, getPool, normalizeExamine
     }
 
     const examineePhotos = new Map();
+    let totalEntries = 0;
     let skippedEntries = 0;
+    let duplicateEntries = 0;
     const invalidEntryNames = [];
+    const duplicateEntryNames = [];
 
     zip.getEntries().forEach((entry) => {
       if (entry.isDirectory) {
         return;
       }
 
+      totalEntries += 1;
+
       try {
         const photo = parseExamineePhotoFile(path.basename(String(entry.entryName || "").trim()), entry.getData());
+
+        if (examineePhotos.has(photo.examineeNo)) {
+          duplicateEntries += 1;
+
+          if (duplicateEntryNames.length < 3) {
+            duplicateEntryNames.push(photo.fileName);
+          }
+        }
+
         examineePhotos.set(photo.examineeNo, photo);
       } catch (error) {
         skippedEntries += 1;
@@ -100,7 +260,11 @@ function createExamineePhotoService({ createHttpError, getPool, normalizeExamine
 
     return {
       photos: Array.from(examineePhotos.values()),
+      totalEntries,
       skippedEntries,
+      duplicateEntries,
+      invalidEntryNames,
+      duplicateEntryNames,
     };
   }
 
@@ -112,7 +276,7 @@ function createExamineePhotoService({ createHttpError, getPool, normalizeExamine
     return parseExamineePhotoArchiveBuffer(Buffer.from(fileContentBase64, "base64"));
   }
 
-  async function saveParsedExamineePhotos({ photos, skippedEntries }) {
+  async function saveParsedExamineePhotos({ photos, skippedEntries = 0, duplicateEntries = 0 }) {
     const examineeNos = photos.map((photo) => photo.examineeNo);
     const existingRows =
       examineeNos.length > 0
@@ -123,22 +287,27 @@ function createExamineePhotoService({ createHttpError, getPool, normalizeExamine
     const unmatchedPhotos = photos.length - matchedPhotos.length;
 
     if (matchedPhotos.length > 0) {
+      const storedPhotoRecords = matchedPhotos.map((photo) => buildStoredExamineePhotoFileRecord(photo));
       const connection = await getPool().getConnection();
 
       try {
         await connection.beginTransaction();
 
-        for (const photo of matchedPhotos) {
+        for (const storedPhotoRecord of storedPhotoRecords) {
+          await persistStoredExamineePhotoFile(storedPhotoRecord);
           await connection.query(
             `
               UPDATE examinee
               SET
                 photo_name = ?,
-                photo_mime = ?,
-                photo_blob = ?
+                photo_mime = ?
               WHERE examinee_no = ?
             `,
-            [photo.fileName, photo.mimeType, photo.fileBuffer, photo.examineeNo],
+            [
+              storedPhotoRecord.fileName,
+              storedPhotoRecord.mimeType,
+              storedPhotoRecord.examineeNo,
+            ],
           );
         }
 
@@ -153,7 +322,7 @@ function createExamineePhotoService({ createHttpError, getPool, normalizeExamine
 
     return {
       photoUploaded: matchedPhotos.length,
-      photoSkipped: unmatchedPhotos + skippedEntries,
+      photoSkipped: unmatchedPhotos + Number(skippedEntries || 0) + Number(duplicateEntries || 0),
     };
   }
 
@@ -163,6 +332,44 @@ function createExamineePhotoService({ createHttpError, getPool, normalizeExamine
 
   async function saveExamineePhotoArchive(fileContentBase64) {
     return saveParsedExamineePhotos(parseExamineePhotoArchive(fileContentBase64));
+  }
+
+  async function previewParsedExamineePhotos({ photos, totalEntries = 0, skippedEntries = 0, duplicateEntries = 0 } = {}) {
+    const examineeNos = Array.from(
+      new Set(
+        (Array.isArray(photos) ? photos : [])
+          .map((photo) => String(photo?.examineeNo || "").trim())
+          .filter(Boolean),
+      ),
+    );
+    const existingRows =
+      examineeNos.length > 0
+        ? await query(`SELECT examinee_no AS examineeNo FROM examinee WHERE examinee_no IN (?)`, [examineeNos])
+        : [];
+    const existingExamineeNos = new Set(existingRows.map((row) => String(row?.examineeNo || "").trim()));
+    const matchedCount = (Array.isArray(photos) ? photos : []).filter((photo) => existingExamineeNos.has(String(photo?.examineeNo || "").trim())).length;
+    const unmatchedCount = Math.max(0, (Array.isArray(photos) ? photos.length : 0) - matchedCount);
+
+    return {
+      totalEntries: Number(totalEntries || 0),
+      recognizedPhotoCount: Array.isArray(photos) ? photos.length : 0,
+      matchedCount,
+      unmatchedCount,
+      invalidEntryCount: Number(skippedEntries || 0),
+      duplicateEntryCount: Number(duplicateEntries || 0),
+      estimatedUploadCount: matchedCount,
+      estimatedSkipCount: unmatchedCount + Number(skippedEntries || 0) + Number(duplicateEntries || 0),
+    };
+  }
+
+  async function previewExamineePhotoArchiveBuffer(fileBuffer) {
+    const parsedArchive = parseExamineePhotoArchiveBuffer(fileBuffer);
+    return previewParsedExamineePhotos(parsedArchive);
+  }
+
+  async function previewExamineePhotoArchive(fileContentBase64) {
+    const parsedArchive = parseExamineePhotoArchive(fileContentBase64);
+    return previewParsedExamineePhotos(parsedArchive);
   }
 
   async function saveExamineePhoto(examineeNo, payload = {}) {
@@ -187,17 +394,19 @@ function createExamineePhotoService({ createHttpError, getPool, normalizeExamine
     const photo = parseExamineePhotoFile(payload.fileName, Buffer.from(fileContentBase64, "base64"), {
       expectedExamineeNo: normalizedExamineeNo,
     });
+    const storedPhotoRecord = buildStoredExamineePhotoFileRecord(photo);
+
+    await persistStoredExamineePhotoFile(storedPhotoRecord);
 
     await query(
       `
         UPDATE examinee
         SET
           photo_name = ?,
-          photo_mime = ?,
-          photo_blob = ?
+          photo_mime = ?
         WHERE examinee_no = ?
       `,
-      [photo.fileName, photo.mimeType, photo.fileBuffer, normalizedExamineeNo],
+      [storedPhotoRecord.fileName, storedPhotoRecord.mimeType, normalizedExamineeNo],
     );
 
     const [updatedExaminee] = await query(
@@ -216,7 +425,7 @@ function createExamineePhotoService({ createHttpError, getPool, normalizeExamine
           examinee_no AS examineeNo,
           name,
           DATE_FORMAT(birth_date, '%Y-%m-%d') AS birth,
-          CASE WHEN photo_blob IS NULL THEN 0 ELSE 1 END AS hasPhoto,
+          CASE WHEN photo_name IS NULL OR photo_name = '' THEN 0 ELSE 1 END AS hasPhoto,
           UNIX_TIMESTAMP(updated_at) AS photoVersion
         FROM examinee
         WHERE examinee_no = ?
@@ -233,23 +442,34 @@ function createExamineePhotoService({ createHttpError, getPool, normalizeExamine
         SELECT
           examinee_no AS examineeNo,
           photo_name AS photoName,
-          photo_mime AS photoMime,
-          photo_blob AS photoBlob
+          photo_mime AS photoMime
         FROM examinee
         WHERE examinee_no = ?
       `,
       [examineeNo],
     );
 
-    if (!examinee || !examinee.photoBlob) {
+    if (!examinee) {
       throw createHttpError(404, "수험생 사진을 찾을 수 없습니다.");
     }
 
-    return normalizeExamineeRecord(examinee);
+    const storedPhoto = await readStoredExamineePhotoFile(examinee.examineeNo, examinee.photoName);
+
+    if (!storedPhoto?.photoBlob) {
+      throw createHttpError(404, "수험생 사진을 찾을 수 없습니다.");
+    }
+
+    return normalizeExamineeRecord({
+      ...examinee,
+      ...storedPhoto,
+    });
   }
 
   return Object.freeze({
+    hydrateExamineeWithStoredPhoto,
     getExamineePhoto,
+    previewExamineePhotoArchive,
+    previewExamineePhotoArchiveBuffer,
     saveExamineePhoto,
     saveExamineePhotoArchive,
     saveExamineePhotoArchiveBuffer,

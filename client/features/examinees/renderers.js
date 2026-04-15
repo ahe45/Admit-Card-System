@@ -10,7 +10,8 @@
     return `
       <section class="view-stack table-view-stack">
         ${renderExamineeResultTable({
-          title: "수험생 등록",
+          title: "수험생 데이터",
+          description: "업로드된 수험생 데이터를 확인하고, 개별 정보를 수정하거나 사진을 보완합니다.",
           gridKey: "examineeRegistrationGrid",
           showPrintColumn: false,
           selectable: false,
@@ -29,8 +30,9 @@
       <section class="view-stack lookup-view-stack" id="admitCardLookupViewMount">
         <article class="form-card lookup-filter-card">
           <div class="section-header">
-            <div>
+            <div class="menu-section-copy">
               <h3>수험표 출력</h3>
+              <p>조건별로 수험생을 검색하고 단건 또는 일괄 수험표를 출력합니다.</p>
             </div>
           </div>
 

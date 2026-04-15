@@ -4,6 +4,13 @@ function createSystemSettingsSchemaBootstrap({
   hasTable,
   query,
 }) {
+  const obsoleteSettingKeys = Object.freeze([
+    "applicantScheduleStartAt",
+    "applicantScheduleEndAt",
+    "admitCardLookupScheduleStartAt",
+    "admitCardLookupScheduleEndAt",
+  ]);
+
   async function ensureSystemSettingsSchema() {
     const hasLegacySystemSettingsTable = typeof hasTable === "function" ? await hasTable("system_settings") : false;
     const hasSystemSettingsTable = typeof hasTable === "function" ? await hasTable("system_set") : false;
@@ -34,15 +41,20 @@ function createSystemSettingsSchemaBootstrap({
           ('autoLogoutMinutes', ?),
           ('applicantNoticeHtml', ''),
           ('admissionHomepageUrl', ''),
-          ('applicantScheduleStartAt', ''),
-          ('applicantScheduleEndAt', ''),
-          ('admitCardLookupScheduleStartAt', ''),
-          ('admitCardLookupScheduleEndAt', ''),
           ('admitCardDataSource', 'examinee'),
           ('applicantExamNoDigitCount', '10'),
-          ('applicantExamNoComponentsJson', '["admissionCode","seriesCode","unitCode","sequence",""]')
+          ('applicantExamNoComponentsJson', '["admissionCode","seriesCode","unitCode","sequence",""]'),
+          ('superAdminSettingsJson', '{"schoolName":"","logoImageUrl":"","backgroundImageUrl":"","recruitmentEnabled":true}')
       `,
       [defaultInitialPassword, String(defaultAutoLogoutMinutes)],
+    );
+
+    await query(
+      `
+        DELETE FROM system_set
+        WHERE setting_key IN (${obsoleteSettingKeys.map(() => "?").join(", ")})
+      `,
+      [...obsoleteSettingKeys],
     );
   }
 

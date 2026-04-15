@@ -20,6 +20,8 @@
     createLoginNoticeState,
     createLookupFilters,
     createPdfGenerationState,
+    createSuperAdminState,
+    createSystemAuditLogState,
     createSystemDataDeletionState,
     createSystemSettingsState,
     createTableState,
@@ -77,6 +79,8 @@
       accountEditor: createAccountEditorState(),
       auth: createAuthState(),
       systemSettings: createSystemSettingsState(),
+      superAdmin: createSuperAdminState(),
+      systemAuditLog: createSystemAuditLogState(),
       systemDataDeletion: createSystemDataDeletionState(),
       bootstrap: {
         isLoading: true,
@@ -106,9 +110,18 @@
           defaultSortRules: [{ key: "id", direction: "asc" }],
         }),
         applicantHistoryGrid: createTableState({
-          defaultSortRules: [{ key: "updatedAt", direction: "desc" }],
+          defaultSortRules: [{ key: "promotedExamineeNo", direction: "asc" }],
         }),
         applicantRecruitmentGrid: createTableState(),
+        applicantScheduleGrid: createTableState(),
+        applicantAssignmentGrid: createTableState({
+          defaultSortRules: [
+            { key: "date", direction: "asc" },
+            { key: "time", direction: "asc" },
+            { key: "buildingCode", direction: "asc" },
+            { key: "roomCode", direction: "asc" },
+          ],
+        }),
       },
     };
 

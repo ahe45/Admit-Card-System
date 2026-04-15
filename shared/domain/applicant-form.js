@@ -94,6 +94,7 @@
     Object.freeze({ key: "date", label: "날짜" }),
     Object.freeze({ key: "birthdate", label: "생년월일" }),
     Object.freeze({ key: "photo", label: "사진 업로드" }),
+    Object.freeze({ key: "file", label: "파일 업로드" }),
   ]);
 
   const systemFieldOptions = Object.freeze([
@@ -115,7 +116,7 @@
 
   const applicantStatusOptions = Object.freeze([
     Object.freeze({ key: "submitted", label: "접수 완료" }),
-    Object.freeze({ key: "promoted", label: "수험생 등록 완료" }),
+    Object.freeze({ key: "promoted", label: "배정 완료" }),
   ]);
 
   const defaultApplicantExamNoPattern = "AD-{YY}{MM}{DD}-{SEQ:4}";
@@ -155,8 +156,271 @@
     return systemFieldLabelMap[String(systemFieldKey || "").trim()] || "일반 항목";
   }
 
-  function getApplicantStatusLabel(status = "") {
-    return applicantStatusLabelMap[String(status || "").trim()] || "접수 완료";
+  function normalizeApplicantScheduleDateTime(value = "") {
+    const normalizedValue = String(value || "").trim();
+
+    if (!normalizedValue) {
+      return "";
+    }
+
+    const matchedValue = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+
+    if (!matchedValue) {
+      return "";
+    }
+
+    const [, yearValue, monthValue, dayValue, hourValue, minuteValue] = matchedValue;
+    const parsedDate = new Date(
+      Number(yearValue),
+      Number(monthValue) - 1,
+      Number(dayValue),
+      Number(hourValue),
+      Number(minuteValue),
+      0,
+      0,
+    );
+
+    if (
+      parsedDate.getFullYear() !== Number(yearValue) ||
+      parsedDate.getMonth() + 1 !== Number(monthValue) ||
+      parsedDate.getDate() !== Number(dayValue) ||
+      parsedDate.getHours() !== Number(hourValue) ||
+      parsedDate.getMinutes() !== Number(minuteValue)
+    ) {
+      return "";
+    }
+
+    return `${yearValue}-${monthValue}-${dayValue}T${hourValue}:${minuteValue}`;
+  }
+
+  function getApplicantScheduleTimestamp(value = "", { inclusiveEndMinute = false } = {}) {
+    const normalizedValue = normalizeApplicantScheduleDateTime(value);
+
+    if (!normalizedValue) {
+      return NaN;
+    }
+
+    const [, yearValue, monthValue, dayValue, hourValue, minuteValue] =
+      normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/) || [];
+
+    return new Date(
+      Number(yearValue),
+      Number(monthValue) - 1,
+      Number(dayValue),
+      Number(hourValue),
+      Number(minuteValue),
+      inclusiveEndMinute ? 59 : 0,
+      inclusiveEndMinute ? 999 : 0,
+    ).getTime();
+  }
+
+  function resolveApplicantScheduleCriteria(value = {}) {
+    return {
+      trackName: String(value.trackName ?? value.track ?? "").trim(),
+      admissionCode: String(value.admissionCode ?? "").trim(),
+      admissionName: String(value.admissionName ?? value.admission ?? "").trim(),
+      scheduleKey: String(value.scheduleKey ?? "").trim(),
+    };
+  }
+
+  function findApplicantScheduleRecord(schedules = [], value = {}) {
+    const criteria = resolveApplicantScheduleCriteria(value);
+    const normalizedSchedules = Array.isArray(schedules) ? schedules : [];
+
+    if (criteria.scheduleKey) {
+      return normalizedSchedules.find((schedule) => String(schedule?.scheduleKey || "").trim() === criteria.scheduleKey) || null;
+    }
+
+    const filteredSchedules = normalizedSchedules.filter(
+      (schedule) =>
+        String(schedule?.trackName || "").trim() === criteria.trackName &&
+        String(schedule?.admissionName || "").trim() === criteria.admissionName,
+    );
+
+    if (criteria.admissionCode) {
+      return filteredSchedules.find((schedule) => String(schedule?.admissionCode || "").trim() === criteria.admissionCode) || null;
+    }
+
+    return filteredSchedules[0] || null;
+  }
+
+  function buildApplicantScheduleContextLabel(value = {}) {
+    const criteria = resolveApplicantScheduleCriteria(value);
+    const labelParts = [criteria.trackName, criteria.admissionName || criteria.admissionCode].filter(Boolean);
+    return labelParts.length > 0 ? labelParts.join(" / ") : "선택한 전형";
+  }
+
+  function buildApplicantScheduleWindowState(startAt, endAt, referenceDate = new Date()) {
+    const normalizedStartAt = normalizeApplicantScheduleDateTime(startAt);
+    const normalizedEndAt = normalizeApplicantScheduleDateTime(endAt);
+
+    if (!normalizedStartAt || !normalizedEndAt) {
+      return {
+        isConfigured: false,
+        isOpen: false,
+        reason: "not_configured",
+      };
+    }
+
+    const currentTimestamp = referenceDate instanceof Date ? referenceDate.getTime() : new Date(referenceDate).getTime();
+    const startTimestamp = getApplicantScheduleTimestamp(normalizedStartAt);
+    const endTimestamp = getApplicantScheduleTimestamp(normalizedEndAt, {
+      inclusiveEndMinute: true,
+    });
+
+    if (!Number.isFinite(currentTimestamp) || !Number.isFinite(startTimestamp) || !Number.isFinite(endTimestamp)) {
+      return {
+        isConfigured: true,
+        isOpen: false,
+        reason: "invalid",
+      };
+    }
+
+    if (currentTimestamp < startTimestamp) {
+      return {
+        isConfigured: true,
+        isOpen: false,
+        reason: "before_start",
+      };
+    }
+
+    if (currentTimestamp > endTimestamp) {
+      return {
+        isConfigured: true,
+        isOpen: false,
+        reason: "after_end",
+      };
+    }
+
+    return {
+      isConfigured: true,
+      isOpen: true,
+      reason: "open",
+    };
+  }
+
+  function getApplicantSubmissionScheduleState(schedule = {}, referenceDate = new Date()) {
+    const applicantScheduleStartAt = normalizeApplicantScheduleDateTime(schedule?.applicantScheduleStartAt);
+    const applicantScheduleEndAt = normalizeApplicantScheduleDateTime(schedule?.applicantScheduleEndAt);
+
+    return {
+      applicantScheduleStartAt,
+      applicantScheduleEndAt,
+      ...buildApplicantScheduleWindowState(applicantScheduleStartAt, applicantScheduleEndAt, referenceDate),
+    };
+  }
+
+  function getApplicantAdmitCardLookupScheduleState(schedule = {}, referenceDate = new Date()) {
+    const admitCardLookupScheduleStartAt = normalizeApplicantScheduleDateTime(schedule?.admitCardLookupScheduleStartAt);
+    const admitCardLookupScheduleEndAt = normalizeApplicantScheduleDateTime(schedule?.admitCardLookupScheduleEndAt);
+
+    return {
+      admitCardLookupScheduleStartAt,
+      admitCardLookupScheduleEndAt,
+      ...buildApplicantScheduleWindowState(admitCardLookupScheduleStartAt, admitCardLookupScheduleEndAt, referenceDate),
+    };
+  }
+
+  function getApplicantAggregateScheduleState(schedules = [], scheduleType = "submission", referenceDate = new Date()) {
+    const normalizedSchedules = Array.isArray(schedules) ? schedules : [];
+    const scheduleStateResolver =
+      scheduleType === "lookup" ? getApplicantAdmitCardLookupScheduleState : getApplicantSubmissionScheduleState;
+    const configuredStates = normalizedSchedules
+      .map((schedule) => scheduleStateResolver(schedule, referenceDate))
+      .filter((scheduleState) => scheduleState.isConfigured);
+
+    if (configuredStates.some((scheduleState) => scheduleState.isOpen)) {
+      return configuredStates.find((scheduleState) => scheduleState.isOpen) || scheduleStateResolver({}, referenceDate);
+    }
+
+    if (configuredStates.length === 0) {
+      return scheduleStateResolver({}, referenceDate);
+    }
+
+    const beforeStartStates = configuredStates
+      .filter((scheduleState) => scheduleState.reason === "before_start")
+      .sort((leftState, rightState) => {
+        const leftTimestamp = getApplicantScheduleTimestamp(
+          scheduleType === "lookup" ? leftState.admitCardLookupScheduleStartAt : leftState.applicantScheduleStartAt,
+        );
+        const rightTimestamp = getApplicantScheduleTimestamp(
+          scheduleType === "lookup" ? rightState.admitCardLookupScheduleStartAt : rightState.applicantScheduleStartAt,
+        );
+        return leftTimestamp - rightTimestamp;
+      });
+
+    if (beforeStartStates.length > 0) {
+      return beforeStartStates[0];
+    }
+
+    const afterEndStates = configuredStates
+      .filter((scheduleState) => scheduleState.reason === "after_end")
+      .sort((leftState, rightState) => {
+        const leftTimestamp = getApplicantScheduleTimestamp(
+          scheduleType === "lookup" ? leftState.admitCardLookupScheduleEndAt : leftState.applicantScheduleEndAt,
+          { inclusiveEndMinute: true },
+        );
+        const rightTimestamp = getApplicantScheduleTimestamp(
+          scheduleType === "lookup" ? rightState.admitCardLookupScheduleEndAt : rightState.applicantScheduleEndAt,
+          { inclusiveEndMinute: true },
+        );
+        return rightTimestamp - leftTimestamp;
+      });
+
+    return afterEndStates[0] || configuredStates[0];
+  }
+
+  function buildApplicantScheduleRangeLabel(scheduleState = {}, scheduleType = "submission") {
+    if (scheduleType === "lookup") {
+      return scheduleState.isConfigured && scheduleState.admitCardLookupScheduleStartAt && scheduleState.admitCardLookupScheduleEndAt
+        ? `${scheduleState.admitCardLookupScheduleStartAt} ~ ${scheduleState.admitCardLookupScheduleEndAt}`
+        : "";
+    }
+
+    return scheduleState.isConfigured && scheduleState.applicantScheduleStartAt && scheduleState.applicantScheduleEndAt
+      ? `${scheduleState.applicantScheduleStartAt} ~ ${scheduleState.applicantScheduleEndAt}`
+      : "";
+  }
+
+  function isApplicantScheduleOpen(options = {}) {
+    const normalizedOptions = options && typeof options === "object" ? options : {};
+
+    if (typeof normalizedOptions.isApplicantScheduleOpen === "boolean") {
+      return normalizedOptions.isApplicantScheduleOpen;
+    }
+
+    if (typeof normalizedOptions.scheduleState?.isOpen === "boolean") {
+      return normalizedOptions.scheduleState.isOpen;
+    }
+
+    const scheduleStartAt = String(normalizedOptions.applicantScheduleStartAt || "").trim();
+    const scheduleEndAt = String(normalizedOptions.applicantScheduleEndAt || "").trim();
+    const referenceValue = normalizedOptions.referenceDate ?? new Date();
+    const referenceTimestamp = referenceValue instanceof Date ? referenceValue.getTime() : new Date(referenceValue).getTime();
+
+    if (!scheduleStartAt || !scheduleEndAt || !Number.isFinite(referenceTimestamp)) {
+      return false;
+    }
+
+    const parsedStartDate = new Date(scheduleStartAt);
+    const parsedEndDate = new Date(scheduleEndAt);
+
+    if (Number.isNaN(parsedStartDate.getTime()) || Number.isNaN(parsedEndDate.getTime())) {
+      return false;
+    }
+
+    return referenceTimestamp >= parsedStartDate.getTime() && referenceTimestamp <= parsedEndDate.getTime() + (60 * 1000 - 1);
+  }
+
+  function getApplicantStatusLabel(status = "", options = {}) {
+    const normalizedStatus = String(status || "").trim();
+    const isScheduleOpen = isApplicantScheduleOpen(options);
+
+    if (normalizedStatus === "promoted") {
+      return applicantStatusLabelMap.promoted || "배정 완료";
+    }
+
+    return isScheduleOpen ? "접수 중" : applicantStatusLabelMap.submitted || "접수 완료";
   }
 
   return Object.freeze({
@@ -166,12 +430,22 @@
     defaultApplicantExamNoPattern,
     defaultApplicantExamNoSequenceStart,
     findApplicantNationalityOption,
+    findApplicantScheduleRecord,
+    getApplicantAdmitCardLookupScheduleState,
+    getApplicantAggregateScheduleState,
     getApplicantAnswerTypeLabel,
+    getApplicantScheduleTimestamp,
     getApplicantStatusLabel,
+    getApplicantSubmissionScheduleState,
     getApplicantSystemFieldLabel,
+    isApplicantScheduleOpen,
     isApplicantNationalityValue,
     nationalityOptions,
+    normalizeApplicantScheduleDateTime,
     protectedApplicantSystemFields,
+    resolveApplicantScheduleCriteria,
     systemFieldOptions,
+    buildApplicantScheduleContextLabel,
+    buildApplicantScheduleRangeLabel,
   });
 });

@@ -24,9 +24,9 @@
       const isSorted = Boolean(activeSortRule);
       const filterActive = hasGridFilter(gridKey, column.key);
       const classes = ["table-header-enhanced", `table-column-${column.key}`];
-      const isAccountActionColumn =
-        gridKey === "accountManagementGrid" &&
-        ["editAction", "resetAction", "deleteAction"].includes(column.key);
+      const isActionColumn =
+        (gridKey === "accountManagementGrid" && ["editAction", "resetAction", "deleteAction"].includes(column.key)) ||
+        (gridKey === "applicantHistoryGrid" && ["detailAction", "deleteAction"].includes(column.key));
 
       if (isSorted) {
         classes.push(activeSortRule.direction === "desc" ? "sorted-desc" : "sorted-asc");
@@ -36,7 +36,7 @@
         classes.push("filter-active");
       }
 
-      if (isAccountActionColumn) {
+      if (isActionColumn) {
         classes.push("table-action-column");
       }
 

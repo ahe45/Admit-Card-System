@@ -19,6 +19,7 @@
   function createLoginNoticeEventHandlers({
     applyLoginNoticeEditorCommand,
     captureLoginNoticeEditorSelection,
+    clearLoginNoticeSelectedImage,
     getLoginNoticeCellSplitConfig,
     getLoginNoticeCellSplitCountInputElement,
     getLoginNoticeCellSplitPanelElement,
@@ -30,6 +31,7 @@
     insertLoginNoticeImage,
     redoLoginNoticeEditorHistory,
     renderView,
+    selectLoginNoticeImage,
     setNoticeManagementScope,
     setLoginNoticeCellSplitPanelVisibility,
     setLoginNoticeTableInsertPanelVisibility,
@@ -49,6 +51,9 @@
         return false;
       }
 
+      const noticeEditor = getLoginNoticeEditorElement?.();
+      const noticeEditorImage = event.target.closest("#loginNoticeEditor img");
+      const noticeEditorLink = event.target.closest("#loginNoticeEditor a[href]");
       const noticeScopeTrigger = event.target.closest("[data-notice-scope]");
       const noticeCommandTrigger = event.target.closest(".login-notice-editor-shell button[data-notice-command]");
       const noticeActionTrigger = event.target.closest(".login-notice-editor-shell button[data-notice-action]");
@@ -58,6 +63,25 @@
       const noticeCellSplitToggleTrigger = event.target.closest(".login-notice-editor-shell [data-template-cell-split-toggle]");
       const noticeCellSplitConfirmTrigger = event.target.closest(".login-notice-editor-shell [data-template-cell-split-confirm]");
       const noticeOpenImageTrigger = event.target.closest(".login-notice-editor-shell button[data-notice-open-image]");
+
+      if (noticeEditorImage && noticeEditor?.contains(noticeEditorImage)) {
+        event.preventDefault();
+        selectLoginNoticeImage?.(noticeEditorImage);
+        captureLoginNoticeEditorSelection();
+        updateLoginNoticeEditorActiveCell();
+        updateLoginNoticeFormattingControls();
+        return true;
+      }
+
+      if (noticeEditorLink && noticeEditor?.contains(noticeEditorLink)) {
+        clearLoginNoticeSelectedImage?.();
+        event.preventDefault();
+        return true;
+      }
+
+      if (noticeEditor && event.target instanceof Node && noticeEditor.contains(event.target)) {
+        clearLoginNoticeSelectedImage?.();
+      }
 
       if (noticeScopeTrigger) {
         setNoticeManagementScope?.(noticeScopeTrigger.dataset.noticeScope);
@@ -305,6 +329,19 @@
     function handleSelectionChange() {
       if (!isLoginNoticeViewActive()) {
         return false;
+      }
+
+      const noticeEditor = getLoginNoticeEditorElement?.();
+      const selection = window.getSelection();
+      const anchorNode = selection?.anchorNode || null;
+      const baseElement =
+        anchorNode?.nodeType === Node.ELEMENT_NODE ? anchorNode : anchorNode?.parentElement instanceof Element ? anchorNode.parentElement : null;
+
+      const selectionImage =
+        (baseElement instanceof Element ? baseElement.closest("img") || baseElement.querySelector("img") : null) || null;
+
+      if (!baseElement || !noticeEditor?.contains(baseElement) || !selectionImage) {
+        clearLoginNoticeSelectedImage?.();
       }
 
       captureLoginNoticeEditorSelection();

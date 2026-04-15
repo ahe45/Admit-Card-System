@@ -6,7 +6,19 @@
 
   globalScope.AdmitCardGridSelection = factory();
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
-  function createGridSelectionController({ getGridRows, getTableState, openExamineeDetail, startApplicantRecruitmentUnitEdit, state }) {
+  function createGridSelectionController({
+    getGridRows,
+    getTableState,
+    openExamineeDetail,
+    startApplicantAssignmentEdit,
+    startApplicantRecruitmentUnitEdit,
+    startApplicantScheduleEdit,
+    state,
+  }) {
+    function normalizeGridRowId(rowId) {
+      return String(rowId || "").trim();
+    }
+
     function getGridRowId(gridKey, row) {
       if (gridKey === "accountManagementGrid") {
         return row.id || "";
@@ -16,7 +28,11 @@
         return String(row.historyId || `${row.examineeNo}-${row.printedAt}`);
       }
 
-      if (gridKey === "applicantHistoryGrid" || gridKey === "applicantRecruitmentGrid") {
+      if (gridKey === "applicantScheduleGrid") {
+        return String(row.scheduleKey || row.id || "");
+      }
+
+      if (gridKey === "applicantHistoryGrid" || gridKey === "applicantRecruitmentGrid" || gridKey === "applicantAssignmentGrid") {
         return String(row.id || "");
       }
 
@@ -32,25 +48,57 @@
       return Array.isArray(tableState.selectedRowIds) ? tableState.selectedRowIds : [];
     }
 
+    function getGridSelectedRowIdSet(gridKey) {
+      return new Set(
+        getGridSelectedRowIds(gridKey)
+          .map((rowId) => normalizeGridRowId(rowId))
+          .filter(Boolean),
+      );
+    }
+
     function getGridSelectionAnchorRowId(gridKey) {
-      return String(getTableState(gridKey).selectionAnchorRowId || "").trim();
+      return normalizeGridRowId(getTableState(gridKey).selectionAnchorRowId);
     }
 
     function setGridSelectedRowIds(gridKey, rowIds, anchorRowId = "") {
       const tableState = getTableState(gridKey);
-      const nextRowIds = Array.isArray(rowIds) ? rowIds.filter((rowId, index) => rowId && rowIds.indexOf(rowId) === index) : [];
+      const nextRowIds = [];
+      const seenRowIds = new Set();
+
+      if (Array.isArray(rowIds)) {
+        rowIds.forEach((rowId) => {
+          const normalizedRowId = normalizeGridRowId(rowId);
+
+          if (!normalizedRowId || seenRowIds.has(normalizedRowId)) {
+            return;
+          }
+
+          seenRowIds.add(normalizedRowId);
+          nextRowIds.push(normalizedRowId);
+        });
+      }
 
       tableState.selectedRowIds = nextRowIds;
       tableState.selectionAnchorRowId =
-        nextRowIds.length > 0 ? String(anchorRowId || nextRowIds[nextRowIds.length - 1] || "").trim() : "";
+        nextRowIds.length > 0 ? normalizeGridRowId(anchorRowId || nextRowIds[nextRowIds.length - 1] || "") : "";
     }
 
     function isGridRowSelected(gridKey, rowId) {
-      return getGridSelectedRowIds(gridKey).includes(rowId);
+      return getGridSelectedRowIdSet(gridKey).has(normalizeGridRowId(rowId));
+    }
+
+    function usesSelectableGridRowSelection(gridKey) {
+      return gridKey === "admitCardLookupGrid" || gridKey === "applicantHistoryGrid";
     }
 
     function isGridRowClickable(gridKey) {
-      return gridKey === "examineeRegistrationGrid" || gridKey === "admitCardLookupGrid" || gridKey === "applicantRecruitmentGrid";
+      return (
+        gridKey === "examineeRegistrationGrid" ||
+        usesSelectableGridRowSelection(gridKey) ||
+        gridKey === "applicantRecruitmentGrid" ||
+        gridKey === "applicantAssignmentGrid" ||
+        gridKey === "applicantScheduleGrid"
+      );
     }
 
     function isGridRowHighlighted(gridKey, row, rowId = getGridRowId(gridKey, row)) {
@@ -63,19 +111,30 @@
       }
 
       if (gridKey === "applicantHistoryGrid") {
-        return Number(state.applicantManager?.expandedSubmissionId || 0) === Number(row?.id || rowId || 0);
+        return (
+          isGridRowSelected(gridKey, rowId) ||
+          Number(state.applicantManager?.expandedSubmissionId || 0) === Number(row?.id || rowId || 0)
+        );
       }
 
       if (gridKey === "applicantRecruitmentGrid") {
         return Number(state.applicantManager?.recruitmentUnitEditor?.editingId || 0) === Number(row?.id || rowId || 0);
       }
 
+      if (gridKey === "applicantAssignmentGrid") {
+        return Number(state.applicantManager?.assignmentEditor?.editingId || 0) === Number(row?.id || rowId || 0);
+      }
+
+      if (gridKey === "applicantScheduleGrid") {
+        return String(state.applicantManager?.scheduleEditor?.scheduleKey || "").trim() === String(row?.scheduleKey || rowId || "").trim();
+      }
+
       return false;
     }
 
     function getGridSelectionState(gridKey, selectableRowIds) {
-      const selectedRowIds = getGridSelectedRowIds(gridKey);
-      const selectedVisibleCount = selectableRowIds.filter((rowId) => selectedRowIds.includes(rowId)).length;
+      const selectedRowIdSet = getGridSelectedRowIdSet(gridKey);
+      const selectedVisibleCount = selectableRowIds.filter((rowId) => selectedRowIdSet.has(normalizeGridRowId(rowId))).length;
       const totalVisibleCount = selectableRowIds.length;
 
       return {
@@ -87,12 +146,12 @@
     function toggleGridSelectAll(gridKey) {
       const selectableRowIds = getGridSelectableRowIds(gridKey);
       const selectionState = getGridSelectionState(gridKey, selectableRowIds);
-      const selectedRowIdSet = new Set(getGridSelectedRowIds(gridKey));
+      const selectedRowIdSet = getGridSelectedRowIdSet(gridKey);
 
       if (selectionState.allSelected) {
-        selectableRowIds.forEach((rowId) => selectedRowIdSet.delete(rowId));
+        selectableRowIds.forEach((rowId) => selectedRowIdSet.delete(normalizeGridRowId(rowId)));
       } else {
-        selectableRowIds.forEach((rowId) => selectedRowIdSet.add(rowId));
+        selectableRowIds.forEach((rowId) => selectedRowIdSet.add(normalizeGridRowId(rowId)));
       }
 
       setGridSelectedRowIds(
@@ -103,25 +162,37 @@
     }
 
     function toggleGridRowSelection(gridKey, rowId) {
-      const selectedRowIdSet = new Set(getGridSelectedRowIds(gridKey));
+      const normalizedRowId = normalizeGridRowId(rowId);
 
-      if (selectedRowIdSet.has(rowId)) {
-        selectedRowIdSet.delete(rowId);
-      } else {
-        selectedRowIdSet.add(rowId);
+      if (!normalizedRowId) {
+        return;
       }
 
-      setGridSelectedRowIds(gridKey, Array.from(selectedRowIdSet), rowId);
+      const selectedRowIdSet = getGridSelectedRowIdSet(gridKey);
+
+      if (selectedRowIdSet.has(normalizedRowId)) {
+        selectedRowIdSet.delete(normalizedRowId);
+      } else {
+        selectedRowIdSet.add(normalizedRowId);
+      }
+
+      setGridSelectedRowIds(gridKey, Array.from(selectedRowIdSet), normalizedRowId);
     }
 
-    function handleAdmitCardLookupRowSelection(rowId, { shiftKey = false, ctrlKey = false, metaKey = false } = {}) {
+    function handleSelectableGridRowSelection(gridKey, rowId, { shiftKey = false, ctrlKey = false, metaKey = false } = {}) {
+      const normalizedGridKey = String(gridKey || "").trim();
       const normalizedRowId = String(rowId || "").trim();
 
       if (!normalizedRowId) {
         return;
       }
 
-      const selectableRowIds = getGridSelectableRowIds("admitCardLookupGrid");
+      if (!usesSelectableGridRowSelection(normalizedGridKey)) {
+        toggleGridRowSelection(normalizedGridKey, normalizedRowId);
+        return;
+      }
+
+      const selectableRowIds = getGridSelectableRowIds(normalizedGridKey);
       const targetIndex = selectableRowIds.indexOf(normalizedRowId);
 
       if (targetIndex < 0) {
@@ -132,34 +203,38 @@
       const useToggleSelection = ctrlKey || metaKey;
 
       if (useRangeSelection) {
-        const anchorRowId = getGridSelectionAnchorRowId("admitCardLookupGrid") || normalizedRowId;
+        const anchorRowId = getGridSelectionAnchorRowId(normalizedGridKey) || normalizedRowId;
         const anchorIndex = selectableRowIds.indexOf(anchorRowId);
         const rangeStartIndex = Math.min(anchorIndex >= 0 ? anchorIndex : targetIndex, targetIndex);
         const rangeEndIndex = Math.max(anchorIndex >= 0 ? anchorIndex : targetIndex, targetIndex);
         const rangeRowIds = selectableRowIds.slice(rangeStartIndex, rangeEndIndex + 1);
 
         if (useToggleSelection) {
-          const selectedRowIdSet = new Set(getGridSelectedRowIds("admitCardLookupGrid"));
+          const selectedRowIdSet = new Set(getGridSelectedRowIds(normalizedGridKey));
           rangeRowIds.forEach((entryRowId) => selectedRowIdSet.add(entryRowId));
-          setGridSelectedRowIds("admitCardLookupGrid", Array.from(selectedRowIdSet), normalizedRowId);
+          setGridSelectedRowIds(normalizedGridKey, Array.from(selectedRowIdSet), normalizedRowId);
           return;
         }
 
-        setGridSelectedRowIds("admitCardLookupGrid", rangeRowIds, normalizedRowId);
+        setGridSelectedRowIds(normalizedGridKey, rangeRowIds, normalizedRowId);
         return;
       }
 
       if (useToggleSelection) {
-        toggleGridRowSelection("admitCardLookupGrid", normalizedRowId);
+        toggleGridRowSelection(normalizedGridKey, normalizedRowId);
         return;
       }
 
-      if (isGridRowSelected("admitCardLookupGrid", normalizedRowId)) {
-        toggleGridRowSelection("admitCardLookupGrid", normalizedRowId);
+      if (isGridRowSelected(normalizedGridKey, normalizedRowId)) {
+        toggleGridRowSelection(normalizedGridKey, normalizedRowId);
         return;
       }
 
-      setGridSelectedRowIds("admitCardLookupGrid", [normalizedRowId], normalizedRowId);
+      setGridSelectedRowIds(normalizedGridKey, [normalizedRowId], normalizedRowId);
+    }
+
+    function handleAdmitCardLookupRowSelection(rowId, { shiftKey = false, ctrlKey = false, metaKey = false } = {}) {
+      handleSelectableGridRowSelection("admitCardLookupGrid", rowId, { shiftKey, ctrlKey, metaKey });
     }
 
     function handleGridRowClickSelection(gridKey, rowId, options = {}) {
@@ -167,13 +242,23 @@
         return openExamineeDetail(rowId);
       }
 
-      if (gridKey === "admitCardLookupGrid") {
-        handleAdmitCardLookupRowSelection(rowId, options);
+      if (usesSelectableGridRowSelection(gridKey)) {
+        handleSelectableGridRowSelection(gridKey, rowId, options);
         return true;
       }
 
       if (gridKey === "applicantRecruitmentGrid") {
         startApplicantRecruitmentUnitEdit(rowId);
+        return false;
+      }
+
+      if (gridKey === "applicantAssignmentGrid") {
+        startApplicantAssignmentEdit(rowId);
+        return false;
+      }
+
+      if (gridKey === "applicantScheduleGrid") {
+        startApplicantScheduleEdit(rowId);
         return false;
       }
 
@@ -187,6 +272,7 @@
       getGridSelectionAnchorRowId,
       getGridSelectionState,
       handleAdmitCardLookupRowSelection,
+      handleSelectableGridRowSelection,
       handleGridRowClickSelection,
       isGridRowClickable,
       isGridRowHighlighted,

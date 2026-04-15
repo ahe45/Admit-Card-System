@@ -20,6 +20,7 @@
       <section class="view-stack table-view-stack">
         ${renderExamineeResultTable({
           title: "계정 관리",
+          description: "운영 계정을 생성하고 권한, 초기화, 삭제 같은 계정 작업을 관리합니다.",
           gridKey: "accountManagementGrid",
           showPrintColumn: false,
           selectable: false,

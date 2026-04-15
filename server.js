@@ -14,13 +14,16 @@ const { dispatchRoute } = require("./server/http/router");
 const { createPasswordHelpers, DEFAULT_PASSWORD_HASH_PREFIX } = require("./server/modules/auth/passwords");
 const {
   accountRoleOptions,
+  buildRoleMenuVisibilityFromSuperAdminSettings,
   getDefaultAccessibleView,
   getViewFromPathname,
   getViewRoutePath,
   isLoginRoutePath,
   isViewAccessibleForRole,
   loginRoutePath: LOGIN_ROUTE_PATH,
+  normalizeSuperAdminSettings,
   normalizeRoutePath,
+  superAdminRole,
   templateTagDefinitions,
 } = require("./shared/app-config");
 const DEFAULT_TEMPLATE_SEEDS = require("./db/default-templates.json");
@@ -50,7 +53,9 @@ const PASSWORD_SETUP_SESSION_TTL_MS = 1000 * 60 * 15;
 const BATCH_ADMIT_CARD_JOB_TTL_MS = 1000 * 60 * 30;
 const APPLICANT_EMAIL_VERIFICATION_TTL_MS = 1000 * 60 * 5;
 const APPLICANT_PUBLIC_ACCESS_TTL_MS = 1000 * 60 * 60;
-const PHOTO_STORAGE_DIR_NAME = "photo";
+const EXAMINEE_PHOTO_STORAGE_DIR_NAME = "photo";
+const APPLICANT_PHOTO_STORAGE_DIR_NAME = "uploads/photo";
+const APPLICANT_FILE_STORAGE_DIR_NAME = "uploads/file";
 
 function getDefaultLoginNoticeHtml(initialPassword = DEFAULT_INITIAL_PASSWORD) {
   return [
@@ -118,6 +123,8 @@ function createApplicantVerificationEmailSender() {
   const smtpFrom = String(process.env.SMTP_FROM || "").trim();
   const smtpFromName = String(process.env.SMTP_FROM_NAME || "Admit Card System").trim();
   const smtpSecure = String(process.env.SMTP_SECURE || "").trim().toLowerCase() === "true";
+  const smtpTlsRejectUnauthorized = String(process.env.SMTP_TLS_REJECT_UNAUTHORIZED || "").trim().toLowerCase() !== "false";
+  const verificationMailSubject = String(process.env.APPLICANT_VERIFICATION_EMAIL_SUBJECT || "[Admit Card System] 수험생 이메일 인증 코드").trim();
   const transporter =
     smtpHost && Number.isFinite(smtpPort) && smtpPort > 0 && smtpFrom
       ? nodemailer.createTransport({
@@ -125,8 +132,40 @@ function createApplicantVerificationEmailSender() {
           port: smtpPort,
           secure: smtpSecure,
           auth: smtpUser || smtpPass ? { user: smtpUser, pass: smtpPass } : undefined,
+          tls: {
+            rejectUnauthorized: smtpTlsRejectUnauthorized,
+          },
         })
       : null;
+  let transporterVerificationPromise = null;
+
+  async function verifyTransporterAvailability() {
+    if (!transporter) {
+      throw createHttpError(
+        503,
+        "이메일 발송 설정이 완료되지 않았습니다. SMTP_HOST, SMTP_PORT, SMTP_FROM 값을 확인하세요.",
+        "APPLICANT_VERIFICATION_EMAIL_NOT_CONFIGURED",
+      );
+    }
+
+    if (!transporterVerificationPromise) {
+      transporterVerificationPromise = transporter.verify().catch((error) => {
+        transporterVerificationPromise = null;
+        throw error;
+      });
+    }
+
+    try {
+      await transporterVerificationPromise;
+    } catch (error) {
+      console.error(`Applicant verification mail transport verification failed: ${error.message}`);
+      throw createHttpError(
+        503,
+        "이메일 발송 설정을 확인할 수 없습니다. SMTP 서버 주소와 계정 정보를 점검하세요.",
+        "APPLICANT_VERIFICATION_EMAIL_NOT_AVAILABLE",
+      );
+    }
+  }
 
   return async ({ applicantName, codeValue, email, expiresAt }) => {
     const expirationLabel =
@@ -140,19 +179,13 @@ function createApplicantVerificationEmailSender() {
       "이 메일은 Admit Card System에서 발송되었습니다.",
     ].filter(Boolean);
 
-    if (!transporter) {
-      console.log(`[Applicant Verification] ${email} -> ${codeValue}`);
-      return {
-        deliveryMode: "console",
-        debugCode: process.env.NODE_ENV === "production" ? "" : codeValue,
-      };
-    }
+    await verifyTransporterAvailability();
 
     try {
-      await transporter.sendMail({
+      const sendResult = await transporter.sendMail({
         from: `"${smtpFromName}" <${smtpFrom}>`,
         to: email,
-        subject: "[Admit Card System] 수험생 이메일 인증 코드",
+        subject: verificationMailSubject || "[Admit Card System] 수험생 이메일 인증 코드",
         text: textLines.join("\n"),
         html: `
           <div style="font-family:'Noto Sans KR',sans-serif;color:#152033;line-height:1.6;">
@@ -166,15 +199,17 @@ function createApplicantVerificationEmailSender() {
 
       return {
         deliveryMode: "smtp",
+        deliveryStatus: "sent",
         debugCode: "",
+        messageId: String(sendResult?.messageId || "").trim(),
       };
     } catch (error) {
       console.error(`Applicant verification mail send failed: ${error.message}`);
-      console.log(`[Applicant Verification Fallback] ${email} -> ${codeValue}`);
-      return {
-        deliveryMode: "console",
-        debugCode: process.env.NODE_ENV === "production" ? "" : codeValue,
-      };
+      throw createHttpError(
+        502,
+        "인증 메일을 발송하지 못했습니다. SMTP 서버 연결과 계정 정보를 확인하세요.",
+        "APPLICANT_VERIFICATION_EMAIL_SEND_FAILED",
+      );
     }
   };
 }
@@ -204,17 +239,22 @@ const {
 const examineeService = createExamineeService({
   createHttpError,
   getPool,
+  photoStorageDirName: EXAMINEE_PHOTO_STORAGE_DIR_NAME,
   query,
+  rootDir: root,
 });
 const {
   buildExamineeExportBuffer,
   buildExamineeTemplateBuffer,
   buildPrintHistoryExportBuffer,
   getExamineeByNo,
+  getExamineesByNos,
   getExamineePhoto,
   getExaminees,
   getPrintHistory,
   importExaminees,
+  previewExamineePhotoArchiveBuffer,
+  previewExamineeImport,
   saveExamineePhoto,
   saveExamineePhotoArchiveBuffer,
   updateExaminee,
@@ -230,6 +270,7 @@ const templateService = createTemplateService({
 const {
   activateTemplate,
   buildTemplateGeneratedObjectSvg,
+  createTemplateExamineeRenderer,
   createTemplate,
   deleteTemplate,
   getActiveTemplate,
@@ -300,10 +341,12 @@ const translateDatabaseError = createDatabaseErrorTranslator({ createHttpError }
 const admitCardService = createAdmitCardService({
   batchAdmitCardJobTtlMs: BATCH_ADMIT_CARD_JOB_TTL_MS,
   createHttpError,
+  createTemplateExamineeRenderer,
   edgeExecutablePaths: EDGE_EXECUTABLE_PATHS,
   escapeHtml,
   getActiveTemplate,
   getExamineeByNo,
+  getExamineesByNos,
   normalizeExamineeNoList,
   renderTemplateWithExaminee,
   translateDatabaseError,
@@ -313,18 +356,21 @@ const {
   buildAdmitCardPdfBufferFromRecord,
   buildBatchAdmitCardJobPayload,
   buildBatchAdmitCardPdfBuffer,
+  cancelBatchAdmitCardJob,
   createBatchAdmitCardJob,
   getBatchAdmitCardJobOrThrow,
 } = admitCardService;
 const applicantService = createApplicantService({
+  applicantFileStorageDirName: APPLICANT_FILE_STORAGE_DIR_NAME,
+  applicantPhotoStorageDirName: APPLICANT_PHOTO_STORAGE_DIR_NAME,
   buildAdmitCardPdfBuffer,
   buildAdmitCardPdfBufferFromRecord,
   createHttpError,
   emailVerificationTtlMs: APPLICANT_EMAIL_VERIFICATION_TTL_MS,
+  examineePhotoStorageDirName: EXAMINEE_PHOTO_STORAGE_DIR_NAME,
   getDefaultApplicantNoticeHtml,
   getPool,
   hashPassword,
-  photoStorageDirName: PHOTO_STORAGE_DIR_NAME,
   publicAccessTtlMs: APPLICANT_PUBLIC_ACCESS_TTL_MS,
   query,
   rootDir: root,
@@ -332,46 +378,72 @@ const applicantService = createApplicantService({
   verifyPassword,
 });
 const {
+  buildApplicantAssignmentExportBuffer,
+  buildApplicantAssignmentTemplateBuffer,
   buildApplicantAdmitCardPdfForAccessToken,
+  buildApplicantPromotionAssignmentTemplateBuffer,
+  buildApplicantPromotionPreviewExportBuffer,
   buildApplicantSubmissionPhotoArchiveBuffer,
   buildApplicantSubmissionExportBuffer,
   buildApplicantRecruitmentUnitExportBuffer,
   buildApplicantRecruitmentUnitTemplateBuffer,
+  commitApplicantSubmissionPromotions,
+  resetApplicantSubmissionPromotions,
+  createApplicantAssignment,
   createApplicantRecruitmentUnit,
   createApplicantFormField,
+  deleteApplicantAssignment,
+  deleteApplicantSubmission,
   deleteApplicantRecruitmentUnit,
   deleteApplicantFormField,
+  getApplicantAssignments,
   getApplicantFormFields,
   getApplicantPublicForm,
   getApplicantRecruitmentUnits,
+  getApplicantSchedules,
   getApplicantSettings,
   getApplicantSubmissionPhoto,
+  getApplicantSubmissionFile,
   getApplicantSubmissionForAccessToken,
   getApplicantSubmissions,
+  importApplicantAssignments,
   importApplicantRecruitmentUnits,
   lookupApplicantSubmission,
+  migrateApplicantFileAnswerData,
+  migrateApplicantPhotoStorage,
   moveApplicantFormField,
-  promoteApplicantSubmission,
+  previewApplicantAssignmentsImport,
+  previewApplicantRecruitmentUnitImport,
+  previewApplicantSubmissionPromotions,
   saveApplicantSubmission,
   seedApplicantFormFields,
   sendApplicantVerificationCode,
   updateApplicantSubmissionPhoto,
+  updateApplicantAssignment,
   updateApplicantRecruitmentUnit,
   updateApplicantFormField,
   updateApplicantSettings,
   verifyApplicantVerificationCode,
+  saveApplicantSchedule,
 } = applicantService;
 const systemService = createSystemService({
+  applicantFileStorageDirName: APPLICANT_FILE_STORAGE_DIR_NAME,
+  applicantPhotoStorageDirName: APPLICANT_PHOTO_STORAGE_DIR_NAME,
+  buildRoleMenuVisibilityFromSuperAdminSettings,
   createHttpError,
+  databaseName: process.env.DB_NAME || "admitcard",
   defaultAutoLogoutMinutes: DEFAULT_AUTO_LOGOUT_MINUTES,
   defaultInitialPassword: DEFAULT_INITIAL_PASSWORD,
   defaultSeedAccounts: DEFAULT_SEED_ACCOUNTS,
+  examineePhotoStorageDirName: EXAMINEE_PHOTO_STORAGE_DIR_NAME,
   fs,
   getDefaultApplicantNoticeHtml,
   formatDateAsYmd,
   getAccounts,
+  getApplicantAssignments,
   getApplicantFormFields,
   getApplicantRecruitmentUnits,
+  getApplicantSchedules,
   getApplicantSettings,
   getApplicantSubmissions,
   getDefaultLoginNoticeHtml,
@@ -382,21 +454,35 @@ const systemService = createSystemService({
   hashPassword,
   isPasswordHash,
   maxAutoLogoutMinutes: MAX_AUTO_LOGOUT_MINUTES,
+  normalizeSuperAdminSettings,
   path,
-  photoStorageDirName: PHOTO_STORAGE_DIR_NAME,
   query,
   rootDir: root,
 });
 const {
+  buildSystemBackupArchive,
   deleteSystemData,
   getBootstrapPayload,
   getLoginNoticeHtml,
+  getPublicSuperAdminSettings,
+  getRoleMenuVisibilitySettings,
+  getSystemAuditLogs,
+  getSystemBackupAutomationSettings,
+  getSuperAdminSettings,
   getSystemSettings,
   migrateLegacyAccountPasswords,
   migrateLegacySeedAccountIds,
+  recordSystemAuditLog,
+  runSystemBackupAutomation,
+  restoreSystemBackupArchive,
   seedAccounts,
+  startSystemBackupAutomation,
+  uploadSuperAdminImage,
   updateLoginNoticeHtml,
+  updateSystemBackupAutomationSettings,
+  updateSuperAdminSettings,
   updateSystemSettings,
+  validateSystemBackupArchive,
 } = systemService;
 const schemaBootstrapService = createSchemaBootstrapService({
   defaultAutoLogoutMinutes: DEFAULT_AUTO_LOGOUT_MINUTES,
@@ -407,8 +493,10 @@ const schemaBootstrapService = createSchemaBootstrapService({
 const {
   ensureAccountSchema,
   ensureApplicantSchema,
+  ensureSchemaColumnComments,
   ensureExamineeSchema,
   ensurePrintHistorySchema,
+  ensureSystemAuditLogSchema,
   ensureSystemSettingsSchema,
 } = schemaBootstrapService;
 const authService = createAuthService({
@@ -447,7 +535,11 @@ function createApiRouteDependencies() {
   return {
     activateTemplate,
     buildAdmitCardPdfBuffer,
+    buildApplicantAssignmentExportBuffer,
+    buildApplicantAssignmentTemplateBuffer,
     buildApplicantAdmitCardPdfForAccessToken,
+    buildApplicantPromotionAssignmentTemplateBuffer,
+    buildApplicantPromotionPreviewExportBuffer,
     buildApplicantSubmissionPhotoArchiveBuffer,
     buildApplicantSubmissionExportBuffer,
     buildApplicantRecruitmentUnitExportBuffer,
@@ -455,44 +547,71 @@ function createApiRouteDependencies() {
     buildBatchAdmitCardJobPayload,
     buildBatchAdmitCardPdfBuffer,
     buildContentDisposition,
+    buildSystemBackupArchive,
+    getSystemBackupAutomationSettings,
+    runSystemBackupAutomation,
+    restoreSystemBackupArchive,
+    startSystemBackupAutomation,
+    updateSystemBackupAutomationSettings,
+    validateSystemBackupArchive,
     buildExamineeExportBuffer,
     buildExamineeTemplateBuffer,
     buildPrintHistoryExportBuffer,
     buildTemplateGeneratedObjectSvg,
+    commitApplicantSubmissionPromotions,
+    resetApplicantSubmissionPromotions,
+    createApplicantAssignment,
     createApplicantRecruitmentUnit,
     completeTemporaryPasswordSetup,
     createApplicantFormField,
     createAccount,
     createBatchAdmitCardJob,
+    cancelBatchAdmitCardJob,
     createHttpError,
     createTemplate,
     databaseName: process.env.DB_NAME || "admitcard",
+    deleteApplicantAssignment,
+    deleteApplicantSubmission,
     deleteApplicantFormField,
     deleteApplicantRecruitmentUnit,
     deleteAccount,
     deleteSystemData,
     deleteTemplate,
     getAuthSessionPayload,
+    getApplicantAssignments,
     getApplicantPublicForm,
+    getApplicantRecruitmentUnits,
+    saveApplicantSchedule,
+    getApplicantSubmissionFile,
     getApplicantSubmissionPhoto,
     getApplicantSubmissionForAccessToken,
     getBatchAdmitCardJobOrThrow,
     getBootstrapPayload,
     getExamineePhoto,
     getLoginNoticeHtml,
-    getSystemSettings,
-    importExaminees,
-    importApplicantRecruitmentUnits,
-    loginAccount,
-    lookupApplicantSubmission,
-    logoutAccount,
-    moveApplicantFormField,
-    normalizeExamineeNoList,
-    query,
-    readBinaryBody,
+    getPublicSuperAdminSettings,
+    getRoleMenuVisibilitySettings,
+    getSystemAuditLogs,
+    getSuperAdminSettings,
+      getSystemSettings,
+      importApplicantAssignments,
+      importExaminees,
+      importApplicantRecruitmentUnits,
+      loginAccount,
+      lookupApplicantSubmission,
+      logoutAccount,
+      moveApplicantFormField,
+      normalizeExamineeNoList,
+      previewExamineePhotoArchiveBuffer,
+      previewExamineeImport,
+      previewApplicantAssignmentsImport,
+      previewApplicantRecruitmentUnitImport,
+      previewApplicantSubmissionPromotions,
+      query,
+      readBinaryBody,
     readJsonBody,
+    recordSystemAuditLog,
     recordPrintHistory,
-    promoteApplicantSubmission,
     resetAccountPassword,
     saveExamineePhoto,
     saveExamineePhotoArchiveBuffer,
@@ -500,13 +619,18 @@ function createApiRouteDependencies() {
     sendApplicantVerificationCode,
     sendBinary,
     sendJson,
+    superAdminRole,
+    uploadSuperAdminImage,
     updateApplicantSubmissionPhoto,
+    updateApplicantAssignment,
     updateAccount,
     updateApplicantRecruitmentUnit,
     updateApplicantFormField,
     updateApplicantSettings,
     updateExaminee,
     updateLoginNoticeHtml,
+    updateSystemBackupAutomationSettings,
+    updateSuperAdminSettings,
     updateSystemSettings,
     updateTemplate,
     verifySystemDataDeletionPassword,
@@ -519,8 +643,10 @@ const { handlePageRequest, serveStaticFile } = createPageRequestHandlers({
   fs,
   path,
   root,
+  getRoleMenuVisibilitySettings,
   getAuthSessionPayload,
   getDefaultAccessibleView,
+  getPublicSuperAdminSettings,
   getViewFromPathname,
   getViewRoutePath,
   isLoginRoutePath,
@@ -581,12 +707,19 @@ async function initializeServer() {
     await ensureTemplateSchema();
     await seedTemplates();
     await seedApplicantFormFields();
+    await migrateApplicantPhotoStorage();
+    await migrateApplicantFileAnswerData();
     await ensureSystemSettingsSchema();
+    await ensureSystemAuditLogSchema();
     await migrateTemplateTagSchema();
     await migrateTemplateLayoutSchema();
     await ensureAccountSchema();
+    await ensureSchemaColumnComments();
     await migrateLegacySeedAccountIds();
     await seedAccounts();
+    await startSystemBackupAutomation({
+      recordSystemAuditLog,
+    });
   } catch (error) {
     console.error(`Schema check skipped: ${translateDatabaseError(error).message}`);
   }

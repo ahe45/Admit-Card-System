@@ -31,7 +31,7 @@
         <button class="brand" id="brandHome" type="button" aria-label="대시보드로 이동">
           <img
             class="brand-badge"
-            src="/client/assets/login-stage-brand-mark.png"
+            src="/client/assets/logo.png"
             alt=""
             width="54"
             height="54"
@@ -43,135 +43,217 @@
         </button>
 
         <nav class="nav-group" aria-label="주 메뉴">
-          <button class="nav-item" data-view="applicantFormSettings" type="button">
-            <span class="nav-icon-wrap" aria-hidden="true">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
-                <path d="M4.5 7.5h7"></path>
-                <path d="M14.5 7.5h5"></path>
-                <circle cx="13" cy="7.5" r="1.75"></circle>
-                <path d="M4.5 12h3"></path>
-                <path d="M10.5 12h9"></path>
-                <circle cx="9" cy="12" r="1.75"></circle>
-                <path d="M4.5 16.5h10"></path>
-                <path d="M17.5 16.5h2"></path>
-                <circle cx="16" cy="16.5" r="1.75"></circle>
-              </svg>
-            </span>
-            <span>접수 양식 설정</span>
-          </button>
-          <button class="nav-item" data-view="applicantHistory" type="button">
-            <span class="nav-icon-wrap" aria-hidden="true">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
-                <path d="M6 4.5h9l3 3V19a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 19V6A1.5 1.5 0 0 1 6.5 4.5H10"></path>
-                <path d="M15 4.5V8h3"></path>
-                <path d="M8 11h8"></path>
-                <path d="M8 14.5h8"></path>
-              </svg>
-            </span>
-            <span>접수 이력</span>
-          </button>
-          <button class="nav-item" data-view="examineeRegistration" type="button">
-            <span class="nav-icon-wrap" aria-hidden="true">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
-                <circle cx="10" cy="8" r="3.25"></circle>
-                <path d="M4.5 18.5c0-2.8 2.24-5 5-5h1c2.76 0 5 2.2 5 5"></path>
-                <path d="M18.5 8v6"></path>
-                <path d="M15.5 11h6"></path>
-              </svg>
-            </span>
-            <span>수험생 등록</span>
-          </button>
-          <button class="nav-item" data-view="admitCardLookup" type="button">
-            <span class="nav-icon-wrap" aria-hidden="true">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
-                <circle cx="11" cy="11" r="5"></circle>
-                <path d="M20 20l-4.1-4.1"></path>
-                <path d="M9 11h4"></path>
-              </svg>
-            </span>
-            <span>수험표 출력</span>
-          </button>
-          <button class="nav-item" data-view="printHistory" type="button">
-            <span class="nav-icon-wrap" aria-hidden="true">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
-                <path d="M7 8V4.5h10V8"></path>
-                <path d="M6 18H5a2 2 0 0 1-2-2v-5a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v5a2 2 0 0 1-2 2h-1"></path>
-                <path d="M7 14h10v5.5H7z"></path>
-                <path d="M16 11.5h2"></path>
-              </svg>
-            </span>
-            <span>수험표 출력 이력</span>
-          </button>
-          <button class="nav-item" data-view="templateManagement" type="button">
-            <span class="nav-icon-wrap" aria-hidden="true">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
-                <rect x="4" y="5" width="16" height="14" rx="2"></rect>
-                <path d="M9 5v14"></path>
-                <path d="M9 10h11"></path>
-              </svg>
-            </span>
-            <span>수험표 양식 관리</span>
-          </button>
-          <button class="nav-item" data-view="accountManagement" type="button">
-            <span class="nav-icon-wrap" aria-hidden="true">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
-                <circle cx="9" cy="8" r="3"></circle>
-                <circle cx="17" cy="9" r="2.5"></circle>
-                <path d="M3.5 19c0-2.85 2.42-5 5.5-5s5.5 2.15 5.5 5"></path>
-                <path d="M14.5 18c.25-1.95 1.84-3.5 4-3.5 1.04 0 2 .35 2.76.94"></path>
-              </svg>
-            </span>
-            <span>계정 관리</span>
-          </button>
-          <button class="nav-item" data-view="loginNoticeSettings" type="button">
-            <span class="nav-icon-wrap" aria-hidden="true">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
-                <path d="M4.5 6.5h15"></path>
-                <path d="M4.5 12h15"></path>
-                <path d="M4.5 17.5h10"></path>
-                <circle cx="18" cy="17.5" r="1.5"></circle>
-              </svg>
-            </span>
-            <span>공지사항 설정</span>
-          </button>
-          <button class="nav-item" data-view="systemSettings" type="button">
-            <span class="nav-icon-wrap" aria-hidden="true">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19 12a7 7 0 0 0-.08-1l2.05-1.6-2-3.46-2.48 1a7.03 7.03 0 0 0-1.73-1L14.5 3h-5l-.26 2.94a7.03 7.03 0 0 0-1.73 1l-2.48-1-2 3.46L5.08 11A7 7 0 0 0 5 12c0 .34.03.67.08 1l-2.05 1.6 2 3.46 2.48-1a7.03 7.03 0 0 0 1.73 1L9.5 21h5l.26-2.94a7.03 7.03 0 0 0 1.73-1l2.48 1 2-3.46L18.92 13c.05-.33.08-.66.08-1Z"></path>
-              </svg>
-            </span>
-            <span>시스템 설정</span>
-          </button>
-          <button class="nav-item" data-view="systemDataDeletion" type="button">
-            <span class="nav-icon-wrap" aria-hidden="true">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
-                <path d="M4.5 7.5h15"></path>
-                <path d="M9.5 7.5V5.75a1.25 1.25 0 0 1 1.25-1.25h2.5a1.25 1.25 0 0 1 1.25 1.25V7.5"></path>
-                <path d="M7.5 7.5v11A1.5 1.5 0 0 0 9 20h6a1.5 1.5 0 0 0 1.5-1.5v-11"></path>
-                <path d="M10 11v5.5"></path>
-                <path d="M14 11v5.5"></path>
-              </svg>
-            </span>
-            <span>데이터 삭제</span>
-          </button>
+          <details class="nav-section" open>
+            <summary class="nav-section-toggle">
+              <span class="nav-section-title">접수 및 등록</span>
+              <span class="nav-section-caret" aria-hidden="true"></span>
+            </summary>
+            <div class="nav-section-items">
+              <button class="nav-item" data-view="applicantRecruitmentManagement" type="button">
+                <span class="nav-icon-wrap" aria-hidden="true">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path d="M4.5 7.5h7"></path>
+                    <path d="M14.5 7.5h5"></path>
+                    <circle cx="13" cy="7.5" r="1.75"></circle>
+                    <path d="M4.5 12h3"></path>
+                    <path d="M10.5 12h9"></path>
+                    <circle cx="9" cy="12" r="1.75"></circle>
+                    <path d="M4.5 16.5h10"></path>
+                    <path d="M17.5 16.5h2"></path>
+                    <circle cx="16" cy="16.5" r="1.75"></circle>
+                  </svg>
+                </span>
+                <span>전형 관리</span>
+              </button>
+              <button class="nav-item" data-view="applicantScheduleManagement" type="button">
+                <span class="nav-icon-wrap" aria-hidden="true">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <rect x="4.5" y="6" width="15" height="13.5" rx="2"></rect>
+                    <path d="M8 4.5v3"></path>
+                    <path d="M16 4.5v3"></path>
+                    <path d="M4.5 9.5h15"></path>
+                    <path d="M8 13h3"></path>
+                    <path d="M13 13h3"></path>
+                    <path d="M8 16.5h8"></path>
+                  </svg>
+                </span>
+                <span>일정 관리</span>
+              </button>
+              <button class="nav-item" data-view="applicantQuestionTemplateManagement" type="button">
+                <span class="nav-icon-wrap" aria-hidden="true">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 5.5h12A1.5 1.5 0 0 1 19.5 7v10A1.5 1.5 0 0 1 18 18.5H6A1.5 1.5 0 0 1 4.5 17V7A1.5 1.5 0 0 1 6 5.5Z"></path>
+                    <path d="M8 9.25h8"></path>
+                    <path d="M8 12h8"></path>
+                    <path d="M8 14.75h5"></path>
+                  </svg>
+                </span>
+                <span>질문 양식 관리</span>
+              </button>
+              <button class="nav-item" data-view="applicantAssignmentManagement" type="button">
+                <span class="nav-icon-wrap" aria-hidden="true">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path d="M4.5 6.5h15"></path>
+                    <path d="M4.5 11.5h15"></path>
+                    <path d="M4.5 16.5h15"></path>
+                    <path d="M8 6.5v10"></path>
+                    <path d="M14 11.5v5"></path>
+                  </svg>
+                </span>
+                <span>배정표 관리</span>
+              </button>
+              <button class="nav-item" data-view="applicantHistory" type="button">
+                <span class="nav-icon-wrap" aria-hidden="true">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 4.5h9l3 3V19a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 19V6A1.5 1.5 0 0 1 6.5 4.5H10"></path>
+                    <path d="M15 4.5V8h3"></path>
+                    <path d="M8 11h8"></path>
+                    <path d="M8 14.5h8"></path>
+                  </svg>
+                </span>
+                <span>접수 이력</span>
+              </button>
+            </div>
+          </details>
+
+          <details class="nav-section" open>
+            <summary class="nav-section-toggle">
+              <span class="nav-section-title">수험생 관리</span>
+              <span class="nav-section-caret" aria-hidden="true"></span>
+            </summary>
+            <div class="nav-section-items">
+              <button class="nav-item" data-view="examineeRegistration" type="button">
+                <span class="nav-icon-wrap" aria-hidden="true">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <circle cx="10" cy="8" r="3.25"></circle>
+                    <path d="M4.5 18.5c0-2.8 2.24-5 5-5h1c2.76 0 5 2.2 5 5"></path>
+                    <path d="M18.5 8v6"></path>
+                    <path d="M15.5 11h6"></path>
+                  </svg>
+                </span>
+                <span>수험생 데이터</span>
+              </button>
+              <button class="nav-item" data-view="admitCardLookup" type="button">
+                <span class="nav-icon-wrap" aria-hidden="true">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <circle cx="11" cy="11" r="5"></circle>
+                    <path d="M20 20l-4.1-4.1"></path>
+                    <path d="M9 11h4"></path>
+                  </svg>
+                </span>
+                <span>수험표 출력</span>
+              </button>
+              <button class="nav-item" data-view="printHistory" type="button">
+                <span class="nav-icon-wrap" aria-hidden="true">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 8V4.5h10V8"></path>
+                    <path d="M6 18H5a2 2 0 0 1-2-2v-5a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v5a2 2 0 0 1-2 2h-1"></path>
+                    <path d="M7 14h10v5.5H7z"></path>
+                    <path d="M16 11.5h2"></path>
+                  </svg>
+                </span>
+                <span>수험표 출력 이력</span>
+              </button>
+              <button class="nav-item" data-view="templateManagement" type="button">
+                <span class="nav-icon-wrap" aria-hidden="true">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <rect x="4" y="5" width="16" height="14" rx="2"></rect>
+                    <path d="M9 5v14"></path>
+                    <path d="M9 10h11"></path>
+                  </svg>
+                </span>
+                <span>수험표 양식 설정</span>
+              </button>
+            </div>
+          </details>
+
+          <details class="nav-section" open>
+            <summary class="nav-section-toggle">
+              <span class="nav-section-title">시스템 관리</span>
+              <span class="nav-section-caret" aria-hidden="true"></span>
+            </summary>
+            <div class="nav-section-items">
+              <button class="nav-item" data-view="loginNoticeSettings" type="button">
+                <span class="nav-icon-wrap" aria-hidden="true">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path d="M4.5 6.5h15"></path>
+                    <path d="M4.5 12h15"></path>
+                    <path d="M4.5 17.5h10"></path>
+                    <circle cx="18" cy="17.5" r="1.5"></circle>
+                  </svg>
+                </span>
+                <span>공지사항 설정</span>
+              </button>
+              <button class="nav-item" data-view="accountManagement" type="button">
+                <span class="nav-icon-wrap" aria-hidden="true">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <circle cx="9" cy="8" r="3"></circle>
+                    <circle cx="17" cy="9" r="2.5"></circle>
+                    <path d="M3.5 19c0-2.85 2.42-5 5.5-5s5.5 2.15 5.5 5"></path>
+                    <path d="M14.5 18c.25-1.95 1.84-3.5 4-3.5 1.04 0 2 .35 2.76.94"></path>
+                  </svg>
+                </span>
+                <span>계정 관리</span>
+              </button>
+              <button class="nav-item" data-view="systemSettings" type="button">
+                <span class="nav-icon-wrap" aria-hidden="true">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19 12a7 7 0 0 0-.08-1l2.05-1.6-2-3.46-2.48 1a7.03 7.03 0 0 0-1.73-1L14.5 3h-5l-.26 2.94a7.03 7.03 0 0 0-1.73 1l-2.48-1-2 3.46L5.08 11A7 7 0 0 0 5 12c0 .34.03.67.08 1l-2.05 1.6 2 3.46 2.48-1a7.03 7.03 0 0 0 1.73 1L9.5 21h5l.26-2.94a7.03 7.03 0 0 0 1.73-1l2.48 1 2-3.46L18.92 13c.05-.33.08-.66.08-1Z"></path>
+                  </svg>
+                </span>
+                <span>시스템 설정</span>
+              </button>
+              <button class="nav-item" data-view="systemDataDeletion" type="button">
+                <span class="nav-icon-wrap" aria-hidden="true">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path d="M4.5 7.5h15"></path>
+                    <path d="M9.5 7.5V5.75a1.25 1.25 0 0 1 1.25-1.25h2.5a1.25 1.25 0 0 1 1.25 1.25V7.5"></path>
+                    <path d="M7.5 7.5v11A1.5 1.5 0 0 0 9 20h6a1.5 1.5 0 0 0 1.5-1.5v-11"></path>
+                    <path d="M10 11v5.5"></path>
+                    <path d="M14 11v5.5"></path>
+                  </svg>
+                </span>
+                <span>데이터 삭제</span>
+              </button>
+              <button class="nav-item" data-view="systemBackupRestore" type="button">
+                <span class="nav-icon-wrap" aria-hidden="true">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 4v6.5"></path>
+                    <path d="m8.5 8.5 3.5 3.5 3.5-3.5"></path>
+                    <path d="M5 14.5v2A2.5 2.5 0 0 0 7.5 19h9A2.5 2.5 0 0 0 19 16.5v-2"></path>
+                    <path d="M12 20v-6.5"></path>
+                    <path d="m15.5 15.5-3.5-3.5-3.5 3.5"></path>
+                  </svg>
+                </span>
+                <span>백업 및 복구</span>
+              </button>
+            </div>
+          </details>
+
+          <details class="nav-section" open>
+            <summary class="nav-section-toggle">
+              <span class="nav-section-title">슈퍼관리자</span>
+              <span class="nav-section-caret" aria-hidden="true"></span>
+            </summary>
+            <div class="nav-section-items">
+              <button class="nav-item" data-view="superAdminManagement" type="button">
+                <span class="nav-icon-wrap" aria-hidden="true">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 3.5 14.7 8l5-.1-3 3.8 1.15 4.8L12 13.8 7.15 16.5 8.3 11.7l-3-3.8 5 .1Z"></path>
+                    <path d="M8.5 19.5h7"></path>
+                  </svg>
+                </span>
+                <span>슈퍼관리자</span>
+              </button>
+            </div>
+          </details>
         </nav>
 
-        <section class="sidebar-panel">
-          <p class="sidebar-panel-label">실시간 현황</p>
-          <div class="sidebar-stat">
-            <strong id="registeredExamineeCount">0명</strong>
-            <span>등록 수험생</span>
-          </div>
-          <div class="sidebar-stat">
-            <strong id="todayPrintCount">0건</strong>
-            <span>오늘 출력</span>
-          </div>
-          <div class="sidebar-stat">
-            <strong id="totalPrintCount">0건</strong>
-            <span>누적 출력</span>
-          </div>
-        </section>
+        <footer class="sidebar-footer">
+          COPYRIGHT(c) 2026 BY U-PLUS SYSTEM. ALL RIGHTS RESERVED.
+        </footer>
+
       </aside>
 
       <div class="page-shell" id="pageShell">
@@ -233,8 +315,8 @@
 
           <div class="topbar-right">
             <div class="user-meta">
-              <span id="currentUserRole">로그인 필요</span>
-              <strong id="currentUserId">-</strong>
+              <strong id="currentUserId">로그인 필요</strong>
+              <span id="currentUserRole"></span>
             </div>
             <button class="ghost-button topbar-logout-button" data-auth-logout="true" id="logoutButton" type="button">
               <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -251,7 +333,33 @@
       </div>
     </div>
 
-    <div class="modal hidden" id="uploadModal" aria-hidden="true">
+    <div class="modal hidden" id="uploadTypeModal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <section class="modal-sheet upload-entry-modal-sheet" role="dialog" aria-modal="true" aria-labelledby="uploadTypeTitle">
+        <div class="modal-header">
+          <div>
+            <h3 id="uploadTypeTitle">업로드 종류 선택</h3>
+            <p class="template-modal-meta">수험생 데이터와 수험생 사진 업로드를 분리해서 진행합니다.</p>
+          </div>
+          <button class="icon-button" data-close-modal="true" type="button" aria-label="닫기">×</button>
+        </div>
+
+        <div class="modal-body upload-entry-modal-body">
+          <div class="upload-entry-grid">
+            <button class="upload-entry-card" data-examinee-upload-mode="workbook" type="button">
+              <strong>수험생 데이터 업로드</strong>
+              <p>양식 XLSX를 업로드하고 신규/수정 반영 정책을 선택합니다.</p>
+            </button>
+            <button class="upload-entry-card" data-examinee-upload-mode="photo-archive" type="button">
+              <strong>수험생 사진 업로드</strong>
+              <p>수험번호 기준 사진 ZIP을 업로드하고 매칭 결과를 시뮬레이션합니다.</p>
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal hidden" id="uploadModal" aria-hidden="true" data-upload-mode="workbook">
       <div class="modal-backdrop" data-close-modal="true"></div>
       <section class="modal-sheet upload-modal-sheet" role="dialog" aria-modal="true" aria-labelledby="uploadTitle">
         <div class="modal-header">
@@ -261,19 +369,22 @@
           <button class="icon-button" data-close-modal="true" type="button" aria-label="닫기">×</button>
         </div>
 
-        <div class="modal-body upload-modal-body">
-          <div class="upload-grid">
-            <article class="upload-card">
-              <h4>수험생 데이터 업로드</h4>
-              <p>제공된 양식에 수험생 정보를 입력하여 업로드합니다.</p>
-              <div class="upload-dropzone" data-upload-dropzone="uploadFileInput">
-                <input class="upload-file-input" id="uploadFileInput" type="file" accept=".xlsx" />
+          <div class="modal-body upload-modal-body">
+            <div class="upload-grid">
+              <article class="upload-card" data-examinee-upload-section="workbook">
+                <h4>수험생 데이터 업로드</h4>
+                <p>제공된 양식에 수험생 정보를 입력하여 업로드합니다.</p>
+                <div class="upload-card-actions">
+                  <button class="ghost-button upload-template-button" data-download-template="examinee-grid" type="button">양식 다운로드</button>
+                </div>
+                <div class="upload-dropzone" data-upload-dropzone="uploadFileInput">
+                  <input class="upload-file-input" id="uploadFileInput" type="file" accept=".xlsx" />
                 <label class="secondary-button upload-select-button" for="uploadFileInput">파일 선택</label>
                 <strong id="uploadFileName">선택된 데이터 파일이 없습니다.</strong>
               </div>
             </article>
 
-            <article class="upload-card">
+            <article class="upload-card" data-examinee-upload-section="photo">
               <h4>수험생 사진 업로드</h4>
               <p>수험번호.jpg 형식의 파일을 ZIP으로 묶어서 업로드합니다.</p>
               <div class="upload-dropzone secondary" data-upload-dropzone="uploadPhotoArchiveInput">
@@ -284,13 +395,19 @@
             </article>
           </div>
 
-          <div class="upload-panel-footer">
-            <button class="ghost-button upload-template-button" data-download-template="examinee-grid" type="button">양식 다운로드</button>
-            <div class="upload-actions">
-              <button class="ghost-button" data-close-modal="true" type="button">닫기</button>
-              <button class="primary-button" data-upload-examinees="true" type="button">업로드 실행</button>
+            <section class="upload-preview-panel" id="uploadPreviewMount" aria-live="polite">
+              <div class="upload-preview-empty">
+                <strong>업로드 미리보기</strong>
+                <p>XLSX 또는 사진 ZIP 파일을 선택하면 실제 저장 전에 데이터 반영과 사진 매칭 결과를 시뮬레이션합니다.</p>
+              </div>
+            </section>
+
+            <div class="upload-panel-footer">
+              <div class="upload-actions">
+                <button class="ghost-button" data-close-modal="true" type="button">닫기</button>
+                <button class="primary-button" data-upload-examinees="true" id="uploadExecuteButton" type="button">데이터 업로드 실행</button>
+              </div>
             </div>
-          </div>
         </div>
       </section>
     </div>
@@ -300,31 +417,89 @@
       <section class="modal-sheet upload-modal-sheet" role="dialog" aria-modal="true" aria-labelledby="applicantUnitUploadTitle">
         <div class="modal-header">
           <div>
-            <h3 id="applicantUnitUploadTitle">접수 설정 데이터 업로드</h3>
+            <h3 id="applicantUnitUploadTitle">전형 관리 데이터 업로드</h3>
           </div>
           <button class="icon-button" data-close-modal="true" type="button" aria-label="닫기">×</button>
         </div>
 
-        <div class="modal-body upload-modal-body">
-          <div class="upload-grid">
-            <article class="upload-card">
-              <h4>접수 설정 업로드</h4>
-              <p>전형, 계열, 모집단위, 전공 코드를 양식에 입력한 뒤 엑셀 파일로 업로드합니다.</p>
-              <div class="upload-dropzone" data-upload-dropzone="applicantUnitUploadFileInput">
-                <input class="upload-file-input" id="applicantUnitUploadFileInput" type="file" accept=".xlsx" />
+          <div class="modal-body upload-modal-body">
+            <div class="upload-grid">
+              <article class="upload-card is-template-card">
+                <h4>업로드 양식 다운로드</h4>
+                <p>전형 관리 업로드 전용 XLSX 양식을 내려받아 코드와 명칭 체계를 맞춥니다.</p>
+                <button class="ghost-button upload-template-button" data-applicant-recruitment-download-template="true" type="button">양식 다운로드</button>
+              </article>
+
+              <article class="upload-card">
+                <h4>전형 관리 업로드</h4>
+                <p>모집시기, 전형, 계열, 모집단위, 전공 코드를 양식에 입력한 뒤 엑셀 파일로 업로드합니다.</p>
+                <div class="upload-dropzone" data-upload-dropzone="applicantUnitUploadFileInput">
+                  <input class="upload-file-input" id="applicantUnitUploadFileInput" type="file" accept=".xlsx" />
                 <label class="secondary-button upload-select-button" for="applicantUnitUploadFileInput">파일 선택</label>
                 <strong id="applicantUnitUploadFileName">선택된 데이터 파일이 없습니다.</strong>
               </div>
             </article>
           </div>
 
-          <div class="upload-panel-footer">
-            <button class="ghost-button upload-template-button" data-applicant-recruitment-download-template="true" type="button">양식 다운로드</button>
-            <div class="upload-actions">
-              <button class="ghost-button" data-close-modal="true" type="button">닫기</button>
-              <button class="primary-button" data-upload-applicant-recruitment="true" type="button">업로드 실행</button>
+          <section class="upload-preview-panel" id="applicantUnitUploadPreviewMount" aria-live="polite">
+            <div class="upload-preview-empty">
+              <strong>업로드 미리보기</strong>
+              <p>XLSX 파일을 선택하면 실제 저장 전에 예상 신규/수정 건수를 전체 파일 기준으로 확인할 수 있습니다.</p>
             </div>
+          </section>
+
+          <div class="upload-panel-footer">
+              <div class="upload-actions">
+                <button class="ghost-button" data-close-modal="true" type="button">닫기</button>
+                <button class="primary-button" data-upload-applicant-recruitment="true" id="applicantUnitUploadExecuteButton" type="button">업로드 실행</button>
+              </div>
+            </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal hidden" id="applicantAssignmentUploadModal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <section class="modal-sheet upload-modal-sheet" role="dialog" aria-modal="true" aria-labelledby="applicantAssignmentUploadTitle">
+        <div class="modal-header">
+          <div>
+            <h3 id="applicantAssignmentUploadTitle">배정표 데이터 업로드</h3>
           </div>
+          <button class="icon-button" data-close-modal="true" type="button" aria-label="닫기">×</button>
+        </div>
+
+          <div class="modal-body upload-modal-body">
+            <div class="upload-grid">
+              <article class="upload-card is-template-card">
+                <h4>업로드 양식 다운로드</h4>
+                <p>배정표 XLSX 양식을 내려받아 날짜, 시간, 고사실 컬럼 구조를 그대로 맞춥니다.</p>
+                <button class="ghost-button upload-template-button" data-applicant-assignment-download-template="true" type="button">양식 다운로드</button>
+              </article>
+
+              <article class="upload-card">
+                <h4>배정표 업로드</h4>
+                <p>모집시기별 전형 고사실 배정표 데이터를 업로드하고, 기존 데이터 처리 방식에 따라 신규/수정/동일 데이터를 선택 반영합니다.</p>
+                <div class="upload-dropzone" data-upload-dropzone="applicantAssignmentUploadFileInput">
+                  <input class="upload-file-input" id="applicantAssignmentUploadFileInput" type="file" accept=".xlsx" />
+                <label class="secondary-button upload-select-button" for="applicantAssignmentUploadFileInput">파일 선택</label>
+                <strong id="applicantAssignmentUploadFileName">선택된 데이터 파일이 없습니다.</strong>
+              </div>
+            </article>
+          </div>
+
+          <section class="upload-preview-panel" id="applicantAssignmentUploadPreviewMount" aria-live="polite">
+            <div class="upload-preview-empty">
+              <strong>업로드 미리보기</strong>
+              <p>XLSX 파일을 선택하면 실제 저장 전에 예상 신규/수정 건수를 전체 파일 기준으로 확인할 수 있습니다.</p>
+            </div>
+          </section>
+
+          <div class="upload-panel-footer">
+              <div class="upload-actions">
+                <button class="ghost-button" data-close-modal="true" type="button">닫기</button>
+                <button class="primary-button" data-upload-applicant-assignment="true" id="applicantAssignmentUploadExecuteButton" type="button">업로드 실행</button>
+              </div>
+            </div>
         </div>
       </section>
     </div>
@@ -339,8 +514,8 @@
       >
         <div class="modal-header">
           <div>
-            <h3 id="applicantRecruitmentUnitModalTitle">접수 설정 상세정보</h3>
-            <p class="template-modal-meta">선택한 접수 설정의 전형, 계열, 모집단위, 전공 정보를 수정합니다.</p>
+            <h3 id="applicantRecruitmentUnitModalTitle">전형 관리 상세정보</h3>
+            <p class="template-modal-meta">선택한 전형 관리 항목의 모집시기, 전형, 계열, 모집단위, 전공 정보를 수정합니다.</p>
           </div>
           <div class="toolbar-actions">
             <button
@@ -362,6 +537,17 @@
         <div class="modal-body applicant-recruitment-modal-body">
           <form class="applicant-recruitment-modal-form" id="applicantRecruitmentUnitForm" data-applicant-recruitment-form="true">
             <div class="applicant-recruitment-modal-grid">
+              <label class="field" for="applicantRecruitmentTrackName">
+                <span>모집시기</span>
+                <input
+                  id="applicantRecruitmentTrackName"
+                  data-applicant-recruitment-input="trackName"
+                  type="text"
+                  placeholder="예: 수시"
+                  autocomplete="off"
+                />
+              </label>
+
               <label class="field" for="applicantRecruitmentAdmissionCode">
                 <span>전형코드</span>
                 <input
@@ -455,6 +641,139 @@
       </section>
     </div>
 
+    <div class="modal hidden" id="applicantAssignmentModal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <section
+        class="modal-sheet applicant-recruitment-modal-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="applicantAssignmentModalTitle"
+      >
+          <div class="modal-header">
+            <div>
+              <h3 id="applicantAssignmentModalTitle">배정표 상세정보</h3>
+              <p class="template-modal-meta">배정표 행의 모집시기별 전형 고사실 배정 정보를 수정합니다.</p>
+            </div>
+          <div class="toolbar-actions">
+            <button
+              class="outline-button danger-button"
+              id="applicantAssignmentModalDeleteButton"
+              data-applicant-assignment-delete=""
+              type="button"
+              disabled
+            >
+              삭제
+            </button>
+            <button class="primary-button" id="applicantAssignmentModalSaveButton" form="applicantAssignmentForm" type="submit" disabled>
+              저장
+            </button>
+            <button class="icon-button" data-close-modal="true" type="button" aria-label="닫기">×</button>
+          </div>
+        </div>
+
+          <div class="modal-body applicant-recruitment-modal-body">
+            <form class="applicant-recruitment-modal-form" id="applicantAssignmentForm" data-applicant-assignment-form="true">
+              <div class="applicant-recruitment-modal-grid">
+                <label class="field" for="applicantAssignmentTrack">
+                  <span>모집시기</span>
+                  <input id="applicantAssignmentTrack" data-applicant-assignment-input="track" type="text" autocomplete="off" />
+                </label>
+                <label class="field" for="applicantAssignmentAdmission">
+                  <span>전형</span>
+                  <input id="applicantAssignmentAdmission" data-applicant-assignment-input="admission" type="text" autocomplete="off" />
+                </label>
+                <label class="field" for="applicantAssignmentSeries">
+                  <span>계열</span>
+                  <input id="applicantAssignmentSeries" data-applicant-assignment-input="series" type="text" autocomplete="off" />
+                </label>
+                <label class="field" for="applicantAssignmentUnit">
+                  <span>모집단위</span>
+                  <input id="applicantAssignmentUnit" data-applicant-assignment-input="unit" type="text" autocomplete="off" />
+                </label>
+                <label class="field" for="applicantAssignmentMajor">
+                  <span>전공</span>
+                  <input id="applicantAssignmentMajor" data-applicant-assignment-input="major" type="text" autocomplete="off" />
+                </label>
+                <label class="field" for="applicantAssignmentDate">
+                  <span>날짜</span>
+                  <input id="applicantAssignmentDate" data-applicant-assignment-input="date" type="date" />
+                </label>
+              <label class="field" for="applicantAssignmentTime">
+                <span>시간</span>
+                <input id="applicantAssignmentTime" data-applicant-assignment-input="time" type="time" />
+              </label>
+              <label class="field" for="applicantAssignmentBuildingCode">
+                <span>고사건물코드</span>
+                <input id="applicantAssignmentBuildingCode" data-applicant-assignment-input="buildingCode" type="text" autocomplete="off" />
+              </label>
+              <label class="field" for="applicantAssignmentBuilding">
+                <span>고사건물</span>
+                <input id="applicantAssignmentBuilding" data-applicant-assignment-input="building" type="text" autocomplete="off" />
+              </label>
+              <label class="field" for="applicantAssignmentRoomCode">
+                <span>고사실코드</span>
+                <input id="applicantAssignmentRoomCode" data-applicant-assignment-input="roomCode" type="text" autocomplete="off" />
+              </label>
+              <label class="field" for="applicantAssignmentRoom">
+                <span>고사실</span>
+                <input id="applicantAssignmentRoom" data-applicant-assignment-input="room" type="text" autocomplete="off" />
+              </label>
+              <label class="field" for="applicantAssignmentAssignedCount">
+                <span>배정인원</span>
+                <input id="applicantAssignmentAssignedCount" data-applicant-assignment-input="assignedCount" type="number" min="1" step="1" />
+              </label>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal hidden" id="applicantScheduleModal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <section
+        class="modal-sheet applicant-recruitment-modal-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="applicantScheduleModalTitle"
+      >
+        <div class="modal-header">
+          <div>
+            <h3 id="applicantScheduleModalTitle">일정 상세정보</h3>
+            <p class="template-modal-meta">모집시기와 전형별 접수 기간, 수험표 조회 기간을 설정합니다.</p>
+          </div>
+          <div class="toolbar-actions">
+            <button class="primary-button" id="applicantScheduleModalSaveButton" form="applicantScheduleForm" type="submit" disabled>
+              저장
+            </button>
+            <button class="icon-button" data-close-modal="true" type="button" aria-label="닫기">×</button>
+          </div>
+        </div>
+
+        <div class="modal-body applicant-recruitment-modal-body">
+          <form class="applicant-recruitment-modal-form" id="applicantScheduleForm" data-applicant-schedule-form="true">
+            <div class="applicant-recruitment-modal-grid">
+              <label class="field" for="applicantScheduleStartAt">
+                <span>접수 시작</span>
+                <input id="applicantScheduleStartAt" data-applicant-schedule-input="applicantScheduleStartAt" type="datetime-local" />
+              </label>
+              <label class="field" for="applicantScheduleEndAt">
+                <span>접수 종료</span>
+                <input id="applicantScheduleEndAt" data-applicant-schedule-input="applicantScheduleEndAt" type="datetime-local" />
+              </label>
+              <label class="field" for="applicantScheduleLookupStartAt">
+                <span>수험표 조회 시작</span>
+                <input id="applicantScheduleLookupStartAt" data-applicant-schedule-input="admitCardLookupScheduleStartAt" type="datetime-local" />
+              </label>
+              <label class="field" for="applicantScheduleLookupEndAt">
+                <span>수험표 조회 종료</span>
+                <input id="applicantScheduleLookupEndAt" data-applicant-schedule-input="admitCardLookupScheduleEndAt" type="datetime-local" />
+              </label>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+
     <div class="modal hidden" id="passwordSetupModal" aria-hidden="true">
       <div class="modal-backdrop" data-password-setup-close="true"></div>
       <section class="modal-sheet password-setup-modal-sheet" role="dialog" aria-modal="true" aria-labelledby="passwordSetupTitle">
@@ -521,6 +840,72 @@
             <div class="form-actions">
               <button class="ghost-button" data-close-modal="true" type="button">취소</button>
               <button class="primary-button" data-account-create-submit="true" type="submit">등록</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal hidden" id="systemAuditLogModal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <section class="modal-sheet system-audit-log-modal-sheet" role="dialog" aria-modal="true" aria-labelledby="systemAuditLogModalTitle">
+        <div class="modal-header">
+          <div>
+            <p class="modal-kicker">백업 및 복구</p>
+            <h3 id="systemAuditLogModalTitle">감사 로그</h3>
+            <p class="template-modal-meta">백업 다운로드, 복원, 데이터 삭제 같은 운영 위험 작업의 실행 이력을 확인합니다.</p>
+          </div>
+          <button class="icon-button" data-close-modal="true" type="button" aria-label="닫기">×</button>
+        </div>
+
+        <div class="modal-body system-audit-log-modal-body" id="systemAuditLogModalBody"></div>
+      </section>
+    </div>
+
+    <div class="modal hidden" id="batchPrintDownloadModal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <section class="modal-sheet batch-print-download-modal-sheet" role="dialog" aria-modal="true" aria-labelledby="batchPrintDownloadTitle">
+        <div class="modal-header">
+          <div>
+            <h3 id="batchPrintDownloadTitle">일괄 다운로드 방식 선택</h3>
+            <p class="template-modal-meta" id="batchPrintDownloadSelectionMeta">선택된 수험생이 없습니다.</p>
+          </div>
+          <button class="icon-button" data-close-modal="true" type="button" aria-label="닫기">×</button>
+        </div>
+        <div class="modal-body batch-print-download-modal-body">
+          <form class="batch-print-download-form" id="batchPrintDownloadForm">
+            <div class="batch-print-download-options">
+              <label class="batch-print-download-option" for="batchPrintDownloadModeCombinedPdf">
+                <input
+                  id="batchPrintDownloadModeCombinedPdf"
+                  name="batchPrintOutputMode"
+                  type="radio"
+                  value="combined-pdf"
+                  data-batch-print-output-mode="combined-pdf"
+                  checked
+                />
+                <span class="batch-print-download-option-content">
+                  <strong>통합 PDF 다운로드</strong>
+                  <span>선택한 수험생의 수험표를 하나의 PDF 파일로 병합하여 다운로드합니다.</span>
+                </span>
+              </label>
+              <label class="batch-print-download-option" for="batchPrintDownloadModeZip">
+                <input
+                  id="batchPrintDownloadModeZip"
+                  name="batchPrintOutputMode"
+                  type="radio"
+                  value="pdf-zip"
+                  data-batch-print-output-mode="pdf-zip"
+                />
+                <span class="batch-print-download-option-content">
+                  <strong>개별 PDF 다운로드</strong>
+                  <span>선택한 수험생의 수험표를 각각의 PDF파일로 생성하여 다운로드합니다.</span>
+                </span>
+              </label>
+            </div>
+            <div class="upload-actions">
+              <button class="ghost-button" data-close-modal="true" type="button">취소</button>
+              <button class="primary-button" id="batchPrintDownloadSubmit" type="submit">파일 다운로드</button>
             </div>
           </form>
         </div>
@@ -623,6 +1008,143 @@
       </section>
     </div>
 
+    <div class="modal hidden" id="applicantPromotionModal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <section
+        class="modal-sheet applicant-promotion-modal-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="applicantPromotionTitle"
+        >
+          <div class="modal-header">
+            <div>
+              <h3 id="applicantPromotionTitle">고사실 배정</h3>
+              <p class="template-modal-meta applicant-promotion-header-meta" id="applicantPromotionSelectionMeta">선택된 접수가 없습니다.</p>
+              <p class="template-modal-meta applicant-promotion-header-meta" id="applicantPromotionAssignmentInfo">저장된 배정표가 없습니다.</p>
+            </div>
+            <button class="icon-button" data-close-modal="true" type="button" aria-label="닫기">×</button>
+          </div>
+
+          <div class="modal-body applicant-promotion-modal-body">
+            <section class="panel-card applicant-promotion-panel">
+              <div class="applicant-promotion-panel-header">
+                <h4>정렬 기준</h4>
+                <p class="muted">선택한 순서대로 접수 이력을 정렬한 뒤 고사실 코드 순서에 맞춰 자동 배정을 진행합니다.</p>
+              </div>
+              <div class="applicant-promotion-settings-grid">
+                <label class="field select-field" for="applicantPromotionSortField1">
+                  <span>정렬1</span>
+                  <select id="applicantPromotionSortField1" data-applicant-promotion-input="sortField1">
+                    <option value="examineeNo">수험번호</option>
+                    <option value="admission">전형</option>
+                    <option value="series">계열</option>
+                    <option value="unit">모집단위</option>
+                    <option value="major">전공</option>
+                  </select>
+                </label>
+                <label class="field select-field" for="applicantPromotionSortField2">
+                  <span>정렬2</span>
+                  <select id="applicantPromotionSortField2" data-applicant-promotion-input="sortField2">
+                    <option value="">선택 안 함</option>
+                    <option value="examineeNo">수험번호</option>
+                    <option value="admission">전형</option>
+                    <option value="series">계열</option>
+                    <option value="unit">모집단위</option>
+                    <option value="major">전공</option>
+                  </select>
+                </label>
+                <label class="field select-field" for="applicantPromotionSortField3">
+                  <span>정렬3</span>
+                  <select id="applicantPromotionSortField3" data-applicant-promotion-input="sortField3">
+                    <option value="">선택 안 함</option>
+                    <option value="examineeNo">수험번호</option>
+                    <option value="admission">전형</option>
+                    <option value="series">계열</option>
+                    <option value="unit">모집단위</option>
+                    <option value="major">전공</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section class="panel-card applicant-promotion-panel">
+              <div class="applicant-promotion-panel-header">
+                <h4>배정 구분</h4>
+                <p class="muted">선택한 값이 달라지면 현재 고사실에 빈 좌석이 남아도 다음 고사실로 넘어갑니다.</p>
+              </div>
+              <div class="applicant-promotion-break-grid">
+                <label class="field select-field" for="applicantPromotionBreakField">
+                  <span>배정 구분</span>
+                  <select id="applicantPromotionBreakField" data-applicant-promotion-input="breakField">
+                    <option value="admission">전형</option>
+                    <option value="series">계열</option>
+                    <option value="unit">모집단위</option>
+                    <option value="major">전공</option>
+                  </select>
+                </label>
+                <label class="checkbox-field applicant-promotion-checkbox" for="applicantPromotionAllowMissingPhoto">
+                  <input id="applicantPromotionAllowMissingPhoto" data-applicant-promotion-input="allowMissingPhoto" type="checkbox" />
+                  <span>사진 미등록 포함하여 배정</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="panel-card applicant-promotion-panel applicant-promotion-overbooking-panel">
+              <div class="applicant-promotion-panel-header">
+                <h4>오버부킹</h4>
+                <p class="muted">사용 시 각 고사실 배정인원에 설정한 비율만큼 추가 배정을 허용합니다.</p>
+              </div>
+              <div class="applicant-promotion-overbooking-grid">
+                <div class="applicant-promotion-overbooking-row applicant-promotion-overbooking-switch-row">
+                  <span class="applicant-promotion-overbooking-label">사용여부</span>
+                  <button
+                    class="applicant-promotion-switch"
+                    id="applicantPromotionAllowOverbooking"
+                    data-applicant-promotion-toggle="allowOverbooking"
+                    type="button"
+                    aria-pressed="false"
+                    aria-label="오버부킹 사용 여부"
+                  >
+                    <span class="applicant-promotion-switch-track" aria-hidden="true">
+                      <span class="applicant-promotion-switch-thumb"></span>
+                    </span>
+                  </button>
+                </div>
+                <label class="applicant-promotion-overbooking-row applicant-promotion-overbooking-rate-row" for="applicantPromotionOverbookingPercent">
+                  <span class="applicant-promotion-overbooking-label">오버부킹 비율</span>
+                  <span class="applicant-promotion-overbooking-rate-input-wrap">
+                    <input
+                      class="applicant-promotion-overbooking-rate-input"
+                      id="applicantPromotionOverbookingPercent"
+                      data-applicant-promotion-input="overbookingPercent"
+                      type="number"
+                      min="1"
+                      max="100"
+                      step="1"
+                      inputmode="numeric"
+                    />
+                    <span class="applicant-promotion-overbooking-rate-unit">%</span>
+                  </span>
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <div class="modal-footer applicant-promotion-modal-footer">
+            <button class="secondary-button" data-close-modal="true" type="button">닫기</button>
+            <button
+              class="primary-button"
+              id="applicantPromotionCommitButton"
+              data-commit-applicant-promotions="true"
+              type="button"
+              disabled
+            >
+              배정 시작
+            </button>
+          </div>
+        </section>
+      </div>
+
     <div class="modal hidden" id="templatePreviewModal" aria-hidden="true">
       <div class="modal-backdrop" data-close-modal="true"></div>
       <section
@@ -691,18 +1213,26 @@
       <div class="busy-overlay-backdrop"></div>
       <section class="busy-overlay-panel" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="busy-spinner" aria-hidden="true"></div>
-        <strong>수험표 PDF 생성 중</strong>
+        <strong>수험표 파일 생성 중</strong>
         <p id="pdfGenerationMessage">잠시만
 기다려 주세요.</p>
         <div class="busy-overlay-progress hidden" id="pdfGenerationProgress" aria-hidden="true">
           <div class="busy-overlay-progress-meta">
-            <span id="pdfGenerationProgressLabel">PDF 생성 진행률</span>
+            <span id="pdfGenerationProgressLabel">파일 생성 진행률</span>
             <span class="busy-overlay-progress-value" id="pdfGenerationProgressValue">진행 중</span>
           </div>
           <div class="progress-bar" id="pdfGenerationProgressBar">
             <span id="pdfGenerationProgressFill"></span>
           </div>
         </div>
+        <button
+          class="busy-overlay-cancel-button hidden"
+          id="pdfGenerationCancelButton"
+          data-cancel-batch-print="true"
+          type="button"
+        >
+          작업 취소
+        </button>
       </section>
     </div>
     <div class="busy-overlay hidden" id="uploadOverlay" aria-hidden="true">
@@ -794,6 +1324,7 @@
     <script src="./client/features/template-editor/table-formatting.js"></script>
     <script src="./client/features/template-editor/toolbar-state.js"></script>
     <script src="./client/template-editor.js"></script>
+    <script src="./client/features/system/login-notice-link-utils.js"></script>
     <script src="./client/features/auth/renderers.js"></script>
     <script src="./client/features/accounts/actions.js"></script>
     <script src="./client/features/modals/controller.js"></script>

@@ -81,6 +81,7 @@
       state.loginNotice.historyIndex = index;
       state.loginNotice.draftHtml = snapshot.html || "";
       state.loginNotice.selectionSnapshot = snapshot.selection || null;
+      state.loginNotice.selectedImageElement = null;
 
       documentElement.innerHTML = snapshot.html || getLoginNoticeEditorEmptyMarkup();
       normalizeTemplateEditorFontNodes(documentElement);
@@ -130,6 +131,11 @@
       });
       state.loginNotice.draftHtml = getLoginNoticeSerializedHtml();
       state.loginNotice.selectionSnapshot = createLoginNoticeSelectionSnapshot();
+
+      if (state.loginNotice.selectedImageElement && !documentElement.contains(state.loginNotice.selectedImageElement)) {
+        state.loginNotice.selectedImageElement = null;
+      }
+
       recordLoginNoticeHistorySnapshot({ force: forceHistory });
       setLoginNoticeEditorStatus(`${getActiveNoticeScopeLabel()} 공지사항을 편집 중입니다.`);
       updateLoginNoticeEditorActiveCell();

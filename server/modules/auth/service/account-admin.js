@@ -22,7 +22,7 @@ function createAuthAccountAdminService({
     }
 
     if (!accountRoleOptions.includes(role)) {
-      throw createHttpError(400, "계정 권한은 관리자, 운영자, 조회용 중 하나여야 합니다.");
+      throw createHttpError(400, `계정 권한은 ${accountRoleOptions.join(", ")} 중 하나여야 합니다.`);
     }
 
     return {

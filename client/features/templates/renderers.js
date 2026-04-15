@@ -8,8 +8,24 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, (applicantFormConfig) => {
   const getApplicantAnswerTypeLabel =
     applicantFormConfig?.getApplicantAnswerTypeLabel || ((value) => String(value || "텍스트"));
-  const getApplicantStatusLabel =
-    applicantFormConfig?.getApplicantStatusLabel || ((value) => String(value || "접수 완료"));
+  const isApplicantScheduleOpen =
+    applicantFormConfig?.isApplicantScheduleOpen ||
+    ((options = {}) => {
+      const normalizedOptions = options && typeof options === "object" ? options : {};
+      return normalizedOptions.scheduleState?.isOpen === true;
+    });
+
+  const getApplicantStatusLabel = (status, options = {}) => {
+    const applicantStatusOptions = options && typeof options === "object" ? options : {};
+
+    return applicantFormConfig?.getApplicantStatusLabel
+      ? applicantFormConfig.getApplicantStatusLabel(status, applicantStatusOptions)
+      : String(status || "").trim() === "promoted"
+        ? "배정 완료"
+        : isApplicantScheduleOpen(applicantStatusOptions)
+          ? "접수 중"
+          : "접수 완료";
+  };
   const getApplicantSystemFieldLabel =
     applicantFormConfig?.getApplicantSystemFieldLabel || ((value) => String(value || "일반 항목"));
 
@@ -24,6 +40,18 @@
 
   function escapeAttribute(value) {
     return escapeHtml(value);
+  }
+
+  function renderMenuSectionCopy(title = "", description = "") {
+    const normalizedTitle = String(title || "").trim();
+    const normalizedDescription = String(description || "").trim();
+
+    return `
+      <div class="menu-section-copy">
+        ${normalizedTitle ? `<h3>${escapeHtml(normalizedTitle)}</h3>` : ""}
+        ${normalizedDescription ? `<p>${escapeHtml(normalizedDescription)}</p>` : ""}
+      </div>
+    `;
   }
 
   function chunkItems(items = [], size = 3) {
@@ -46,10 +74,7 @@
     return `
       <article class="form-card template-management-panel">
         <div class="section-header template-management-header">
-          <div>
-            <h3>수험표 양식 관리</h3>
-            <p>등록된 수험표 양식을 확인하고 관리합니다.</p>
-          </div>
+          ${renderMenuSectionCopy("수험표 양식 설정", "등록된 수험표 양식을 확인하고 관리합니다.")}
           <button class="primary-button" data-add-template="true" type="button">새 양식 등록</button>
         </div>
 
@@ -81,11 +106,16 @@
         ${normalizedItems
           .map((answerItem) => {
             const isPhotoValue = answerItem?.inputType === "photo";
+            const isFileValue = answerItem?.inputType === "file";
             const answerValue = isPhotoValue
               ? answerItem?.value?.hasPhoto
                 ? `${answerItem?.value?.fileName || "등록된 사진"}`
                 : "미등록"
-              : String(answerItem?.value || "").trim() || "-";
+              : isFileValue
+                ? answerItem?.value?.hasFile
+                  ? `${answerItem?.value?.fileName || "등록된 파일"}`
+                  : "미등록"
+                : String(answerItem?.value || "").trim() || "-";
 
             return `
               <div class="applicant-answer-item">
@@ -148,7 +178,7 @@
       { label: "이름", value: normalizedSubmission.name || "-" },
       { label: "이메일", value: normalizedSubmission.email || "-" },
     ];
-    const prioritizedSystemFieldOrder = ["admission", "series", "unit", "major"];
+    const prioritizedSystemFieldOrder = ["track", "admission", "series", "unit", "major"];
     const filteredAnswerItems = (Array.isArray(normalizedSubmission.answerItems) ? normalizedSubmission.answerItems : [])
       .filter((answerItem) => {
         const fieldKey = String(answerItem?.fieldKey || "").trim();
@@ -182,10 +212,28 @@
       .filter(Boolean);
     const remainingAnswerFields = filteredAnswerItems
       .filter((answerItem) => !prioritizedFieldKeys.has(String(answerItem?.fieldKey || "").trim()))
-      .map((answerItem) => ({
-        label: answerItem?.questionText || "-",
-        value: String(answerItem?.value || "").trim() || "-",
-      }));
+      .map((answerItem) => {
+        if (answerItem?.inputType === "file") {
+          const fileValue = answerItem?.value && typeof answerItem.value === "object" ? answerItem.value : {};
+          const fileLabel = String(fileValue.fileName || "").trim();
+          const fileUrl = String(fileValue.fileUrl || "").trim();
+
+          return fileValue.hasFile === true && fileLabel && fileUrl
+            ? {
+                label: answerItem?.questionText || "-",
+                markup: `<a class="applicant-submission-detail-file-link" href="${escapeAttribute(fileUrl)}">${escapeHtml(fileLabel)}</a>`,
+              }
+            : {
+                label: answerItem?.questionText || "-",
+                value: fileValue.hasFile === true ? fileLabel || "등록된 파일" : "미등록",
+              };
+        }
+
+        return {
+          label: answerItem?.questionText || "-",
+          value: String(answerItem?.value || "").trim() || "-",
+        };
+      });
     const orderedAnswerFields = [...prioritizedAnswerFields, ...remainingAnswerFields];
     const fieldRows = [summaryFields, ...chunkItems(orderedAnswerFields, 3)].filter((row) => Array.isArray(row) && row.length > 0);
 
@@ -248,10 +296,7 @@
       return `
         <article class="form-card applicant-history-panel">
           <div class="section-header">
-            <div>
-              <h3>접수 이력</h3>
-              <p>공통 그리드를 불러오는 중입니다.</p>
-            </div>
+            ${renderMenuSectionCopy("접수 이력", "공통 그리드를 불러오는 중입니다.")}
           </div>
         </article>
       `;
@@ -260,10 +305,12 @@
     return `
       ${sharedGridRenderer.renderExamineeResultTable({
         title: "접수 이력",
+        description: "수험생이 제출한 접수 이력을 조회하고, 답변 상세와 이관 대상을 확인합니다.",
         gridKey: "applicantHistoryGrid",
         showPrintColumn: false,
-        selectable: false,
+        selectable: true,
         showRowNumber: true,
+        checkboxFirst: true,
         headerActionsMarkup: sharedGridRenderer.renderGridHeaderActions({ gridKey: "applicantHistoryGrid" }),
         emptyMessage: "데이터가 없습니다.",
       })}
@@ -387,29 +434,6 @@
     `;
   }
 
-  function renderApplicantSettingsTabs() {
-    const activeSection = String(state.applicantManager?.settingsSection || "recruitment-units").trim();
-
-    return `
-      <div class="template-management-tabs applicant-settings-tabs">
-        <button
-          class="template-management-tab ${activeSection === "recruitment-units" ? "active" : ""}"
-          data-applicant-settings-section="recruitment-units"
-          type="button"
-        >
-          접수 설정
-        </button>
-        <button
-          class="template-management-tab ${activeSection === "fields" ? "active" : ""}"
-          data-applicant-settings-section="fields"
-          type="button"
-        >
-          질문 항목 설정
-        </button>
-      </div>
-    `;
-  }
-
   function renderApplicantRecruitmentSettingsPanel() {
     const sharedGridRenderer = getSharedGridRenderer();
 
@@ -417,9 +441,7 @@
       return `
         <article class="form-card applicant-recruitment-settings-panel">
           <div class="section-header">
-            <div>
-              <p>공통 그리드를 불러오는 중입니다.</p>
-            </div>
+            ${renderMenuSectionCopy("전형 관리", "공통 그리드를 불러오는 중입니다.")}
           </div>
         </article>
       `;
@@ -427,17 +449,14 @@
 
     return `
       ${sharedGridRenderer.renderExamineeResultTable({
-        title: "",
+        title: "전형 관리",
+        description: "수험생이 접수 화면에서 선택할 수 있는 모집시기, 전형, 계열, 모집단위, 전공을 관리합니다.",
         gridKey: "applicantRecruitmentGrid",
         showPrintColumn: false,
         selectable: false,
         showRowNumber: true,
-        headerLeadingMarkup: `
-          <div>
-            <p>수험생이 접수 화면에서 선택할 수 있는 전형, 계열, 모집단위, 전공을 관리합니다. 클릭하면 상세 편집창이 표시됩니다.</p>
-          </div>
-        `,
         headerActionsMarkup: `
+          <button class="ghost-button" data-applicant-recruitment-add="true" type="button">새 항목 추가</button>
           <button class="outline-button" data-download-applicant-recruitment="true" type="button">
             <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M12 4v10"></path>
@@ -460,14 +479,101 @@
     `;
   }
 
+  function renderApplicantAssignmentManagementPanel() {
+    const sharedGridRenderer = getSharedGridRenderer();
+
+    if (!sharedGridRenderer?.renderExamineeResultTable) {
+      return `
+        <article class="form-card applicant-recruitment-settings-panel">
+          <div class="section-header">
+            ${renderMenuSectionCopy("배정표 관리", "공통 그리드를 불러오는 중입니다.")}
+          </div>
+        </article>
+      `;
+    }
+
+    return `
+      ${sharedGridRenderer.renderExamineeResultTable({
+        title: "배정표 관리",
+        description: "접수기간 중 모집시기별 전형 고사실 배정표를 미리 등록하고 관리하며, 행을 클릭하면 상세 편집창이 표시됩니다.",
+        gridKey: "applicantAssignmentGrid",
+        showPrintColumn: false,
+        selectable: false,
+        showRowNumber: true,
+        headerActionsMarkup: `
+          <button class="outline-button" data-download-applicant-assignment="true" type="button">
+            <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 4v10"></path>
+              <path d="m7.5 10.5 4.5 4.5 4.5-4.5"></path>
+              <path d="M4 20h16"></path>
+            </svg>
+            <span>다운로드</span>
+          </button>
+          <button class="primary-button" data-open-modal="applicantAssignmentUploadModal" type="button">
+            <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 16V4"></path>
+              <path d="M7.5 8.5 12 4l4.5 4.5"></path>
+              <path d="M4 20h16"></path>
+            </svg>
+            <span>데이터 업로드</span>
+          </button>
+        `,
+        emptyMessage: "등록된 배정표 데이터가 없습니다.",
+      })}
+    `;
+  }
+
+  function renderApplicantScheduleManagementPanel() {
+    const sharedGridRenderer = getSharedGridRenderer();
+
+    if (!sharedGridRenderer?.renderExamineeResultTable || !sharedGridRenderer?.renderGridHeaderActions) {
+      return `
+        <article class="form-card applicant-recruitment-settings-panel">
+          <div class="section-header">
+            ${renderMenuSectionCopy("일정 관리", "공통 그리드를 불러오는 중입니다.")}
+          </div>
+        </article>
+      `;
+    }
+
+    return `
+      ${sharedGridRenderer.renderExamineeResultTable({
+        title: "일정 관리",
+        description: "전형 관리에 등록된 모집시기와 전형별로 접수 기간과 수험표 조회 기간을 설정합니다. 행을 클릭하면 편집창이 표시됩니다.",
+        gridKey: "applicantScheduleGrid",
+        showPrintColumn: false,
+        selectable: false,
+        showRowNumber: true,
+        headerActionsMarkup: sharedGridRenderer.renderGridHeaderActions({ gridKey: "applicantScheduleGrid" }),
+        emptyMessage: "전형 관리에 등록된 일정 대상이 없습니다.",
+      })}
+    `;
+  }
+
   function renderApplicantFieldSettingsPanel() {
     const editorState = state.applicantManager?.fieldEditor || {};
     const isEditorActive = editorState.isActive === true;
     const inputTypeOptions = Array.isArray(applicantFormConfig?.answerTypeOptions) ? [...applicantFormConfig.answerTypeOptions] : [];
     const systemFieldOptions = Array.isArray(applicantFormConfig?.systemFieldOptions) ? applicantFormConfig.systemFieldOptions : [];
+    const filteredSystemFieldOptions = systemFieldOptions.filter((option) => {
+      const optionKey = String(option?.key || "").trim();
+
+      if (editorState.inputType === "file") {
+        return optionKey === "";
+      }
+
+      if (editorState.inputType === "photo") {
+        return optionKey === "" || optionKey === "photo";
+      }
+
+      return optionKey !== "photo";
+    });
     const editorOptions = Array.isArray(editorState.options) ? editorState.options : [];
     const allowCustomOption = editorState.allowCustomOption === true;
     const customOptionLabel = String(editorState.customOptionLabel || "").trim();
+    const selectedSystemFieldKey = filteredSystemFieldOptions.some((option) => String(option?.key || "").trim() === editorState.systemFieldKey)
+      ? editorState.systemFieldKey
+      : "";
 
     if (editorState.inputType && !inputTypeOptions.some((option) => option.key === editorState.inputType)) {
       inputTypeOptions.push({
@@ -480,9 +586,7 @@
       <section class="applicant-settings-layout">
         <article class="form-card applicant-settings-fields-panel">
           <div class="section-header">
-            <div>
-              <p>수험생 접수 페이지에 표시할 질문과 데이터 유형을 관리합니다.</p>
-            </div>
+            ${renderMenuSectionCopy("질문 양식 관리", "수험생 접수 페이지에 표시할 질문과 데이터 유형을 관리합니다.")}
             <div class="inline-actions">
               <button class="ghost-button" data-applicant-field-preview="true" type="button">미리보기</button>
               <button class="ghost-button" data-applicant-field-add="true" type="button">새 질문 추가</button>
@@ -542,10 +646,10 @@
               <label class="field select-field">
                 <span>수험생 시스템 연결</span>
                 <select data-applicant-field-input="systemFieldKey" ${isEditorActive ? "" : "disabled"}>
-                  ${systemFieldOptions
+                  ${filteredSystemFieldOptions
                     .map(
                       (option) => `
-                        <option value="${escapeAttribute(option.key)}" ${editorState.systemFieldKey === option.key ? "selected" : ""}>
+                        <option value="${escapeAttribute(option.key)}" ${selectedSystemFieldKey === option.key ? "selected" : ""}>
                           ${escapeHtml(option.label)}
                         </option>
                       `,
@@ -646,26 +750,6 @@
     `;
   }
 
-  function renderApplicantFormSettingsPanel() {
-    const activeSection = String(state.applicantManager?.settingsSection || "recruitment-units").trim();
-
-    return `
-      <section class="view-stack applicant-form-settings-panel-stack">
-        <article class="form-card applicant-form-settings-shell">
-          <div class="section-header applicant-form-settings-section-header">
-            <div class="applicant-settings-tab-block">
-              <span class="applicant-settings-tab-label">접수 양식 설정</span>
-              ${renderApplicantSettingsTabs()}
-            </div>
-          </div>
-          <div class="applicant-form-settings-shell-body">
-            ${activeSection === "recruitment-units" ? renderApplicantRecruitmentSettingsPanel() : renderApplicantFieldSettingsPanel()}
-          </div>
-        </article>
-      </section>
-    `;
-  }
-
   function renderTemplateManagement() {
     return `
       <section class="view-stack template-management-view">
@@ -682,18 +766,45 @@
     `;
   }
 
-  function renderApplicantFormSettings() {
+  function renderApplicantRecruitmentManagement() {
     return `
-      <section class="view-stack applicant-form-settings-view table-view-stack">
-        ${renderApplicantFormSettingsPanel()}
+      <section class="view-stack applicant-form-settings-view table-view-stack is-recruitment-settings">
+        ${renderApplicantRecruitmentSettingsPanel()}
+      </section>
+    `;
+  }
+
+  function renderApplicantQuestionTemplateManagement() {
+    return `
+      <section class="view-stack applicant-form-settings-view table-view-stack is-field-settings">
+        ${renderApplicantFieldSettingsPanel()}
+      </section>
+    `;
+  }
+
+  function renderApplicantScheduleManagement() {
+    return `
+      <section class="view-stack applicant-history-view table-view-stack">
+        ${renderApplicantScheduleManagementPanel()}
+      </section>
+    `;
+  }
+
+  function renderApplicantAssignmentManagement() {
+    return `
+      <section class="view-stack applicant-history-view table-view-stack">
+        ${renderApplicantAssignmentManagementPanel()}
       </section>
     `;
   }
 
   return {
-    renderApplicantFormSettings,
+    renderApplicantAssignmentManagement,
     renderApplicantHistoryDetailModalContent,
     renderApplicantHistory,
+    renderApplicantQuestionTemplateManagement,
+    renderApplicantRecruitmentManagement,
+    renderApplicantScheduleManagement,
     renderTemplateManagement,
   };
 });

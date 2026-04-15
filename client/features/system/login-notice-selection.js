@@ -1,13 +1,18 @@
 (function (globalScope, factory) {
   if (typeof module === "object" && module.exports) {
-    module.exports = factory();
+    module.exports = factory({
+      loginNoticeLinkUtilsModule: require("./login-notice-link-utils"),
+    });
     return;
   }
 
-  globalScope.AdmitCardLoginNoticeSelection = factory();
-})(typeof globalThis !== "undefined" ? globalThis : this, () => {
+  globalScope.AdmitCardLoginNoticeSelection = factory({
+    loginNoticeLinkUtilsModule: globalScope.AdmitCardLoginNoticeLinkUtils,
+  });
+})(typeof globalThis !== "undefined" ? globalThis : this, ({ loginNoticeLinkUtilsModule }) => {
   const loginNoticeSelectionHistoryModule = globalThis.AdmitCardLoginNoticeSelectionHistory;
   const loginNoticeSelectionRangeModule = globalThis.AdmitCardLoginNoticeSelectionRange;
+  const { decorateLoginNoticeLinks } = loginNoticeLinkUtilsModule || {};
 
   if (!loginNoticeSelectionHistoryModule?.createLoginNoticeSelectionHistoryController) {
     throw new Error("client/features/system/login-notice-selection-history.js must be loaded before client/features/system/login-notice-selection.js.");
@@ -44,6 +49,48 @@
     syncEditorToolbarColorControls,
     updateEditorToolbarFormattingState,
   }) {
+    function decorateLoginNoticeDocumentLinks(rootElement) {
+      if (typeof decorateLoginNoticeLinks === "function") {
+        decorateLoginNoticeLinks(rootElement);
+      }
+    }
+
+    function clearLoginNoticeSelectedImage() {
+      if (state.loginNotice.selectedImageElement) {
+        state.loginNotice.selectedImageElement.classList.remove("is-selected-object");
+      }
+
+      state.loginNotice.selectedImageElement = null;
+    }
+
+    function getLoginNoticeSelectedImage() {
+      const noticeEditor = getLoginNoticeEditorElement();
+      const imageElement = state.loginNotice.selectedImageElement;
+
+      if (!imageElement || !noticeEditor?.contains(imageElement)) {
+        return null;
+      }
+
+      return imageElement;
+    }
+
+    function selectLoginNoticeImage(imageElement) {
+      const noticeEditor = getLoginNoticeEditorElement();
+
+      if (!(imageElement instanceof HTMLImageElement) || !noticeEditor?.contains(imageElement)) {
+        clearLoginNoticeSelectedImage();
+        return;
+      }
+
+      if (state.loginNotice.selectedImageElement === imageElement) {
+        return;
+      }
+
+      clearLoginNoticeSelectedImage();
+      state.loginNotice.selectedImageElement = imageElement;
+      imageElement.classList.add("is-selected-object");
+    }
+
     function syncLoginNoticeTableVerticalAlignButtons(selectedCell, noticeEditor) {
       if (!noticeEditor) {
         return;
@@ -76,6 +123,7 @@
       stripTemplateEditorTransientState(container);
       normalizeTemplateEditorFontNodes(container);
       normalizeTemplateEditorTables(container);
+      decorateLoginNoticeDocumentLinks(container);
       return container.innerHTML;
     }
 
@@ -180,6 +228,7 @@
       stripTemplateEditorTransientState(clone);
       normalizeTemplateEditorFontNodes(clone);
       normalizeTemplateEditorTables(clone);
+      decorateLoginNoticeDocumentLinks(clone);
 
       const html = clone.innerHTML.trim();
       return isLoginNoticeMeaningfulHtml(html) ? html : "";
@@ -219,14 +268,17 @@
     return Object.freeze({
       buildLoginNoticeEditorMarkup,
       captureLoginNoticeEditorSelection,
+      clearLoginNoticeSelectedImage,
       focusLoginNoticeEditorCell,
       getClosestLoginNoticeElement,
       getLoginNoticeSelectedCell,
       getLoginNoticeSelectedCells,
+      getLoginNoticeSelectedImage,
       getLoginNoticeSelectionNode,
       getLoginNoticeSerializedHtml,
       redoLoginNoticeEditorHistory,
       restoreLoginNoticeEditorSelection,
+      selectLoginNoticeImage,
       setLoginNoticeEditorStatus,
       syncLoginNoticeEditorDraft,
       undoLoginNoticeEditorHistory,

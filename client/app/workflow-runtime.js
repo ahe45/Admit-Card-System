@@ -17,11 +17,13 @@
     buildApiUrl,
     buildUploadSummaryMessage,
     clearSelectedUploadFiles,
+    closeModal,
     createAdmitCardWorkflowController,
     createBusyOverlayController,
     createExamineeUploadWorkflowController,
     createPdfGenerationState,
     createUploadState,
+    getBatchPrintDownloadElements,
     getDocumentBody,
     getExamineeGridRows,
     getGridRowId,
@@ -30,6 +32,7 @@
     getPdfGenerationElements,
     getUploadFileInput,
     getUploadOverlayElements,
+    getUploadPreviewMount,
     getUploadPhotoArchiveInput,
     handleAuthenticationFailure,
     hideToast,
@@ -77,6 +80,7 @@
     } = busyOverlayController;
 
     const examineeUploadWorkflowController = createExamineeUploadWorkflowController({
+      apiRequest,
       apiRequestWithUploadProgress,
       arrayBufferToBase64,
       buildUploadSummaryMessage,
@@ -84,6 +88,7 @@
       closeUploadOverlayWithAlert,
       closeUploadOverlayWithToast,
       getUploadFileInput,
+      getUploadPreviewMount,
       getUploadPhotoArchiveInput,
       isUploadActive,
       loadBootstrapData,
@@ -95,9 +100,14 @@
       waitForNextFrame,
     });
     const {
+      clearExamineeUploadPreview,
+      previewSelectedExamineePhotoArchiveFile,
+      previewSelectedExamineeImportFile,
       readUploadFileAsBase64,
+      setExamineeUploadMode,
       uploadPhotoArchiveFile,
       uploadSelectedExamineeFile,
+      updateExamineeImportExistingDataPolicy,
     } = examineeUploadWorkflowController;
 
     const admitCardWorkflowController = createAdmitCardWorkflowController({
@@ -106,6 +116,8 @@
       apiRequest,
       apiRequestForBlobWithProgress,
       buildApiUrl,
+      closeModal,
+      getBatchPrintDownloadElements,
       getExamineeGridRows,
       getGridRowId,
       getGridRows,
@@ -122,14 +134,18 @@
     });
     const {
       batchPrintSelectedExaminees,
+      cancelBatchPrintJob,
       fetchExamineeAdmitCardPdfUrl,
       getSelectedAdmitCardExamineeCount,
       getSelectedAdmitCardExaminees,
       normalizeExamineeNoList,
       openPdfWindow,
+      prepareBatchPrintDownloadModal,
       printExamineeAdmitCard,
       printPdfUrl,
       recordExamineePrint,
+      submitBatchPrintDownloadSelection,
+      updateBatchPrintOutputMode,
     } = admitCardWorkflowController;
 
     return Object.freeze({
@@ -148,6 +164,11 @@
       normalizeExamineeNoList,
       normalizeProgressValue,
       openPdfWindow,
+      cancelBatchPrintJob,
+      clearExamineeUploadPreview,
+      previewSelectedExamineePhotoArchiveFile,
+      prepareBatchPrintDownloadModal,
+      previewSelectedExamineeImportFile,
       printExamineeAdmitCard,
       printPdfUrl,
       readUploadFileAsBase64,
@@ -155,12 +176,16 @@
       resetPdfGenerationState,
       resetUploadState,
       runWithPdfGenerationLock,
+      setExamineeUploadMode,
       setPdfGenerationState,
       setUploadOverlayState,
       showUploadFailureAlert,
+      submitBatchPrintDownloadSelection,
       syncAppBusyState,
       syncPdfGenerationOverlay,
       syncUploadOverlay,
+      updateBatchPrintOutputMode,
+      updateExamineeImportExistingDataPolicy,
       uploadPhotoArchiveFile,
       uploadSelectedExamineeFile,
     });

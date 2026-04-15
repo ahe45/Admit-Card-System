@@ -7,8 +7,10 @@
   globalScope.AdmitCardGridFilterColumns = factory();
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   function createGridColumnHelpers({
+    applicantAssignmentGridColumns,
     applicantHistoryGridColumns,
     applicantRecruitmentGridColumns,
+    applicantScheduleGridColumns,
     accountGridColumns,
     admitCardLookupGridColumns,
     examineePhotoColumn,
@@ -17,26 +19,34 @@
     resultGridColumns,
   }) {
     function getGridColumns(gridKey) {
-      const baseColumns =
-        gridKey === "printHistoryGrid"
-          ? printHistoryGridColumns
-          : gridKey === "accountManagementGrid"
-            ? accountGridColumns
-            : gridKey === "applicantHistoryGrid"
-              ? applicantHistoryGridColumns
-              : gridKey === "applicantRecruitmentGrid"
-                ? applicantRecruitmentGridColumns
-            : gridKey === "examineeRegistrationGrid"
-              ? [...examineeRegistrationGridColumns, examineePhotoColumn]
-              : gridKey === "admitCardLookupGrid"
-                ? admitCardLookupGridColumns
-                : resultGridColumns;
+      let baseColumns = resultGridColumns;
+
+      if (gridKey === "printHistoryGrid") {
+        baseColumns = printHistoryGridColumns;
+      } else if (gridKey === "accountManagementGrid") {
+        baseColumns = accountGridColumns;
+      } else if (gridKey === "applicantHistoryGrid") {
+        baseColumns = applicantHistoryGridColumns;
+      } else if (gridKey === "applicantAssignmentGrid") {
+        baseColumns = applicantAssignmentGridColumns;
+      } else if (gridKey === "applicantRecruitmentGrid") {
+        baseColumns = applicantRecruitmentGridColumns;
+      } else if (gridKey === "applicantScheduleGrid") {
+        baseColumns = applicantScheduleGridColumns;
+      } else if (gridKey === "examineeRegistrationGrid") {
+        baseColumns = [...examineeRegistrationGridColumns, examineePhotoColumn];
+      } else if (gridKey === "admitCardLookupGrid") {
+        baseColumns = admitCardLookupGridColumns;
+      }
+
       const allowFilters =
         gridKey === "examineeRegistrationGrid" ||
         gridKey === "printHistoryGrid" ||
         gridKey === "accountManagementGrid" ||
         gridKey === "applicantHistoryGrid" ||
-        gridKey === "applicantRecruitmentGrid";
+        gridKey === "applicantAssignmentGrid" ||
+        gridKey === "applicantRecruitmentGrid" ||
+        gridKey === "applicantScheduleGrid";
 
       return baseColumns.map((column) => ({
         ...column,

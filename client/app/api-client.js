@@ -227,6 +227,11 @@
         reject(new Error("요청이 중단되었습니다."));
       });
 
+      callbacks.onRequest?.({
+        xhr,
+        abort: () => xhr.abort(),
+      });
+
       xhr.send(options.body || null);
     });
   }

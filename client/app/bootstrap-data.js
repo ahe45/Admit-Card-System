@@ -37,6 +37,7 @@
       EXAMINEE_DETAIL_FIELD_KEYS,
       HEADER_FILTER_STORAGE_KEY,
       applyLoginNoticePayload,
+      applySystemBackupAutomationPayload,
       applySystemSettingsPayload,
       cancelAccountEdit,
       clearAutoLogoutCountdownInterval,
@@ -46,6 +47,8 @@
       createExamineeDetailState,
       createHeaderFilters,
       createPdfGenerationState,
+      createSuperAdminState,
+      createSystemAuditLogState,
       createSystemDataDeletionState,
       createTemplatePreviewState,
       getAccountGridRows,
@@ -201,6 +204,8 @@
       setAccountGridRows([]);
       setTemplateCards([]);
       state.systemDataDeletion = createSystemDataDeletionState();
+      state.systemAuditLog = createSystemAuditLogState();
+      state.superAdmin = createSuperAdminState();
       state.metrics = {
         registeredExaminees: 0,
         todayPrints: 0,
@@ -230,6 +235,10 @@
 
     function applyBootstrapPayload(payload) {
       applySystemSettingsPayload(payload.systemSettings);
+      applySystemBackupAutomationPayload(payload.systemBackupAutomation);
+      state.superAdmin = createSuperAdminState({
+        ...(payload.superAdminSettings || {}),
+      });
       applyLoginNoticePayload(payload.loginNoticeHtml, { scope: "login" });
       applyLoginNoticePayload(payload.applicantNoticeHtml, { scope: "applicant" });
       const nextExamineeRows = Array.isArray(payload.examinees) ? payload.examinees.map(normalizeExamineeRecord) : [];
@@ -244,6 +253,8 @@
         ...state.applicantManager,
         fields: Array.isArray(payload.applicantManager?.fields) ? payload.applicantManager.fields : [],
         recruitmentUnits: Array.isArray(payload.applicantManager?.recruitmentUnits) ? payload.applicantManager.recruitmentUnits : [],
+        schedules: Array.isArray(payload.applicantManager?.schedules) ? payload.applicantManager.schedules : [],
+        assignments: Array.isArray(payload.applicantManager?.assignments) ? payload.applicantManager.assignments : [],
         submissions: Array.isArray(payload.applicantManager?.submissions) ? payload.applicantManager.submissions : [],
         settings: payload.applicantManager?.settings || createApplicantManagementState().settings,
       };

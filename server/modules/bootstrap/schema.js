@@ -1,8 +1,10 @@
 const { createAccountSchemaBootstrap } = require("./schema/accounts");
 const { createApplicantSchemaBootstrap } = require("./schema/applications");
+const { COLUMN_COMMENTS_BY_TABLE, TABLE_COMMENTS_BY_TABLE } = require("./schema/comments");
 const { createExamineeSchemaBootstrap } = require("./schema/examinee");
 const { createPrintHistorySchemaBootstrap } = require("./schema/print-history");
 const { createSchemaQueryHelpers } = require("./schema/helpers");
+const { createSystemAuditLogSchemaBootstrap } = require("./schema/system-audit-log");
 const { createSystemSettingsSchemaBootstrap } = require("./schema/system-settings");
 
 function createSchemaBootstrapService({
@@ -12,7 +14,7 @@ function createSchemaBootstrapService({
   query,
 }) {
   const schemaQueryHelpers = createSchemaQueryHelpers({ query });
-  const { getTableColumns, hasColumn, hasTable } = schemaQueryHelpers;
+  const { getTableColumns, hasColumn, hasTable, syncColumnComments, syncTableComments } = schemaQueryHelpers;
 
   const examineeSchemaBootstrap = createExamineeSchemaBootstrap({
     getTableColumns,
@@ -53,11 +55,25 @@ function createSchemaBootstrapService({
   });
   const { ensureSystemSettingsSchema } = systemSettingsSchemaBootstrap;
 
+  const systemAuditLogSchemaBootstrap = createSystemAuditLogSchemaBootstrap({
+    getTableColumns,
+    hasColumn,
+    query,
+  });
+  const { ensureSystemAuditLogSchema } = systemAuditLogSchemaBootstrap;
+
+  async function ensureSchemaColumnComments() {
+    await syncColumnComments(COLUMN_COMMENTS_BY_TABLE);
+    await syncTableComments(TABLE_COMMENTS_BY_TABLE);
+  }
+
   return Object.freeze({
     ensureAccountSchema,
     ensureApplicantSchema,
+    ensureSchemaColumnComments,
     ensureExamineeSchema,
     ensurePrintHistorySchema,
+    ensureSystemAuditLogSchema,
     ensureSystemSettingsSchema,
   });
 }

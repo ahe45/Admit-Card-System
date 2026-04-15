@@ -99,6 +99,7 @@
 
     function renderExamineeResultTable({
       title,
+      description = "",
       gridKey,
       showPrintColumn,
       headerActionsMarkup = "",
@@ -115,8 +116,9 @@
       const totalRows = rows.length;
       const totalPages = getTotalPages(totalRows, tableState.pageSize);
       const currentPage = getGridPage(gridKey, totalPages);
-      const startIndex = (currentPage - 1) * tableState.pageSize;
-      const visibleRows = rows.slice(startIndex, startIndex + tableState.pageSize);
+      const pageSize = Number(tableState.pageSize || 0);
+      const startIndex = pageSize > 0 ? (currentPage - 1) * pageSize : 0;
+      const visibleRows = pageSize > 0 ? rows.slice(startIndex, startIndex + pageSize) : rows;
       const selectableRowIds = selectable ? getGridSelectableRowIds(gridKey) : [];
       const selectionState = getGridSelectionState(gridKey, selectableRowIds);
       const visiblePageNumbers = getVisiblePageNumbers(totalPages, currentPage);
@@ -139,7 +141,7 @@
         cardClasses.push("examinee-data-table");
       }
 
-      if (["applicantHistoryGrid", "applicantRecruitmentGrid"].includes(gridKey)) {
+      if (["applicantHistoryGrid", "applicantRecruitmentGrid", "applicantScheduleGrid"].includes(gridKey)) {
         cardClasses.push("applicant-admin-grid-card");
       }
 
@@ -164,8 +166,9 @@
           ? headerLeadingMarkup
           : title
             ? `
-                <div>
+                <div class="menu-section-copy">
                   <h3>${title}</h3>
+                  ${description ? `<p>${escapeHtml(description)}</p>` : ""}
                 </div>
               `
             : "<div></div>";

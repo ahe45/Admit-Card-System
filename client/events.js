@@ -59,6 +59,15 @@ if (brandHome) {
   });
 }
 
+window.addEventListener("beforeunload", (event) => {
+  if (typeof globalThis.hasPendingSystemSettingsChanges !== "function" || !globalThis.hasPendingSystemSettingsChanges()) {
+    return;
+  }
+
+  event.preventDefault();
+  event.returnValue = "";
+});
+
 const gridInteractionController = createGridInteractionController({
   refreshAdmitCardLookupView,
   renderView,
@@ -87,6 +96,14 @@ function clearApplicantFieldDragIndicators() {
 
 function getUploadDropzoneState(inputId = "") {
   const normalizedInputId = String(inputId || "").trim();
+
+  if (normalizedInputId === "applicantAssignmentUploadFileInput") {
+    return {
+      inputElement: applicantAssignmentUploadFileInput,
+      labelElement: applicantAssignmentUploadFileName,
+      emptyLabel: "선택된 데이터 파일이 없습니다.",
+    };
+  }
 
   if (normalizedInputId === "applicantUnitUploadFileInput") {
     return {
@@ -177,13 +194,27 @@ function assignDroppedFileToUploadInput(inputId = "", fileList = []) {
 function handleApplicantAdminClick(event) {
   const target = event.target instanceof Element ? event.target : null;
   const tabTrigger = target?.closest("[data-template-management-tab]") || null;
-  const settingsSectionTrigger = target?.closest("[data-applicant-settings-section]") || null;
+  const submissionPromotionOpenTrigger = target?.closest("[data-applicant-submission-promotion-open]") || null;
+  const submissionPromotionResetTrigger = target?.closest("[data-applicant-submission-promotion-reset]") || null;
   const submissionToggleTrigger = target?.closest("[data-applicant-submission-toggle]") || null;
+  const submissionDeleteTrigger = target?.closest("[data-applicant-submission-delete]") || null;
   const submissionPhotoUploadTrigger = target?.closest("[data-applicant-submission-photo-upload-trigger]") || null;
-  const submissionPromoteTrigger = target?.closest("[data-applicant-submission-promote]") || null;
+  const applicantPromotionTemplateTrigger = target?.closest("[data-download-applicant-promotion-template]") || null;
+  const applicantPromotionManageTrigger = target?.closest("[data-open-applicant-assignment-management]") || null;
+  const applicantPromotionPreviewTrigger = target?.closest("[data-preview-applicant-promotions]") || null;
+  const applicantPromotionPreviewDownloadTrigger = target?.closest("[data-download-applicant-promotion-preview]") || null;
+  const applicantPromotionCommitTrigger = target?.closest("[data-commit-applicant-promotions]") || null;
+  const applicantPromotionToggleTrigger = target?.closest("[data-applicant-promotion-toggle]") || null;
+  const assignmentSelectTrigger = target?.closest("[data-applicant-assignment-select]") || null;
+  const assignmentAddTrigger = target?.closest("[data-applicant-assignment-add]") || null;
+  const assignmentDeleteTrigger = target?.closest("[data-applicant-assignment-delete]") || null;
+  const assignmentDownloadTrigger = target?.closest("[data-download-applicant-assignment]") || null;
+  const assignmentDownloadTemplateTrigger = target?.closest("[data-applicant-assignment-download-template]") || null;
+  const assignmentUploadTrigger = target?.closest("[data-upload-applicant-assignment]") || null;
   const submissionDataDownloadTrigger = target?.closest("[data-download-applicant-submission-data]") || null;
   const submissionPhotoDownloadTrigger = target?.closest("[data-download-applicant-submission-photos]") || null;
   const recruitmentSelectTrigger = target?.closest("[data-applicant-recruitment-select]") || null;
+  const recruitmentAddTrigger = target?.closest("[data-applicant-recruitment-add]") || null;
   const recruitmentDeleteTrigger = target?.closest("[data-applicant-recruitment-delete]") || null;
   const recruitmentDownloadTrigger = target?.closest("[data-download-applicant-recruitment]") || null;
   const recruitmentDownloadTemplateTrigger = target?.closest("[data-applicant-recruitment-download-template]") || null;
@@ -203,13 +234,23 @@ function handleApplicantAdminClick(event) {
     return true;
   }
 
-  if (settingsSectionTrigger) {
-    setApplicantSettingsSection(settingsSectionTrigger.dataset.applicantSettingsSection);
+  if (submissionToggleTrigger) {
+    toggleApplicantSubmissionDetail(submissionToggleTrigger.dataset.applicantSubmissionToggle);
     return true;
   }
 
-  if (submissionToggleTrigger) {
-    toggleApplicantSubmissionDetail(submissionToggleTrigger.dataset.applicantSubmissionToggle);
+  if (submissionDeleteTrigger) {
+    void deleteApplicantSubmission(submissionDeleteTrigger.dataset.applicantSubmissionDelete);
+    return true;
+  }
+
+  if (submissionPromotionOpenTrigger) {
+    openApplicantPromotionModal();
+    return true;
+  }
+
+  if (submissionPromotionResetTrigger) {
+    void resetApplicantPromotionsAction();
     return true;
   }
 
@@ -225,8 +266,36 @@ function handleApplicantAdminClick(event) {
     }
   }
 
-  if (submissionPromoteTrigger) {
-    void promoteApplicantSubmissionAction(submissionPromoteTrigger.dataset.applicantSubmissionPromote);
+  if (applicantPromotionTemplateTrigger) {
+    void downloadApplicantAssignmentTemplate();
+    return true;
+  }
+
+  if (applicantPromotionManageTrigger) {
+    void openApplicantAssignmentManagementView();
+    return true;
+  }
+
+  if (applicantPromotionPreviewTrigger) {
+    void previewApplicantPromotionsAction();
+    return true;
+  }
+
+  if (applicantPromotionPreviewDownloadTrigger) {
+    void downloadApplicantPromotionPreview();
+    return true;
+  }
+
+  if (applicantPromotionCommitTrigger) {
+    void commitApplicantPromotionsAction();
+    return true;
+  }
+
+  if (applicantPromotionToggleTrigger) {
+    const fieldName = String(applicantPromotionToggleTrigger.dataset.applicantPromotionToggle || "").trim();
+    const pressed = applicantPromotionToggleTrigger.getAttribute("aria-pressed") === "true";
+
+    updateApplicantPromotionField(fieldName, !pressed);
     return true;
   }
 
@@ -235,8 +304,45 @@ function handleApplicantAdminClick(event) {
     return true;
   }
 
+  if (recruitmentAddTrigger) {
+    activateApplicantRecruitmentUnitCreation();
+    openModal("applicantRecruitmentUnitModal");
+    return true;
+  }
+
+  if (assignmentSelectTrigger) {
+    startApplicantAssignmentEdit(assignmentSelectTrigger.dataset.applicantAssignmentSelect);
+    return true;
+  }
+
+  if (assignmentAddTrigger) {
+    activateApplicantAssignmentCreation();
+    openModal("applicantAssignmentModal");
+    return true;
+  }
+
+  if (assignmentDeleteTrigger) {
+    void deleteApplicantAssignment(assignmentDeleteTrigger.dataset.applicantAssignmentDelete);
+    return true;
+  }
+
   if (recruitmentDeleteTrigger) {
     void deleteApplicantRecruitmentUnit(recruitmentDeleteTrigger.dataset.applicantRecruitmentDelete);
+    return true;
+  }
+
+  if (assignmentDownloadTrigger) {
+    void downloadApplicantAssignments();
+    return true;
+  }
+
+  if (assignmentDownloadTemplateTrigger) {
+    void downloadApplicantAssignmentTemplate();
+    return true;
+  }
+
+  if (assignmentUploadTrigger) {
+    void uploadApplicantAssignmentFile();
     return true;
   }
 
@@ -339,8 +445,26 @@ function syncApplicantAdminInputValue(event) {
     return true;
   }
 
+  if (target.dataset.applicantScheduleInput) {
+    updateApplicantScheduleEditorField(target.dataset.applicantScheduleInput, target.value);
+    return true;
+  }
+
+  if (target.dataset.applicantAssignmentInput) {
+    updateApplicantAssignmentEditorField(target.dataset.applicantAssignmentInput, target.value);
+    return true;
+  }
+
   if (target.dataset.applicantSettingsInput) {
     updateApplicantSettingsField(target.dataset.applicantSettingsInput, target.value);
+    return true;
+  }
+
+  if (target.dataset.applicantPromotionInput) {
+    updateApplicantPromotionField(
+      target.dataset.applicantPromotionInput,
+      target instanceof HTMLInputElement && target.type === "checkbox" ? target.checked : target.value,
+    );
     return true;
   }
 
@@ -350,7 +474,21 @@ function syncApplicantAdminInputValue(event) {
 async function handleApplicantAdminChange(event) {
   const target = event.target instanceof HTMLInputElement ? event.target : null;
 
-  if (!target || target.dataset.applicantSubmissionPhotoInput !== "true") {
+  if (!target) {
+    return false;
+  }
+
+  if (target.dataset.applicantUploadExistingPolicy === "recruitment") {
+    updateApplicantRecruitmentUnitUploadExistingDataPolicy(target.value);
+    return true;
+  }
+
+  if (target.dataset.applicantUploadExistingPolicy === "assignment") {
+    updateApplicantAssignmentUploadExistingDataPolicy(target.value);
+    return true;
+  }
+
+  if (target.dataset.applicantSubmissionPhotoInput !== "true") {
     return false;
   }
 
@@ -382,6 +520,18 @@ async function handleApplicantAdminSubmit(event) {
   if (form.matches("[data-applicant-recruitment-form]")) {
     event.preventDefault();
     await saveApplicantRecruitmentUnit();
+    return true;
+  }
+
+  if (form.matches("[data-applicant-schedule-form]")) {
+    event.preventDefault();
+    await saveApplicantSchedule();
+    return true;
+  }
+
+  if (form.matches("[data-applicant-assignment-form]")) {
+    event.preventDefault();
+    await saveApplicantAssignment();
     return true;
   }
 
@@ -437,6 +587,7 @@ function applyEditorToolbarColorTrigger(triggerElement) {
 const loginNoticeEventHandlers = createLoginNoticeEventHandlers({
   applyLoginNoticeEditorCommand,
   captureLoginNoticeEditorSelection,
+  clearLoginNoticeSelectedImage,
   getLoginNoticeCellSplitConfig,
   getLoginNoticeCellSplitCountInputElement: () => document.getElementById("loginNoticeCellSplitCount"),
   getLoginNoticeCellSplitPanelElement: () => document.getElementById("loginNoticeCellSplitPanel"),
@@ -448,6 +599,7 @@ const loginNoticeEventHandlers = createLoginNoticeEventHandlers({
   insertLoginNoticeImage,
   redoLoginNoticeEditorHistory,
   renderView,
+  selectLoginNoticeImage,
   setNoticeManagementScope,
   setLoginNoticeCellSplitPanelVisibility,
   setLoginNoticeTableInsertPanelVisibility,
@@ -523,8 +675,10 @@ const appDocumentEventHandlers = createAppDocumentEventHandlers({
   applyEditorToolbarColorTrigger,
   applyLoginNoticeEditorCommand,
   batchPrintSelectedExaminees,
+  cancelBatchPrintJob,
   cancelAccountEdit,
   changeSystemAutoLogoutMinutes,
+  clearSystemBackupRestoreFileSelection,
   clearAllGridFilters,
   clearGridFilter,
   clearHeaderFilters,
@@ -537,9 +691,13 @@ const appDocumentEventHandlers = createAppDocumentEventHandlers({
   closeAllPageSizeMenus,
   closeGridFilterMenu,
   closePasswordSetupPrompt,
+  confirmSystemSettingsNavigation,
   createLookupFilters,
   deleteAccountAction,
   deleteSystemDataAction,
+  downloadSystemBackupAction,
+  loadSystemAuditLogs,
+  runSystemBackupAutomationNow,
   downloadExamineeGridWorkbook,
   downloadExamineeTemplate,
   downloadPrintHistoryGridWorkbook,
@@ -555,8 +713,10 @@ const appDocumentEventHandlers = createAppDocumentEventHandlers({
   getTableState,
   getTotalPages,
   headerFilterFields,
+  hasUnsavedSystemSettingsChanges,
   hideGridCellTooltip,
   handleGridRowClickSelection,
+  handleSelectableGridRowSelection,
   isBusyOverlayActive,
   loadBootstrapData,
   loginNoticeEventHandlers,
@@ -564,6 +724,8 @@ const appDocumentEventHandlers = createAppDocumentEventHandlers({
   lookupSelectFields,
   lookupTextFields,
   openModal,
+  prepareBatchPrintDownloadModal,
+  applySuperAdminImageFile,
   persistHeaderFilters,
   printExamineeAdmitCard,
   recordAutoLogoutActivity,
@@ -577,11 +739,15 @@ const appDocumentEventHandlers = createAppDocumentEventHandlers({
   requestCloseModal,
   rerenderGridInteraction,
   rerenderLookupViewInteraction,
+  importSystemBackupAction,
   resetAccountPasswordAction,
   resetGridPages,
   saveAccountEdit,
+  saveSuperAdminSettings,
+  saveSystemBackupAutomationSettings,
   saveSystemSettings,
   setAccountCreateError,
+  setExamineeUploadMode,
   setEditorToolbarColorPanelVisibility,
   setEditorToolbarFontSizeMenuVisibility,
   setGridFilterValues,
@@ -590,10 +756,15 @@ const appDocumentEventHandlers = createAppDocumentEventHandlers({
   startAccountEdit,
   state,
   submitAccountCreate,
+  submitBatchPrintDownloadSelection,
   submitLogin,
   submitPasswordSetup,
+  syncSystemSettingsDirtyState,
   syncLoginErrorMessage,
   syncPasswordSetupModal,
+  toggleSystemBackupAutomationItemSelection,
+  toggleSystemBackupAssetSelection,
+  toggleSystemBackupRestoreSelection,
   templateEditorEventHandlers,
   toggleGridFilterMenu,
   toggleGridFilterValue,
@@ -601,8 +772,13 @@ const appDocumentEventHandlers = createAppDocumentEventHandlers({
   toggleGridSelectAll,
   toggleGridSort,
   updateAccountEditorField,
+  updateBatchPrintOutputMode,
+  updateSystemBackupAutomationField,
+  updateSuperAdminField,
+  updateSuperAdminImageField,
   updateLookupTextFilter,
   uploadSelectedExamineeFile,
+  selectSystemBackupRestoreFile,
 });
 
 const {
@@ -673,7 +849,9 @@ document.addEventListener("submit", async (event) => {
 });
 
 document.addEventListener("pointerdown", (event) => {
-  if (isBusyOverlayActive()) {
+  const target = event.target instanceof Element ? event.target : null;
+
+  if (isBusyOverlayActive() && !target?.closest("[data-cancel-batch-print]")) {
     event.preventDefault();
     return;
   }
@@ -816,18 +994,28 @@ document.addEventListener("dragend", () => {
 if (uploadFileInput && uploadFileName) {
   uploadFileInput.addEventListener("change", () => {
     syncUploadDropzoneLabel("uploadFileInput");
+    void previewSelectedExamineeImportFile?.();
   });
 }
 
 if (applicantUnitUploadFileInput && applicantUnitUploadFileName) {
   applicantUnitUploadFileInput.addEventListener("change", () => {
     syncUploadDropzoneLabel("applicantUnitUploadFileInput");
+    void previewApplicantRecruitmentUnitUploadFile?.();
+  });
+}
+
+if (applicantAssignmentUploadFileInput && applicantAssignmentUploadFileName) {
+  applicantAssignmentUploadFileInput.addEventListener("change", () => {
+    syncUploadDropzoneLabel("applicantAssignmentUploadFileInput");
+    void previewApplicantAssignmentUploadFile?.();
   });
 }
 
 if (uploadPhotoArchiveInput && uploadPhotoArchiveName) {
   uploadPhotoArchiveInput.addEventListener("change", () => {
     syncUploadDropzoneLabel("uploadPhotoArchiveInput");
+    void previewSelectedExamineePhotoArchiveFile?.();
   });
 }
 
@@ -864,6 +1052,13 @@ document.querySelectorAll("[data-upload-dropzone]").forEach((dropzone) => {
 });
 
 document.addEventListener("change", async (event) => {
+  const examineePolicyTarget = event.target instanceof HTMLInputElement ? event.target : null;
+
+  if (examineePolicyTarget?.dataset.examineeUploadExistingDataPolicy === "true") {
+    updateExamineeImportExistingDataPolicy(examineePolicyTarget.value);
+    return;
+  }
+
   if (await handleApplicantAdminChange(event)) {
     return;
   }

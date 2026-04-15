@@ -109,7 +109,8 @@
 
       if (pageSizeOption) {
         const tableState = getTableState(pageSizeOption.dataset.gridKey);
-        tableState.pageSize = Number(pageSizeOption.dataset.pageSizeOption) || 10;
+        const nextPageSize = Number(pageSizeOption.dataset.pageSizeOption);
+        tableState.pageSize = Number.isFinite(nextPageSize) ? nextPageSize : 10;
         tableState.page = 1;
         tableState.pageSizeMenuOpen = false;
         closeAllPageSizeMenus(pageSizeOption.dataset.gridKey);

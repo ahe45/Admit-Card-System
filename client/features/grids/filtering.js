@@ -21,6 +21,7 @@
   printHistoryModule,
   sortingModule,
 }) => {
+  const applicantFormConfig = globalThis.AdmitCardApplicantFormConfig || {};
 
   if (!columnsModule?.createGridColumnHelpers) {
     throw new Error("client/features/grids/filtering/columns.js must be loaded before filtering.js.");
@@ -42,10 +43,13 @@
   const { createGridSortingHelpers } = sortingModule;
   const { createGridFilterStateHelpers } = filtersModule;
   const { createPrintHistorySummaryGridHelpers } = printHistoryModule;
+  const findApplicantScheduleRecord = applicantFormConfig.findApplicantScheduleRecord || (() => null);
 
   function createGridFilteringController({
+    applicantAssignmentGridColumns,
     applicantHistoryGridColumns,
     applicantRecruitmentGridColumns,
+    applicantScheduleGridColumns,
     accountGridColumns,
     admitCardLookupGridColumns,
     closeAllPageSizeMenus,
@@ -63,8 +67,10 @@
     state,
   }) {
     const columnHelpers = createGridColumnHelpers({
+      applicantAssignmentGridColumns,
       applicantHistoryGridColumns,
       applicantRecruitmentGridColumns,
+      applicantScheduleGridColumns,
       accountGridColumns,
       admitCardLookupGridColumns,
       examineePhotoColumn,
@@ -88,18 +94,32 @@
       }
 
       if (gridKey === "applicantHistoryGrid") {
-        const expandedSubmissionId = Number(state.applicantManager?.expandedSubmissionId || 0);
         const submissions = Array.isArray(state.applicantManager?.submissions) ? state.applicantManager.submissions : [];
+        const schedules = Array.isArray(state.applicantManager?.schedules) ? state.applicantManager.schedules : [];
 
-        return submissions.map((submission) => ({
-          ...submission,
-          statusLabel: getApplicantStatusLabel(submission?.status),
-          isExpanded: expandedSubmissionId > 0 && expandedSubmissionId === Number(submission?.id || 0),
-        }));
+        return submissions.map((submission) => {
+          const matchedSchedule = findApplicantScheduleRecord(schedules, submission);
+
+          return {
+            ...submission,
+            statusLabel: getApplicantStatusLabel(submission?.status, {
+              applicantScheduleStartAt: matchedSchedule?.applicantScheduleStartAt || "",
+              applicantScheduleEndAt: matchedSchedule?.applicantScheduleEndAt || "",
+            }),
+          };
+        });
       }
 
       if (gridKey === "applicantRecruitmentGrid") {
         return Array.isArray(state.applicantManager?.recruitmentUnits) ? state.applicantManager.recruitmentUnits : [];
+      }
+
+      if (gridKey === "applicantScheduleGrid") {
+        return Array.isArray(state.applicantManager?.schedules) ? state.applicantManager.schedules : [];
+      }
+
+      if (gridKey === "applicantAssignmentGrid") {
+        return Array.isArray(state.applicantManager?.assignments) ? state.applicantManager.assignments : [];
       }
 
       return getHeaderFilteredRows(getExamineeGridRows());

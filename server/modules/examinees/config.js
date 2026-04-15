@@ -1,7 +1,9 @@
 const examineeFields = require("../../../shared/domain/examinee-fields");
 const { normalizeExamineeRecord } = require("./record");
 
-const examineeTemplateColumns = examineeFields.createTemplateColumns();
+const examineeTemplateColumns = examineeFields.createTemplateColumns({
+  keys: examineeFields.examineeWorkbookFieldKeys,
+});
 const optionalExamineeTemplateColumnKeys = new Set(examineeFields.optionalTemplateFieldKeys);
 const legacyExamineeTemplateHeaders = examineeFields.legacyTemplateHeaders;
 
@@ -10,7 +12,10 @@ const printHistoryExportColumns = Object.freeze([
   Object.freeze({ header: "출력시각", key: "printedAt", width: 22, text: true }),
 ]);
 
-const examineeExportColumns = examineeFields.createWorkbookTextColumns({ dateLabel: "시험날짜" });
+const examineeExportColumns = examineeFields.createWorkbookTextColumns({
+  dateLabel: "시험날짜",
+  keys: examineeFields.examineeWorkbookFieldKeys,
+});
 
 const printHistorySummaryExportColumns = Object.freeze([
   ...examineeFields.createWorkbookTextColumns({ dateLabel: "시험날짜" }),
@@ -25,11 +30,17 @@ function normalizeExamineeExportRow(record = {}) {
     time: normalizedRecord.time,
     track: normalizedRecord.track,
     admission: normalizedRecord.admission,
+    admissionCode: normalizedRecord.admissionCode,
     series: normalizedRecord.series,
+    seriesCode: normalizedRecord.seriesCode,
     unit: normalizedRecord.unit,
+    unitCode: normalizedRecord.unitCode,
     major: normalizedRecord.major,
+    majorCode: normalizedRecord.majorCode,
     building: normalizedRecord.building,
+    buildingCode: normalizedRecord.buildingCode,
     room: normalizedRecord.room,
+    roomCode: normalizedRecord.roomCode,
     group: normalizedRecord.group,
     examineeNo: normalizedRecord.examineeNo,
     name: String(record.name ?? "").trim(),
@@ -45,11 +56,17 @@ function normalizePrintHistoryExportRow(record = {}) {
     time: normalizedRecord.time,
     track: normalizedRecord.track,
     admission: normalizedRecord.admission,
+    admissionCode: normalizedRecord.admissionCode,
     series: normalizedRecord.series,
+    seriesCode: normalizedRecord.seriesCode,
     unit: normalizedRecord.unit,
+    unitCode: normalizedRecord.unitCode,
     major: normalizedRecord.major,
+    majorCode: normalizedRecord.majorCode,
     building: normalizedRecord.building,
+    buildingCode: normalizedRecord.buildingCode,
     room: normalizedRecord.room,
+    roomCode: normalizedRecord.roomCode,
     group: normalizedRecord.group,
     examineeNo: normalizedRecord.examineeNo,
     name: String(record.name ?? "").trim(),

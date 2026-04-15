@@ -27,6 +27,7 @@
       syncLoginFormAutofocus,
       syncOpenGridFilterMenuPosition,
       syncPdfGenerationOverlay,
+      syncSystemAuditLogModal,
       syncUploadOverlay,
       titles,
       updateAuthChrome,
@@ -99,6 +100,7 @@
         syncPdfGenerationOverlay();
         syncUploadOverlay();
         syncApplicantSubmissionDetailModal();
+        syncSystemAuditLogModal?.();
         syncExamineeDetailModal();
         syncLoginFormAutofocus();
         return;
@@ -114,6 +116,7 @@
         syncPdfGenerationOverlay();
         syncUploadOverlay();
         syncApplicantSubmissionDetailModal();
+        syncSystemAuditLogModal?.();
         syncExamineeDetailModal();
         return;
       }
@@ -128,6 +131,7 @@
         syncPdfGenerationOverlay();
         syncUploadOverlay();
         syncApplicantSubmissionDetailModal();
+        syncSystemAuditLogModal?.();
         syncExamineeDetailModal();
         return;
       }
@@ -146,6 +150,7 @@
       syncPdfGenerationOverlay();
       syncUploadOverlay();
       syncApplicantSubmissionDetailModal();
+      syncSystemAuditLogModal?.();
       syncExamineeDetailModal();
     }
 

@@ -49,6 +49,8 @@
     apiRequest,
     apiRequestForBlobWithProgress,
     buildApiUrl,
+    closeModal,
+    getBatchPrintDownloadElements,
     getExamineeGridRows,
     getGridRowId,
     getGridRows,
@@ -76,7 +78,9 @@
     const pdfHelpers = createAdmitCardPdfHelpers({ buildApiUrl });
     const {
       fetchExamineeAdmitCardPdfUrl,
+      openPendingPdfPrintWindow,
       openPdfWindow,
+      printPdfInWindow,
       printPdfUrl,
     } = pdfHelpers;
 
@@ -93,12 +97,12 @@
       BATCH_PRINT_STATUS_POLL_INTERVAL_MS,
       apiRequest,
       apiRequestForBlobWithProgress,
+      closeModal,
+      getBatchPrintDownloadElements,
       getSelectedAdmitCardExaminees,
       handleAuthenticationFailure,
       normalizeExamineeNoList,
       normalizeProgressValue,
-      openPdfWindow,
-      printPdfUrl,
       recordExamineePrint,
       renderView,
       runWithPdfGenerationLock,
@@ -107,7 +111,13 @@
       state,
       wait,
     });
-    const { batchPrintSelectedExaminees } = batchPrintHelpers;
+    const {
+      batchPrintSelectedExaminees,
+      cancelBatchPrintJob,
+      prepareBatchPrintDownloadModal,
+      submitBatchPrintDownloadSelection,
+      updateBatchPrintOutputMode,
+    } = batchPrintHelpers;
 
     async function printExamineeAdmitCard(examineeNo) {
       const examinee = getExamineeGridRows().find((row) => row.examineeNo === examineeNo);
@@ -155,10 +165,16 @@
       getSelectedAdmitCardExamineeCount,
       getSelectedAdmitCardExaminees,
       normalizeExamineeNoList,
+      openPendingPdfPrintWindow,
       openPdfWindow,
+      cancelBatchPrintJob,
+      prepareBatchPrintDownloadModal,
       printExamineeAdmitCard,
+      printPdfInWindow,
       printPdfUrl,
       recordExamineePrint,
+      submitBatchPrintDownloadSelection,
+      updateBatchPrintOutputMode,
     });
   }
 

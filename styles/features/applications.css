@@ -191,12 +191,348 @@
   white-space: nowrap;
 }
 
+.applicant-promotion-modal-sheet {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(960px, calc(100vw - 48px));
+  max-height: min(92vh, 820px);
+}
+
+.applicant-promotion-modal-body {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-height: 0;
+}
+
+.applicant-promotion-header-meta {
+  font-weight: 700;
+}
+
+.applicant-promotion-panel {
+  display: grid;
+  gap: 16px;
+  padding: 20px 22px;
+}
+
+.applicant-promotion-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.applicant-promotion-settings-grid .field {
+  min-width: 0;
+}
+
+.applicant-promotion-break-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) max-content;
+  gap: 16px;
+  align-items: end;
+  justify-content: start;
+}
+
+.applicant-promotion-break-grid .field {
+  min-width: 0;
+}
+
+.applicant-promotion-break-grid .applicant-promotion-checkbox {
+  align-self: end;
+}
+
+.applicant-promotion-overbooking-grid {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.applicant-promotion-overbooking-row {
+  display: inline-grid;
+  grid-template-columns: 88px auto;
+  align-items: center;
+  justify-content: start;
+  gap: 16px;
+}
+
+.applicant-promotion-overbooking-label {
+  color: #16263d;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.applicant-promotion-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  user-select: none;
+}
+
+.applicant-promotion-switch-track {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 56px;
+  height: 32px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.28);
+  transition: background-color 160ms ease;
+}
+
+.applicant-promotion-switch-thumb {
+  display: block;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+  transition: transform 160ms ease;
+}
+
+.applicant-promotion-switch[data-enabled="true"] .applicant-promotion-switch-track {
+  background: rgba(45, 99, 245, 0.72);
+}
+
+.applicant-promotion-switch[data-enabled="true"] .applicant-promotion-switch-thumb {
+  transform: translateX(24px);
+}
+
+.applicant-promotion-switch:focus-visible .applicant-promotion-switch-track {
+  outline: 2px solid rgba(45, 99, 245, 0.45);
+  outline-offset: 2px;
+}
+
+.applicant-promotion-switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.applicant-promotion-overbooking-rate-row {
+  cursor: default;
+}
+
+.applicant-promotion-overbooking-rate-input-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.applicant-promotion-overbooking-rate-input {
+  width: 72px;
+  min-width: 72px;
+  padding: 10px 12px;
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #213248;
+  font: inherit;
+  text-align: right;
+}
+
+.applicant-promotion-overbooking-rate-input:disabled {
+  background: rgba(241, 245, 249, 0.92);
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.applicant-promotion-overbooking-rate-unit {
+  color: #4c617c;
+  font-weight: 700;
+}
+
+.applicant-promotion-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 2px;
+  color: #223654;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.applicant-promotion-checkbox input {
+  width: 18px;
+  height: 18px;
+}
+
+.applicant-promotion-panel-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.applicant-promotion-panel-header h4 {
+  margin: 0;
+  color: #16263d;
+  font-size: 1rem;
+  flex: 0 0 auto;
+}
+
+.applicant-promotion-panel-header .muted {
+  margin: 0;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.applicant-promotion-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 18px 22px 22px;
+  border-top: 1px solid rgba(223, 229, 240, 0.92);
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.applicant-promotion-modal-footer .secondary-button,
+.applicant-promotion-modal-footer .primary-button {
+  min-width: 120px;
+}
+
+.applicant-promotion-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.applicant-promotion-summary-card {
+  display: grid;
+  gap: 8px;
+  min-height: 96px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(37, 56, 89, 0.08);
+  background:
+    radial-gradient(circle at top right, rgba(36, 98, 170, 0.12), transparent 42%),
+    rgba(255, 255, 255, 0.88);
+}
+
+.applicant-promotion-summary-card span {
+  color: #61748a;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.applicant-promotion-summary-card strong {
+  color: #16263d;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.applicant-promotion-preview-panel {
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.applicant-promotion-preview-table-wrap {
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid rgba(203, 213, 225, 0.76);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.applicant-promotion-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1240px;
+}
+
+.applicant-promotion-preview-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(203, 213, 225, 0.76);
+  background: #f7fbff;
+  color: #55667b;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.applicant-promotion-preview-table tbody td {
+  padding: 11px 14px;
+  border-top: 1px solid rgba(232, 238, 246, 0.9);
+  color: #213248;
+  font-size: 0.84rem;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.applicant-promotion-preview-row-warning td {
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.applicant-promotion-preview-row-error td {
+  background: rgba(210, 65, 91, 0.08);
+}
+
+.applicant-promotion-preview-error-cell {
+  max-width: 380px;
+  white-space: normal;
+  line-height: 1.5;
+  color: #9d2740;
+}
+
+.applicant-promotion-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 74px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.applicant-promotion-status-ready {
+  background: rgba(31, 157, 107, 0.14);
+  color: #14764f;
+}
+
+.applicant-promotion-status-warning {
+  background: rgba(245, 158, 11, 0.16);
+  color: #9a6108;
+}
+
+.applicant-promotion-status-error {
+  background: rgba(210, 65, 91, 0.15);
+  color: #a32743;
+}
+
+.applicant-promotion-preview-empty {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 180px;
+  padding: 28px;
+  text-align: center;
+  box-shadow: none;
+}
+
+.applicant-promotion-preview-empty p,
+.applicant-promotion-preview-empty .muted {
+  margin: 0;
+}
+
 .applicant-status-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 112px;
-  padding: 7px 12px;
+  min-width: 88px;
+  padding: 7px 10px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 800;
@@ -272,6 +608,51 @@
 .applicant-settings-side {
   display: grid;
   gap: 20px;
+}
+
+.applicant-form-settings-view.is-field-settings.table-view-stack {
+  min-height: auto;
+  grid-template-rows: auto;
+}
+
+.applicant-form-settings-panel-stack.is-field-settings {
+  min-height: auto;
+  grid-template-rows: auto;
+}
+
+.applicant-form-settings-shell.is-field-settings {
+  grid-template-rows: auto auto;
+  height: auto;
+  min-height: 0;
+  align-self: start;
+}
+
+.applicant-form-settings-shell.is-field-settings .applicant-form-settings-shell-body {
+  grid-template-rows: auto;
+  min-height: auto;
+  align-content: start;
+}
+
+.applicant-form-settings-shell.is-field-settings .applicant-form-settings-shell-body > .table-card,
+.applicant-form-settings-shell.is-field-settings .applicant-form-settings-shell-body > .form-card {
+  min-height: auto;
+  align-self: start;
+}
+
+.applicant-form-settings-shell.is-field-settings .applicant-form-settings-shell-body > .result-grid-card {
+  min-height: 0;
+  height: auto;
+}
+
+.applicant-form-settings-shell.is-field-settings .applicant-settings-layout,
+.applicant-form-settings-shell.is-field-settings .applicant-settings-side {
+  min-height: auto;
+  align-content: start;
+}
+
+.applicant-form-settings-shell.is-field-settings .applicant-settings-fields-panel,
+.applicant-form-settings-shell.is-field-settings .applicant-field-editor-panel {
+  align-self: start;
 }
 
 .applicant-field-list {
@@ -632,10 +1013,50 @@
   .applicant-recruitment-modal-grid {
     grid-template-columns: 1fr;
   }
+
+  .applicant-promotion-modal-sheet {
+    width: min(100vw - 24px, 100%);
+    height: min(94vh, 980px);
+  }
+
+  .applicant-promotion-settings-grid,
+  .applicant-promotion-break-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .applicant-promotion-overbooking-row {
+    grid-template-columns: 80px auto;
+  }
+
+  .applicant-promotion-switch {
+    justify-content: flex-start;
+  }
+
+  .applicant-promotion-overbooking-rate-input {
+    width: 68px;
+    min-width: 68px;
+  }
+
+  .applicant-promotion-modal-footer {
+    flex-direction: column;
+  }
+
+  .applicant-promotion-modal-footer .secondary-button,
+  .applicant-promotion-modal-footer .primary-button {
+    width: 100%;
+  }
 }
 
 @media (max-width: 1180px) {
   .applicant-settings-layout {
     grid-template-columns: 1fr;
+  }
+
+  .applicant-promotion-settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .applicant-promotion-panel-header {
+    align-items: flex-start;
   }
 }

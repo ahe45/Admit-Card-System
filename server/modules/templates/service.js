@@ -16,7 +16,8 @@ function createTemplateService({
     formatDateAsYmd,
     templateTagDefinitions,
   });
-  const { buildTemplateGeneratedObjectSvg, renderTemplateWithExaminee } = templateRenderingService;
+  const { buildTemplateGeneratedObjectSvg, createTemplateExamineeRenderer, renderTemplateWithExaminee } =
+    templateRenderingService;
 
   function normalizeTemplatePayload(payload, existingTemplate = {}) {
     const name = String(payload.name ?? existingTemplate.name ?? "").trim();
@@ -188,6 +189,7 @@ function createTemplateService({
   return Object.freeze({
     activateTemplate,
     buildTemplateGeneratedObjectSvg,
+    createTemplateExamineeRenderer,
     createTemplate,
     deleteTemplate,
     getActiveTemplate,

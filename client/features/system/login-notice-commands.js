@@ -1,6 +1,7 @@
 (function (globalScope, factory) {
   if (typeof module === "object" && module.exports) {
     module.exports = factory({
+      loginNoticeLinkUtilsModule: require("./login-notice-link-utils"),
       loginNoticeTableActionModule: require("./login-notice-table-actions"),
       toolbarControlsModule: require("../editor/toolbar-controls"),
     });
@@ -8,10 +9,15 @@
   }
 
   globalScope.AdmitCardLoginNoticeCommands = factory({
+    loginNoticeLinkUtilsModule: globalScope.AdmitCardLoginNoticeLinkUtils,
     loginNoticeTableActionModule: globalScope.AdmitCardLoginNoticeTableActions,
     toolbarControlsModule: globalScope.AdmitCardEditorToolbarControls,
   });
-})(typeof globalThis !== "undefined" ? globalThis : this, ({ loginNoticeTableActionModule, toolbarControlsModule }) => {
+})(typeof globalThis !== "undefined" ? globalThis : this, ({
+  loginNoticeLinkUtilsModule,
+  loginNoticeTableActionModule,
+  toolbarControlsModule,
+}) => {
   if (!toolbarControlsModule) {
     throw new Error("client/features/editor/toolbar-controls.js must be loaded before login-notice-commands.js.");
   }
@@ -25,6 +31,12 @@
     getEditorToolbarTableInsertConfig,
     setEditorToolbarManagedPanelVisibility,
   } = toolbarControlsModule;
+  const {
+    decorateLoginNoticeLinks,
+    getLoginNoticeClosestLink,
+    normalizeLoginNoticeLinkUrl,
+    upsertLoginNoticeImageLink,
+  } = loginNoticeLinkUtilsModule || {};
   const { createLoginNoticeTableActionController } = loginNoticeTableActionModule;
 
   function createLoginNoticeCommandController({
@@ -50,6 +62,7 @@
     getLoginNoticeFontSizeElement,
     getLoginNoticeSelectedCell,
     getLoginNoticeSelectedCells,
+    getLoginNoticeSelectedImage,
     getLoginNoticeTableColumnsElement,
     getLoginNoticeTableInsertPanel,
     getLoginNoticeTableRowsElement,
@@ -113,6 +126,12 @@
     });
     const { handleLoginNoticeTableAction } = loginNoticeTableActionController;
 
+    function decorateLoginNoticeDocumentLinks(rootElement) {
+      if (typeof decorateLoginNoticeLinks === "function") {
+        decorateLoginNoticeLinks(rootElement);
+      }
+    }
+
     function setLoginNoticeTableInsertPanelVisibility(isVisible) {
       setEditorToolbarManagedPanelVisibility({
         panelId: "loginNoticeTableInsertPanel",
@@ -165,6 +184,7 @@
         normalizeTemplateEditorTables(documentElement);
       }
 
+      decorateLoginNoticeDocumentLinks(documentElement);
       syncLoginNoticeEditorDraft();
     }
 
@@ -195,12 +215,13 @@
           : command === "foreColor" && !String(value || "").trim()
             ? getLoginNoticeTextColorElement()?.value || defaultTextColor
             : value;
+      const isHistoryCommand = command === "undo" || command === "redo";
 
       applySharedEditorCommand({
         rootElement: noticeEditor,
         focusElement: noticeEditor,
         restoreSelection: restoreLoginNoticeEditorSelection,
-        syncContent: syncLoginNoticeEditorDraft,
+        syncContent: () => {},
         onUndo: undoLoginNoticeEditorHistory,
         onRedo: redoLoginNoticeEditorHistory,
         command,
@@ -212,6 +233,97 @@
         defaultFontSize: getLoginNoticeDefaultFontSize(),
         setStatus: setLoginNoticeEditorStatus,
       });
+
+      if (isHistoryCommand) {
+        return;
+      }
+
+      decorateLoginNoticeDocumentLinks(noticeEditor);
+      syncLoginNoticeEditorDraft();
+    }
+
+    function getLoginNoticeSelectionRange() {
+      const noticeEditor = getLoginNoticeEditorElement();
+      const selection = window.getSelection();
+      const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+      const commonAncestor =
+        range?.commonAncestorContainer?.nodeType === Node.ELEMENT_NODE
+          ? range.commonAncestorContainer
+          : range?.commonAncestorContainer?.parentElement || null;
+
+      if (!noticeEditor || !range || range.collapsed || !commonAncestor || !noticeEditor.contains(commonAncestor)) {
+        return null;
+      }
+
+      return range;
+    }
+
+    function getLoginNoticeSelectedLinkElement() {
+      const noticeEditor = getLoginNoticeEditorElement();
+      const selectedImage = getLoginNoticeSelectedImage?.() || null;
+      const selection = window.getSelection();
+      const selectionNode = selection && selection.rangeCount > 0 ? selection.getRangeAt(0).commonAncestorContainer : null;
+
+      if (!noticeEditor) {
+        return null;
+      }
+
+      if (selectedImage) {
+        return getLoginNoticeClosestLink?.(selectedImage, noticeEditor) || null;
+      }
+
+      return getLoginNoticeClosestLink?.(selectionNode, noticeEditor) || null;
+    }
+
+    function applyLoginNoticeLink(linkUrl = "") {
+      const noticeEditor = getLoginNoticeEditorElement();
+      const selectedImage = getLoginNoticeSelectedImage?.() || null;
+
+      if (!noticeEditor) {
+        return false;
+      }
+
+      noticeEditor.focus();
+      restoreLoginNoticeEditorSelection();
+
+      if (selectedImage) {
+        const didWrapImage = upsertLoginNoticeImageLink?.({
+          imageElement: selectedImage,
+          href: linkUrl,
+          rootElement: noticeEditor,
+        });
+
+        if (!didWrapImage) {
+          return false;
+        }
+
+        decorateLoginNoticeDocumentLinks(noticeEditor);
+        syncLoginNoticeEditorDraft();
+        return true;
+      }
+
+      if (getLoginNoticeSelectionRange()) {
+        applySharedEditorCommand({
+          rootElement: noticeEditor,
+          focusElement: noticeEditor,
+          restoreSelection: restoreLoginNoticeEditorSelection,
+          syncContent: () => {},
+          onUndo: undoLoginNoticeEditorHistory,
+          onRedo: redoLoginNoticeEditorHistory,
+          command: "createLink",
+          value: linkUrl,
+          fontFamilyElement: getLoginNoticeFontFamilyElement(),
+          defaultFontFamily: getLoginNoticeDefaultFontFamily(),
+          fontSizeElement: getLoginNoticeFontSizeElement(),
+          defaultFontSize: getLoginNoticeDefaultFontSize(),
+          setStatus: setLoginNoticeEditorStatus,
+        });
+        decorateLoginNoticeDocumentLinks(noticeEditor);
+        syncLoginNoticeEditorDraft();
+        return true;
+      }
+
+      return false;
     }
 
     async function saveLoginNoticeContent() {
@@ -244,13 +356,41 @@
 
     async function handleLoginNoticeAction(action) {
       if (action === "link") {
-        const url = window.prompt("링크 주소를 입력하세요.", "https://");
+        const noticeEditor = getLoginNoticeEditorElement();
+        const selectedImage = getLoginNoticeSelectedImage?.() || null;
 
-        if (!url) {
+        if (!noticeEditor) {
           return;
         }
 
-        applyLoginNoticeEditorCommand("createLink", url);
+        noticeEditor.focus();
+        restoreLoginNoticeEditorSelection();
+
+        const hasTextSelection = Boolean(getLoginNoticeSelectionRange());
+
+        if (!hasTextSelection && !selectedImage) {
+          setLoginNoticeEditorStatus("링크를 적용할 텍스트나 이미지를 먼저 선택하세요.", "warning");
+          return;
+        }
+
+        const existingLinkElement = getLoginNoticeSelectedLinkElement();
+        const promptDefaultValue = String(existingLinkElement?.getAttribute("href") || "https://").trim() || "https://";
+        const url = window.prompt("링크 주소를 입력하세요.", promptDefaultValue);
+
+        if (url === null) {
+          return;
+        }
+
+        const normalizedUrl = normalizeLoginNoticeLinkUrl?.(url) || "";
+
+        if (!normalizedUrl) {
+          setLoginNoticeEditorStatus("링크 주소는 https://, http:// 또는 /경로 형식으로 입력하세요.", "warning");
+          return;
+        }
+
+        if (!applyLoginNoticeLink(normalizedUrl)) {
+          setLoginNoticeEditorStatus("링크를 적용할 대상을 찾지 못했습니다. 다시 선택한 뒤 시도하세요.", "warning");
+        }
         return;
       }
 

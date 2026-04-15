@@ -9,27 +9,50 @@
   function createAuthDocumentEventHandlers({
     cancelAccountEdit,
     changeSystemAutoLogoutMinutes,
+    clearSystemBackupRestoreFileSelection,
     closePasswordSetupPrompt,
+    confirmSystemSettingsNavigation,
     deleteAccountAction,
     deleteSystemDataAction,
+    downloadSystemBackupAction,
+    loadSystemAuditLogs,
+    runSystemBackupAutomationNow,
     downloadExamineeTemplate,
+    hasUnsavedSystemSettingsChanges,
+    importSystemBackupAction,
     logoutCurrentUser,
     openModal,
+    prepareBatchPrintDownloadModal,
+    applySuperAdminImageFile,
     renderView,
     requestCloseModal,
     resetAccountPasswordAction,
     saveAccountEdit,
+    saveSuperAdminSettings,
+    saveSystemBackupAutomationSettings,
     saveSystemSettings,
     setAccountCreateError,
+    setExamineeUploadMode,
+    setSuperAdminStatus,
     setSystemSettingsStatus,
     startAccountEdit,
     state,
     submitAccountCreate,
+    submitBatchPrintDownloadSelection,
     submitLogin,
     submitPasswordSetup,
+    syncSystemSettingsDirtyState,
     syncLoginErrorMessage,
     syncPasswordSetupModal,
+    toggleSystemBackupAutomationItemSelection,
+    toggleSystemBackupAssetSelection,
+    toggleSystemBackupRestoreSelection,
+    updateSystemBackupAutomationField,
+    updateSuperAdminField,
+    updateSuperAdminImageField,
+    updateBatchPrintOutputMode,
     updateAccountEditorField,
+    selectSystemBackupRestoreFile,
   }) {
     function createEmptySystemScheduleParts() {
       return {
@@ -182,6 +205,7 @@
 
     async function handleClick(event) {
       const target = event.target instanceof Element ? event.target : null;
+      const noticeLink = target?.closest(".login-notice-content a[href]") || null;
       const activeSystemSchedulePopoverTarget = String(state.systemSettings.applicantSchedulePopoverTarget || "").trim();
       const systemSchedulePopoverRoot = target?.closest("[data-system-settings-schedule-popover-root]") || null;
       const systemScheduleTrigger = target?.closest("[data-system-settings-schedule-trigger]") || null;
@@ -198,9 +222,22 @@
       const accountCancelTrigger = target?.closest("[data-account-cancel]") || null;
       const accountResetTrigger = target?.closest("[data-account-reset]") || null;
       const accountDeleteTrigger = target?.closest("[data-account-delete]") || null;
+      const superAdminActionTrigger = target?.closest("[data-super-admin-action]") || null;
+      const superAdminImageResetTrigger = target?.closest("[data-super-admin-image-reset]") || null;
       const systemSettingsActionTrigger = target?.closest("[data-system-settings-action]") || null;
       const systemSettingsStepTrigger = target?.closest("[data-system-settings-step]") || null;
+      const systemDataBackupTrigger = target?.closest("[data-system-data-backup]") || null;
       const systemDataDeleteTrigger = target?.closest("[data-system-data-delete]") || null;
+      const systemAuditLogTrigger = target?.closest("[data-system-audit-log-action]") || null;
+      const systemBackupAutomationTrigger = target?.closest("[data-system-backup-automation-action]") || null;
+      const systemBackupRestoreTrigger = target?.closest("[data-system-backup-restore]") || null;
+      const examineeUploadModeTrigger = target?.closest("[data-examinee-upload-mode]") || null;
+
+      if (noticeLink instanceof HTMLAnchorElement && !noticeLink.closest("[contenteditable='true']")) {
+        event.preventDefault();
+        window.open(noticeLink.href, "_blank", "noopener,noreferrer");
+        return true;
+      }
 
       if (activeSystemSchedulePopoverTarget && !systemSchedulePopoverRoot) {
         state.systemSettings.applicantSchedulePopoverTarget = "";
@@ -231,6 +268,7 @@
         const currentParts = normalizeSystemScheduleParts(state.systemSettings[targetState.partsStateKey] || createEmptySystemScheduleParts());
         const direction = String(systemScheduleNavigationTrigger.dataset.systemSettingsScheduleNav || "").trim() === "prev" ? -1 : 1;
         applySystemScheduleParts(targetState.scheduleTarget, shiftSystemScheduleMonth(currentParts, direction));
+        syncSystemSettingsDirtyState();
 
         if (state.systemSettings.statusMessage) {
           setSystemSettingsStatus("");
@@ -249,6 +287,7 @@
           month: padSystemScheduleValue(systemScheduleDayTrigger.dataset.systemSettingsScheduleDayMonth || currentParts.month),
           day: padSystemScheduleValue(systemScheduleDayTrigger.dataset.systemSettingsScheduleDayValue || ""),
         });
+        syncSystemSettingsDirtyState();
 
         if (state.systemSettings.statusMessage) {
           setSystemSettingsStatus("");
@@ -259,6 +298,10 @@
       }
 
       if (authLogoutTrigger) {
+        if (hasUnsavedSystemSettingsChanges() && !(await confirmSystemSettingsNavigation())) {
+          return true;
+        }
+
         await logoutCurrentUser();
         return true;
       }
@@ -290,6 +333,17 @@
         return true;
       }
 
+      if (superAdminImageResetTrigger) {
+        updateSuperAdminImageField(superAdminImageResetTrigger.dataset.superAdminImageReset, "");
+        renderView();
+        return true;
+      }
+
+      if (superAdminActionTrigger?.dataset.superAdminAction === "save") {
+        await saveSuperAdminSettings();
+        return true;
+      }
+
       if (systemSettingsActionTrigger?.dataset.systemSettingsAction === "save") {
         await saveSystemSettings();
         return true;
@@ -305,12 +359,60 @@
         return true;
       }
 
+      if (systemDataBackupTrigger?.dataset.systemDataBackup === "export") {
+        await downloadSystemBackupAction();
+        return true;
+      }
+
+      if (systemAuditLogTrigger?.dataset.systemAuditLogAction === "open") {
+        openModal("systemAuditLogModal");
+        await loadSystemAuditLogs({ silent: true });
+        return true;
+      }
+
+      if (systemAuditLogTrigger?.dataset.systemAuditLogAction === "refresh") {
+        await loadSystemAuditLogs();
+        return true;
+      }
+
+      if (systemBackupAutomationTrigger?.dataset.systemBackupAutomationAction === "save") {
+        await saveSystemBackupAutomationSettings();
+        return true;
+      }
+
+      if (systemBackupAutomationTrigger?.dataset.systemBackupAutomationAction === "run-now") {
+        await runSystemBackupAutomationNow();
+        return true;
+      }
+
+      if (systemBackupRestoreTrigger?.dataset.systemBackupRestore === "clear") {
+        clearSystemBackupRestoreFileSelection();
+        renderView();
+        return true;
+      }
+
+      if (systemBackupRestoreTrigger?.dataset.systemBackupRestore === "import") {
+        await importSystemBackupAction();
+        return true;
+      }
+
       if (downloadTrigger) {
         await downloadExamineeTemplate();
         return true;
       }
 
+      if (examineeUploadModeTrigger) {
+        setExamineeUploadMode?.(examineeUploadModeTrigger.dataset.examineeUploadMode);
+        await requestCloseModal("uploadTypeModal");
+        openModal("uploadModal");
+        return true;
+      }
+
       if (openModalTrigger) {
+        if (openModalTrigger.dataset.openModal === "batchPrintDownloadModal" && !prepareBatchPrintDownloadModal()) {
+          return true;
+        }
+
         openModal(openModalTrigger.dataset.openModal);
         return true;
       }
@@ -349,6 +451,12 @@
         return true;
       }
 
+      if (target?.id === "batchPrintDownloadForm") {
+        event.preventDefault();
+        await submitBatchPrintDownloadSelection();
+        return true;
+      }
+
       return false;
     }
 
@@ -357,12 +465,20 @@
       const accountField = target?.closest("[data-account-field]") || null;
       const scheduleTarget = String(target?.dataset.systemSettingsScheduleTarget || "").trim();
       const schedulePart = String(target?.dataset.systemSettingsSchedulePart || "").trim();
+      const superAdminToggle = String(target?.dataset.superAdminToggle || "").trim();
+      const superAdminImageField = String(target?.dataset.superAdminImage || "").trim();
+      const systemBackupAutomationField = String(target?.dataset.systemBackupAutomationField || "").trim();
+      const systemBackupAutomationItemKey = String(target?.dataset.systemBackupAutomationItemKey || "").trim();
+      const systemBackupAssetKey = String(target?.dataset.systemBackupAssetKey || "").trim();
+      const systemBackupRestoreItemKey = String(target?.dataset.systemBackupRestoreItemKey || "").trim();
+      const systemBackupRestoreFile = String(target?.dataset.systemBackupRestoreFile || "").trim();
 
       if (scheduleTarget && schedulePart) {
         const targetState = resolveSystemScheduleTargetStateKeys(scheduleTarget);
         const nextParts = normalizeSystemScheduleParts(state.systemSettings[targetState.partsStateKey] || createEmptySystemScheduleParts());
         nextParts[schedulePart] = String(target?.value || "").trim();
         applySystemScheduleParts(targetState.scheduleTarget, nextParts);
+        syncSystemSettingsDirtyState();
 
         if (state.systemSettings.statusMessage) {
           setSystemSettingsStatus("");
@@ -383,6 +499,50 @@
         return true;
       }
 
+      if (superAdminToggle) {
+        updateSuperAdminField(superAdminToggle, target?.checked === true);
+        renderView();
+        return true;
+      }
+
+      if (systemBackupAutomationField) {
+        const nextValue =
+          target instanceof HTMLInputElement && target.type === "checkbox"
+            ? target.checked === true
+            : target?.value;
+
+        updateSystemBackupAutomationField(systemBackupAutomationField, nextValue);
+        return true;
+      }
+
+      if (systemBackupAutomationItemKey && target instanceof HTMLInputElement && target.type === "checkbox") {
+        toggleSystemBackupAutomationItemSelection(systemBackupAutomationItemKey, target.checked === true);
+        return true;
+      }
+
+      if (systemBackupAssetKey && target instanceof HTMLInputElement && target.type === "checkbox") {
+        toggleSystemBackupAssetSelection(systemBackupAssetKey, target.checked === true);
+        return true;
+      }
+
+      if (systemBackupRestoreItemKey && target instanceof HTMLInputElement && target.type === "checkbox") {
+        toggleSystemBackupRestoreSelection(systemBackupRestoreItemKey, target.checked === true);
+        return true;
+      }
+
+      if (superAdminImageField && target instanceof HTMLInputElement && target.type === "file") {
+        await applySuperAdminImageFile(superAdminImageField, target.files?.[0] || null);
+        target.value = "";
+        renderView();
+        return true;
+      }
+
+      if (systemBackupRestoreFile && target instanceof HTMLInputElement && target.type === "file") {
+        await selectSystemBackupRestoreFile(target.files?.[0] || null);
+        target.value = "";
+        return true;
+      }
+
       if (target?.id === "accountCreateRole") {
         setAccountCreateError("");
         return true;
@@ -397,6 +557,7 @@
             : ["admissionCode", "seriesCode", "unitCode", "sequence", ""];
           nextComponents[componentIndex] = String(target.value || "").trim();
           state.systemSettings.applicantExamNoComponents = nextComponents;
+          syncSystemSettingsDirtyState();
 
           if (state.systemSettings.statusMessage) {
             setSystemSettingsStatus("");
@@ -407,12 +568,18 @@
 
       if (target?.dataset.systemSettingsAdmitCardDataSource) {
         state.systemSettings.admitCardDataSource = String(target.dataset.systemSettingsAdmitCardDataSource || "").trim() || "examinee";
+        syncSystemSettingsDirtyState();
 
         if (state.systemSettings.statusMessage) {
           setSystemSettingsStatus("");
         }
 
         renderView();
+        return true;
+      }
+
+      if (target?.dataset.batchPrintOutputMode) {
+        updateBatchPrintOutputMode(target.dataset.batchPrintOutputMode || target.value);
         return true;
       }
 
@@ -461,6 +628,7 @@
 
       if (target?.id === "systemSettingsInitialPassword") {
         state.systemSettings.initialPassword = target.value;
+        syncSystemSettingsDirtyState();
         if (state.systemSettings.statusMessage) {
           setSystemSettingsStatus("");
         }
@@ -469,6 +637,7 @@
 
       if (target?.id === "systemSettingsAutoLogoutMinutes") {
         state.systemSettings.autoLogoutMinutes = target.value;
+        syncSystemSettingsDirtyState();
         if (state.systemSettings.statusMessage) {
           setSystemSettingsStatus("");
         }
@@ -477,6 +646,7 @@
 
       if (target?.id === "systemSettingsAdmissionHomepageUrl") {
         state.systemSettings.admissionHomepageUrl = target.value;
+        syncSystemSettingsDirtyState();
         if (state.systemSettings.statusMessage) {
           setSystemSettingsStatus("");
         }
@@ -485,9 +655,15 @@
 
       if (target?.id === "systemSettingsApplicantExamNoDigitCount") {
         state.systemSettings.applicantExamNoDigitCount = target.value;
+        syncSystemSettingsDirtyState();
         if (state.systemSettings.statusMessage) {
           setSystemSettingsStatus("");
         }
+        return true;
+      }
+
+      if (target?.dataset.superAdminField === "schoolName") {
+        updateSuperAdminField("schoolName", target.value);
         return true;
       }
 

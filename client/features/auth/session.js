@@ -52,12 +52,15 @@
         logoutButton.disabled = !isAuthenticated;
       }
 
-      if (currentUserRole) {
-        currentUserRole.textContent = state.auth.currentUser?.role || "로그인 필요";
-      }
-
       if (currentUserId) {
-        currentUserId.textContent = state.auth.currentUser?.id || "-";
+        const userId = String(state.auth.currentUser?.id || "").trim();
+        const userRole = String(state.auth.currentUser?.role || "").trim();
+
+        currentUserId.textContent = userId || "로그인 필요";
+
+        if (currentUserRole) {
+          currentUserRole.textContent = userId && userRole ? `(${userRole})` : "";
+        }
       }
 
       syncAutoLogoutCountdown();
