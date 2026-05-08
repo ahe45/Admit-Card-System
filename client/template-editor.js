@@ -4,6 +4,7 @@ const templateEditorExamineePhotoUtilsModule = globalThis.AdmitCardExamineePhoto
 const templateEditorCommandsModule = globalThis.AdmitCardTemplateEditorCommands;
 const templateEditorGeneratedObjectModule = globalThis.AdmitCardTemplateGeneratedObjects;
 const templateEditorImageToolsModule = globalThis.AdmitCardTemplateEditorImageTools;
+const templateEditorPageSettingsModule = globalThis.AdmitCardTemplateEditorPageSettings;
 const templateEditorPreviewModule = globalThis.AdmitCardTemplateEditorPreview;
 const templateEditorSelectionModule = globalThis.AdmitCardTemplateEditorSelection;
 const templateEditorTableToolsModule = globalThis.AdmitCardTemplateEditorTableTools;
@@ -27,6 +28,10 @@ if (!templateEditorCommandsModule?.createTemplateEditorCommandController) {
 
 if (!templateEditorImageToolsModule?.createTemplateEditorImageController) {
   throw new Error("client/features/template-editor/image-tools.js must be loaded before client/template-editor.js.");
+}
+
+if (!templateEditorPageSettingsModule?.createTemplatePagePropertiesController) {
+  throw new Error("client/features/template-editor/page-settings.js must be loaded before client/template-editor.js.");
 }
 
 if (!templateEditorPreviewModule?.createTemplatePreviewController) {
@@ -99,6 +104,10 @@ const {
 } = templateEditorGeneratedObjectModule;
 const { createTemplateEditorCommandController } = templateEditorCommandsModule;
 const { createTemplateEditorImageController } = templateEditorImageToolsModule;
+const {
+  applyTemplatePageSettingsToRenderedSheet,
+  createTemplatePagePropertiesController,
+} = templateEditorPageSettingsModule;
 const { createTemplateEditorLifecycleController } = templateEditorLifecycleModule;
 const { createTemplatePreviewController } = templateEditorPreviewModule;
 const { createTemplateEditorSelectionController } = templateEditorSelectionModule;
@@ -150,6 +159,8 @@ let releaseTemplateEditorTableSelectionSession = () => {};
 let selectTemplateEditorImage = () => {};
 let setTemplateEditorTableLogicalRowHeight = () => {};
 let startTemplateEditorImageMoveSession = () => {};
+let syncTemplatePageSettingsFromDocument = () => {};
+let handleTemplatePageSettingChange = () => false;
 let updateTemplateEditorFormattingControls = () => {};
 let updateTemplateEditorImageSelectionOverlay = () => {};
 let updateTemplateEditorTableHoverState = () => {};
@@ -331,6 +342,10 @@ const templateEditorTableController = createTemplateEditorTableController({
   getTemplateEditorSelectionNode,
   getTemplateEditorSurface: () => templateEditorSurface,
   getTemplateEditorModal: () => templateEditorModal,
+  getTemplateEditorBorderColorInput: () => templateEditorBorderColor,
+  getTemplateEditorBorderStyleInput: () => templateEditorBorderStyle,
+  getTemplateEditorBorderTargetInput: () => templateEditorBorderTarget,
+  getTemplateEditorBorderWidthInput: () => templateEditorBorderWidth,
   getTemplateEditorCellShadingInput: () => templateEditorCellShading,
   getTemplateEditorCellWidthInput: () => templateEditorCellWidth,
   getTemplateEditorRowHeightInput: () => templateEditorRowHeight,
@@ -380,6 +395,10 @@ const templateEditorToolbarStateController = createTemplateEditorToolbarStateCon
   TEMPLATE_EDITOR_DEFAULT_FONT_FAMILY,
   TEMPLATE_EDITOR_DEFAULT_FONT_SIZE,
   getTemplateEditorActiveTableSelection,
+  getTemplateEditorBorderColorElement: () => templateEditorBorderColor,
+  getTemplateEditorBorderStyleElement: () => templateEditorBorderStyle,
+  getTemplateEditorBorderTargetElement: () => templateEditorBorderTarget,
+  getTemplateEditorBorderWidthElement: () => templateEditorBorderWidth,
   getTemplateEditorCellShadingElement: () => templateEditorCellShading,
   getTemplateEditorCellShadingValue,
   getTemplateEditorCellWidthElement: () => templateEditorCellWidth,
@@ -393,6 +412,7 @@ const templateEditorToolbarStateController = createTemplateEditorToolbarStateCon
   getTemplateEditorSurface: () => templateEditorSurface,
   getTemplateEditorTextColorElement: () => templateEditorTextColor,
   getTemplateEditorTextShadingElement: () => templateEditorTextShading,
+  syncEditorToolbarBorderSelectControl,
   syncEditorToolbarColorControls,
   updateEditorToolbarFormattingState,
 });
@@ -402,6 +422,17 @@ const { getTemplateEditorFormattingTargetCells } = templateEditorToolbarStateCon
   updateTemplateEditorFormattingControls,
   updateTemplateTableControls,
 } = templateEditorToolbarStateController);
+const templatePagePropertiesController = createTemplatePagePropertiesController({
+  getPagePropertiesElement: () => document.getElementById("templatePagePropertiesPanel"),
+  getTemplateEditorSurface: () => templateEditorSurface,
+  setTemplateEditorStatus,
+  syncTemplateEditorContent,
+  updateTemplateEditorImageSelectionOverlay: (...args) => updateTemplateEditorImageSelectionOverlay(...args),
+});
+({
+  handleTemplatePageSettingChange,
+  syncTemplatePageSettingsFromDocument,
+} = templatePagePropertiesController);
 const templateEditorLifecycleController = createTemplateEditorLifecycleController({
   EDITOR_TOOLBAR_DEFAULT_TEXT_COLOR:
     typeof EDITOR_TOOLBAR_DEFAULT_TEXT_COLOR === "string" ? EDITOR_TOOLBAR_DEFAULT_TEXT_COLOR : "#152033",
@@ -427,6 +458,7 @@ const templateEditorLifecycleController = createTemplateEditorLifecycleControlle
   getTemplatePreviewStageElement: () => templatePreviewStage,
   getTemplatePreviewTitleElement: () => templatePreviewTitle,
   initializeTemplateEditorHistory,
+  applyTemplatePageSettingsToRenderedSheet,
   openModal: (...args) => (typeof openModal === "function" ? openModal(...args) : undefined),
   placeCaretAtEnd,
   prepareTemplateEditorContent,
@@ -440,6 +472,7 @@ const templateEditorLifecycleController = createTemplateEditorLifecycleControlle
   showToast,
   state,
   syncEditorToolbarFontSizeControls,
+  syncTemplatePageSettingsFromDocument,
   syncTemplateEditorContent,
   updateTemplateEditorActiveCell,
   updateTemplateEditorFormattingControls,

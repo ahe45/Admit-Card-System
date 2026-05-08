@@ -74,6 +74,9 @@ function createTemplateRenderingMarkupUtils({ escapeHtml }) {
     let nextMarkup = String(tokenMarkup || "");
 
     nextMarkup = nextMarkup.replace(/\sdata-template-tag-value=(["'])[^"']*\1/gi, "");
+    nextMarkup = nextMarkup.replace(/\sdata-template-token=(["'])[^"']*\1/gi, "");
+    nextMarkup = nextMarkup.replace(/\sspellcheck=(["'])[^"']*\1/gi, "");
+    nextMarkup = nextMarkup.replace(/\scontenteditable=(["'])[^"']*\1/gi, "");
     nextMarkup = nextMarkup.replace(/\sclass=(["'])([^"']*)\1/gi, (fullMatch, quote, classValue) => {
       const nextClasses = String(classValue || "")
         .split(/\s+/)

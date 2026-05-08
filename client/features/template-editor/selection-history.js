@@ -6,6 +6,8 @@
 
   globalScope.AdmitCardTemplateEditorSelectionHistory = factory();
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
+  const pageSettingsModule = globalThis.AdmitCardTemplateEditorPageSettings;
+
   function createTemplateEditorSelectionHistoryController({
     TEMPLATE_EDITOR_HISTORY_LIMIT,
     clearTemplateEditorImageSelection,
@@ -79,6 +81,7 @@
       releaseTemplateEditorTableSelectionSession({ keepSelection: false });
       clearTemplateEditorTableSelection();
       templateEditorSurface.innerHTML = snapshot.html;
+      pageSettingsModule?.syncTemplatePageSettingsFromDocumentToSurface?.(templateEditorSurface);
       decorateTemplateEditorImages(templateEditorSurface);
       syncTemplateEditorContent();
 
@@ -138,6 +141,7 @@
       normalizeTemplateTagNodes(templateEditorSurface);
       normalizeTemplateEditorTables(templateEditorSurface);
       decorateTemplateEditorImages(templateEditorSurface);
+      const pageSettings = pageSettingsModule?.syncTemplatePageSettingsFromDocumentToSurface?.(templateEditorSurface);
 
       if (!getTemplateEditorActiveTableSelection()) {
         clearTemplateEditorTableSelection();
@@ -148,10 +152,16 @@
       state.templateEditor.hasOverflow = isTemplateEditorOverflow();
 
       if (state.templateEditor.hasOverflow) {
-        setTemplateEditorStatus("A4 영역을 초과했습니다. 편집은 가능하지만 저장 전 내용 길이를 줄여야 합니다.", "warning");
+        setTemplateEditorStatus(
+          pageSettingsModule?.getTemplatePageStatusMessage?.(pageSettings, true) ||
+            "페이지 영역을 초과했습니다. 편집은 가능하지만 저장 전 내용 길이를 줄여야 합니다.",
+          "warning",
+        );
       } else {
         state.templateEditor.lastValidHtml = serializedHtml;
-        setTemplateEditorStatus("A4 영역 안에서 편집 중입니다.");
+        setTemplateEditorStatus(
+          pageSettingsModule?.getTemplatePageStatusMessage?.(pageSettings, false) || "페이지 영역 안에서 편집 중입니다.",
+        );
       }
 
       if (selectionSnapshot && focusEditor) {

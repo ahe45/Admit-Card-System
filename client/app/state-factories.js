@@ -101,7 +101,7 @@
       historyEntries: [],
       historyIndex: -1,
       isRestoringHistory: false,
-      statusMessage: "A4 영역 안에서 편집 중입니다.",
+      statusMessage: "A4 세로 영역 안에서 편집 중입니다.",
       statusType: "",
       selectedImageElement: null,
       tableSelection: null,

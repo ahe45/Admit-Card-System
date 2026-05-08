@@ -10,6 +10,10 @@
     function getTemplateEditorToolbarElements() {
       return {
         templateEditorBlockType: doc.getElementById("templateEditorBlockType"),
+        templateEditorBorderColor: doc.getElementById("templateEditorBorderColor"),
+        templateEditorBorderStyle: doc.getElementById("templateEditorBorderStyle"),
+        templateEditorBorderTarget: doc.getElementById("templateEditorBorderTarget"),
+        templateEditorBorderWidth: doc.getElementById("templateEditorBorderWidth"),
         templateEditorCellSplitCount: doc.getElementById("templateEditorCellSplitCount"),
         templateEditorCellSplitPanel: doc.getElementById("templateEditorCellSplitPanel"),
         templateEditorCellShading: doc.getElementById("templateEditorCellShading"),

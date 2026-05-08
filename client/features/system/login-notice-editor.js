@@ -105,6 +105,22 @@
       return document.getElementById("loginNoticeCellShading");
     }
 
+    function getLoginNoticeBorderColorElement() {
+      return document.getElementById("loginNoticeBorderColor");
+    }
+
+    function getLoginNoticeBorderStyleElement() {
+      return document.getElementById("loginNoticeBorderStyle");
+    }
+
+    function getLoginNoticeBorderTargetElement() {
+      return document.getElementById("loginNoticeBorderTarget");
+    }
+
+    function getLoginNoticeBorderWidthElement() {
+      return document.getElementById("loginNoticeBorderWidth");
+    }
+
     function getLoginNoticeCellSplitPanel() {
       return document.getElementById("loginNoticeCellSplitPanel");
     }
@@ -205,6 +221,10 @@
       ensureTemplateEditorTableColGroup,
       escapeAttribute,
       focusLoginNoticeEditorCell,
+      getLoginNoticeBorderColorElement,
+      getLoginNoticeBorderStyleElement,
+      getLoginNoticeBorderTargetElement,
+      getLoginNoticeBorderWidthElement,
       getLoginNoticeCellShadingElement,
       getLoginNoticeCellSplitCountElement,
       getLoginNoticeCellSplitPanel,

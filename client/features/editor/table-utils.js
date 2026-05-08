@@ -26,8 +26,23 @@
     return Number.isFinite(parsedValue) ? parsedValue : fallback;
   }
 
+  function getTemplateTableCellBorderPresentation(sourceCell = null) {
+    const sourceStyle = sourceCell?.style || null;
+    const computedStyle = sourceCell ? window.getComputedStyle(sourceCell) : null;
+    const borderValue = String(sourceStyle?.border || computedStyle?.border || TEMPLATE_EDITOR_DEFAULT_TABLE_BORDER).trim();
+
+    return Object.freeze({
+      border: borderValue || TEMPLATE_EDITOR_DEFAULT_TABLE_BORDER,
+      borderTop: String(sourceStyle?.borderTop || computedStyle?.borderTop || "").trim(),
+      borderRight: String(sourceStyle?.borderRight || computedStyle?.borderRight || "").trim(),
+      borderBottom: String(sourceStyle?.borderBottom || computedStyle?.borderBottom || "").trim(),
+      borderLeft: String(sourceStyle?.borderLeft || computedStyle?.borderLeft || "").trim(),
+    });
+  }
+
   function applyTemplateTableCellPresentation(cell, sourceCell = null) {
     const computedStyle = sourceCell ? window.getComputedStyle(sourceCell) : null;
+    const borderPresentation = getTemplateTableCellBorderPresentation(sourceCell);
     const nextPadding = sourceCell?.style.padding || computedStyle?.padding || TEMPLATE_EDITOR_DEFAULT_TABLE_CELL_PADDING;
     const nextTextAlign = sourceCell?.style.textAlign || computedStyle?.textAlign || "left";
     const nextVerticalAlign = sourceCell?.style.verticalAlign || computedStyle?.verticalAlign || "top";
@@ -35,7 +50,11 @@
       sourceCell?.style.backgroundColor ||
       (cell.tagName === "TH" ? TEMPLATE_EDITOR_DEFAULT_TABLE_HEADER_BACKGROUND : "");
 
-    cell.style.border = TEMPLATE_EDITOR_DEFAULT_TABLE_BORDER;
+    cell.style.border = borderPresentation.border;
+    cell.style.borderTop = borderPresentation.borderTop || borderPresentation.border;
+    cell.style.borderRight = borderPresentation.borderRight || borderPresentation.border;
+    cell.style.borderBottom = borderPresentation.borderBottom || borderPresentation.border;
+    cell.style.borderLeft = borderPresentation.borderLeft || borderPresentation.border;
     cell.style.padding = nextPadding;
     cell.style.textAlign = nextTextAlign;
     cell.style.verticalAlign = nextVerticalAlign;

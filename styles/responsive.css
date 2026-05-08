@@ -40,14 +40,30 @@
 @media (max-width: 1220px) {
   .template-editor-modal-body {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
   }
 
   .template-editor-modal-body > .editor-toolbar-column,
   .template-editor-page,
-  .template-tag-panel {
+  .template-tag-panel,
+  .template-page-properties-panel {
     grid-column: 1;
-    grid-row: auto;
+  }
+
+  .template-editor-modal-body > .editor-toolbar-column {
+    grid-row: 1;
+  }
+
+  .template-tag-panel {
+    grid-row: 2;
+  }
+
+  .template-page-properties-panel {
+    grid-row: 3;
+  }
+
+  .template-editor-page {
+    grid-row: 4;
   }
 
   .template-editor-page {

@@ -1204,6 +1204,70 @@
           <div class="template-editor-page">
             <div class="template-editor-surface" id="templateEditorSurface" contenteditable="true"></div>
           </div>
+
+          <aside class="template-page-properties-panel" id="templatePagePropertiesPanel" aria-label="페이지 속성">
+            <p class="template-page-properties-title">페이지 속성</p>
+            <label class="template-page-property-field" for="templateEditorPageSize">
+              <span>용지 크기</span>
+              <select class="template-page-property-control" id="templateEditorPageSize" data-template-page-setting="size">
+                <option value="A3">A3</option>
+                <option value="A4" selected>A4</option>
+                <option value="A5">A5</option>
+                <option value="B5">B5</option>
+                <option value="LETTER">Letter</option>
+                <option value="LEGAL">Legal</option>
+              </select>
+            </label>
+            <fieldset class="template-page-property-field template-page-property-fieldset">
+              <legend>방향</legend>
+              <div class="template-page-orientation-options">
+                <label for="templateEditorPageOrientationPortrait">
+                  <input
+                    class="sr-only"
+                    id="templateEditorPageOrientationPortrait"
+                    name="templateEditorPageOrientation"
+                    data-template-page-setting="orientation"
+                    type="radio"
+                    value="portrait"
+                    checked
+                  />
+                  <span>세로</span>
+                </label>
+                <label for="templateEditorPageOrientationLandscape">
+                  <input
+                    class="sr-only"
+                    id="templateEditorPageOrientationLandscape"
+                    name="templateEditorPageOrientation"
+                    data-template-page-setting="orientation"
+                    type="radio"
+                    value="landscape"
+                  />
+                  <span>가로</span>
+                </label>
+              </div>
+            </fieldset>
+            <div class="template-page-property-field">
+              <span>여백 mm</span>
+              <div class="template-page-margin-grid">
+                <label for="templateEditorPageMarginTop">
+                  <span>위</span>
+                  <input class="template-page-property-control" id="templateEditorPageMarginTop" data-template-page-setting="marginTop" type="number" min="0" max="80" step="1" value="12" />
+                </label>
+                <label for="templateEditorPageMarginRight">
+                  <span>오른쪽</span>
+                  <input class="template-page-property-control" id="templateEditorPageMarginRight" data-template-page-setting="marginRight" type="number" min="0" max="80" step="1" value="12" />
+                </label>
+                <label for="templateEditorPageMarginBottom">
+                  <span>아래</span>
+                  <input class="template-page-property-control" id="templateEditorPageMarginBottom" data-template-page-setting="marginBottom" type="number" min="0" max="80" step="1" value="12" />
+                </label>
+                <label for="templateEditorPageMarginLeft">
+                  <span>왼쪽</span>
+                  <input class="template-page-property-control" id="templateEditorPageMarginLeft" data-template-page-setting="marginLeft" type="number" min="0" max="80" step="1" value="12" />
+                </label>
+              </div>
+            </div>
+          </aside>
         </div>
       </section>
     </div>
@@ -1294,6 +1358,7 @@
     <script src="./client/features/editor/toolbar-ui.js"></script>
     <script src="./client/features/editor/toolbar-controls.js"></script>
     <script src="./client/editor-toolbar.js"></script>
+    <script src="./client/features/template-editor/page-settings.js"></script>
     <script src="./client/features/templates/cards/preview.js"></script>
     <script src="./client/features/templates/cards/meta-editor.js"></script>
     <script src="./client/features/templates/cards.js"></script>

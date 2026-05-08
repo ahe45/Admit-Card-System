@@ -28,6 +28,7 @@
     getTemplatePreviewStageElement,
     getTemplatePreviewTitleElement,
     initializeTemplateEditorHistory,
+    applyTemplatePageSettingsToRenderedSheet,
     closeModal,
     openModal,
     placeCaretAtEnd,
@@ -41,6 +42,7 @@
     setTemplateEditorTableInsertPanelVisibility,
     state,
     syncEditorToolbarFontSizeControls,
+    syncTemplatePageSettingsFromDocument,
     syncTemplateEditorContent,
     updateTemplateCard,
     updateTemplateEditorActiveCell,
@@ -77,6 +79,10 @@
         cellSplitAxisName: "templateEditorCellSplitAxis",
         cellSplitAxisRowId: "templateEditorCellSplitAxisRow",
         cellSplitAxisColumnId: "templateEditorCellSplitAxisColumn",
+        borderTargetId: "templateEditorBorderTarget",
+        borderStyleId: "templateEditorBorderStyle",
+        borderWidthId: "templateEditorBorderWidth",
+        borderColorId: "templateEditorBorderColor",
         imageInputId: "templateEditorImageInput",
       });
 
@@ -102,7 +108,7 @@
         version: templateCard.version || "초안 버전 v1.0",
         draftHtml: editorMarkup,
         lastValidHtml: editorMarkup,
-        statusMessage: "A4 영역 안에서 편집 중입니다.",
+        statusMessage: "A4 세로 영역 안에서 편집 중입니다.",
         statusType: "",
       };
 
@@ -110,6 +116,10 @@
       const templateEditorFontSize = getTemplateEditorFontSizeElement();
       const templateEditorTableRows = getTemplateEditorTableRowsInput();
       const templateEditorTableColumns = getTemplateEditorTableColumnsInput();
+      const templateEditorBorderColor = document.getElementById("templateEditorBorderColor");
+      const templateEditorBorderStyle = document.getElementById("templateEditorBorderStyle");
+      const templateEditorBorderTarget = document.getElementById("templateEditorBorderTarget");
+      const templateEditorBorderWidth = document.getElementById("templateEditorBorderWidth");
       const templateEditorCellSplitCount = document.getElementById("templateEditorCellSplitCount");
       const templateEditorCellSplitAxisColumn = document.getElementById("templateEditorCellSplitAxisColumn");
       const templateEditorTitle = getTemplateEditorTitleElement();
@@ -134,6 +144,22 @@
         templateEditorTableColumns.value = "2";
       }
 
+      if (templateEditorBorderTarget) {
+        templateEditorBorderTarget.value = "all";
+      }
+
+      if (templateEditorBorderStyle) {
+        templateEditorBorderStyle.value = "solid";
+      }
+
+      if (templateEditorBorderWidth) {
+        templateEditorBorderWidth.value = "1";
+      }
+
+      if (templateEditorBorderColor) {
+        templateEditorBorderColor.value = "#000000";
+      }
+
       if (templateEditorCellSplitCount) {
         templateEditorCellSplitCount.value = "2";
       }
@@ -147,11 +173,14 @@
       }
 
       templateEditorSurface.innerHTML = editorMarkup;
+      const didSyncPageSettings = Boolean(syncTemplatePageSettingsFromDocument?.());
       decorateTemplateEditorImages(templateEditorSurface);
       clearTemplateEditorImageSelection();
       setTemplateEditorCellSplitPanelVisibility(false);
       setTemplateEditorTableInsertPanelVisibility(false);
-      setTemplateEditorStatus(state.templateEditor.statusMessage);
+      if (!didSyncPageSettings) {
+        setTemplateEditorStatus(state.templateEditor.statusMessage);
+      }
       openModal("templateEditorModal");
       placeCaretAtEnd(templateEditorSurface);
       initializeTemplateEditorHistory();
@@ -194,6 +223,7 @@
       }
 
       templatePreviewStage.innerHTML = `<article class="template-render-sheet">${renderedHtml}</article>`;
+      applyTemplatePageSettingsToRenderedSheet?.(templatePreviewStage.querySelector(".template-render-sheet"));
       openModal("templatePreviewModal");
     }
 
@@ -226,7 +256,7 @@
           syncTemplateEditorContent();
 
           if (state.templateEditor.hasOverflow) {
-            setTemplateEditorStatus("A4 영역을 초과한 상태에서는 저장할 수 없습니다. 저장 전 내용 길이를 줄이세요.", "warning");
+            setTemplateEditorStatus("현재 페이지 영역을 초과한 상태에서는 저장할 수 없습니다. 저장 전 내용 길이를 줄이세요.", "warning");
             return;
           }
 

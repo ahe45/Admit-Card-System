@@ -6,6 +6,8 @@
 
   globalScope.AdmitCardTemplateEditorPreview = factory();
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
+  const pageSettingsModule = globalThis.AdmitCardTemplateEditorPageSettings;
+
   function createTemplatePreviewController({
     TEMPLATE_PREVIEW_PHOTO_PATH,
     applyTemplateRenderedObjects,
@@ -103,6 +105,9 @@
       clone.classList.remove("template-token");
       clone.classList.remove("template-data-fit");
       clone.removeAttribute("data-template-tag-value");
+      clone.removeAttribute("data-template-token");
+      clone.removeAttribute("contenteditable");
+      clone.removeAttribute("spellcheck");
 
       if (!String(clone.className || "").trim()) {
         clone.removeAttribute("class");
@@ -248,8 +253,10 @@
       return renderedContainer.innerHTML;
     }
 
-    function getTemplateDocumentStyles() {
+    function getTemplateDocumentStyles(settings = null) {
+      const pageSettings = settings || pageSettingsModule?.getDefaultTemplatePageSettings?.() || null;
       return `
+        ${pageSettingsModule?.getTemplatePagePrintCss?.(pageSettings) || "@page { size: A4 portrait; margin: 0; }"}
         * { box-sizing: border-box; }
         body {
           margin: 0;
@@ -263,6 +270,7 @@
           min-height: 1123px;
           margin: 0 auto;
           padding: 44px 46px;
+          border-radius: 0;
           background: #ffffff;
           box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
         }
@@ -347,6 +355,15 @@
       `;
     }
 
+    function getTemplatePreviewPageSettings(markup = "") {
+      return pageSettingsModule?.getTemplatePageSettingsFromHtml?.(markup) || null;
+    }
+
+    function getTemplatePreviewRenderAttributes(markup = "") {
+      const pageSettings = getTemplatePreviewPageSettings(markup);
+      return pageSettingsModule?.getTemplatePageRenderAttributes?.(pageSettings) || "";
+    }
+
     async function printTemplatePreview() {
       if (!state.templatePreview.renderedHtml) {
         return;
@@ -364,10 +381,10 @@
           <head>
             <meta charset="UTF-8" />
             <title>수험표 출력</title>
-            <style>${getTemplateDocumentStyles()}</style>
+            <style>${getTemplateDocumentStyles(getTemplatePreviewPageSettings(state.templatePreview.renderedHtml))}</style>
           </head>
           <body>
-            <article class="template-render-sheet">
+            <article class="template-render-sheet" ${getTemplatePreviewRenderAttributes(state.templatePreview.renderedHtml)}>
               ${state.templatePreview.renderedHtml}
             </article>
           </body>

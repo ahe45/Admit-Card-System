@@ -10,6 +10,10 @@
     TEMPLATE_EDITOR_DEFAULT_FONT_FAMILY,
     TEMPLATE_EDITOR_DEFAULT_FONT_SIZE,
     getTemplateEditorActiveTableSelection,
+    getTemplateEditorBorderColorElement,
+    getTemplateEditorBorderStyleElement,
+    getTemplateEditorBorderTargetElement,
+    getTemplateEditorBorderWidthElement,
     getTemplateEditorCellShadingElement,
     getTemplateEditorCellShadingValue,
     getTemplateEditorCellWidthElement,
@@ -23,6 +27,7 @@
     getTemplateEditorSurface,
     getTemplateEditorTextColorElement,
     getTemplateEditorTextShadingElement,
+    syncEditorToolbarBorderSelectControl,
     syncEditorToolbarColorControls,
     updateEditorToolbarFormattingState,
   }) {
@@ -64,6 +69,15 @@
       return tableSelection.selectedCells.filter((cell) => templateEditorSurface.contains(cell));
     }
 
+    function getTemplateEditorBorderControlSide(borderTargetElement) {
+      const targetValue = String(borderTargetElement?.value || "").trim();
+      return ["top", "right", "bottom", "left"].includes(targetValue) ? targetValue : "top";
+    }
+
+    function getTemplateEditorBorderStyleProperty(side, suffix) {
+      return `border${side[0].toUpperCase()}${side.slice(1)}${suffix}`;
+    }
+
     function updateTemplateEditorFormattingControls() {
       const templateEditorSurface = getTemplateEditorSurface();
       const templateEditorModal = getTemplateEditorModal();
@@ -103,13 +117,33 @@
 
     function updateTemplateTableControls() {
       const templateEditorModal = getTemplateEditorModal();
+      const templateEditorBorderColor = getTemplateEditorBorderColorElement?.();
+      const templateEditorBorderStyle = getTemplateEditorBorderStyleElement?.();
+      const templateEditorBorderTarget = getTemplateEditorBorderTargetElement?.();
+      const templateEditorBorderWidth = getTemplateEditorBorderWidthElement?.();
       const templateEditorCellWidth = getTemplateEditorCellWidthElement();
       const templateEditorRowHeight = getTemplateEditorRowHeightElement();
       const templateEditorCellShading = getTemplateEditorCellShadingElement();
+      const activeElement = document.activeElement instanceof Element ? document.activeElement : null;
+      const isActiveBorderDropdown =
+        Boolean(activeElement?.closest(".template-toolbar-icon-select")) ||
+        Boolean(templateEditorModal?.querySelector(".template-toolbar-icon-select.open"));
+      const hasDirtyBorderControl = [
+        templateEditorBorderColor,
+        templateEditorBorderStyle,
+        templateEditorBorderTarget,
+        templateEditorBorderWidth,
+      ].some((element) => element?.dataset?.editorBorderUserValue === "true");
 
       if (
         !templateEditorModal ||
         templateEditorModal.classList.contains("hidden") ||
+        document.activeElement === templateEditorBorderColor ||
+        document.activeElement === templateEditorBorderStyle ||
+        document.activeElement === templateEditorBorderTarget ||
+        document.activeElement === templateEditorBorderWidth ||
+        isActiveBorderDropdown ||
+        hasDirtyBorderControl ||
         document.activeElement === templateEditorCellWidth ||
         document.activeElement === templateEditorRowHeight ||
         document.activeElement === templateEditorCellShading
@@ -135,6 +169,36 @@
         });
       }
 
+      const borderControlSide = getTemplateEditorBorderControlSide(templateEditorBorderTarget);
+
+      if (templateEditorBorderWidth && selectedCell) {
+        const computedStyle = window.getComputedStyle(selectedCell);
+        const widthProperty = getTemplateEditorBorderStyleProperty(borderControlSide, "Width");
+        const borderWidth = Number.parseFloat(selectedCell.style[widthProperty] || computedStyle[widthProperty] || "1");
+        templateEditorBorderWidth.value = String(Number.isFinite(borderWidth) ? Math.max(0, Math.round(borderWidth)) : 1);
+      }
+
+      if (templateEditorBorderStyle && selectedCell) {
+        const styleProperty = getTemplateEditorBorderStyleProperty(borderControlSide, "Style");
+        const borderStyle = String(selectedCell.style[styleProperty] || window.getComputedStyle(selectedCell)[styleProperty] || "solid");
+        templateEditorBorderStyle.value = ["solid", "dashed", "dotted", "double", "none"].includes(borderStyle) ? borderStyle : "solid";
+        syncEditorToolbarBorderSelectControl?.(templateEditorBorderStyle);
+      }
+
+      if (templateEditorBorderColor && selectedCell) {
+        const colorProperty = getTemplateEditorBorderStyleProperty(borderControlSide, "Color");
+        syncEditorToolbarColorControls({
+          colorInputElement: templateEditorBorderColor,
+          colorValue: selectedCell.style[colorProperty] || window.getComputedStyle(selectedCell)[colorProperty],
+          fallbackValue: "#000000",
+        });
+      }
+
+      if (templateEditorBorderTarget && !templateEditorBorderTarget.value) {
+        templateEditorBorderTarget.value = "all";
+      }
+
+      syncEditorToolbarBorderSelectControl?.(templateEditorBorderTarget);
       syncTemplateTableVerticalAlignButtons(selectedCell);
     }
 

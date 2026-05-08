@@ -7,12 +7,8 @@
   globalScope.AdmitCardTemplateGeneratedObjects = factory(globalScope);
 })(typeof globalThis !== "undefined" ? globalThis : this, (globalScope) => {
   const apiClient = globalScope.AdmitCardApiClient;
-
-  if (!apiClient) {
-    throw new Error("client/app/api-client.js must be loaded before client/features/template-editor/generated-objects.js.");
-  }
-
-  const { buildApiUrl } = apiClient;
+  const defaultBuildApiUrl =
+    typeof apiClient?.buildApiUrl === "function" ? apiClient.buildApiUrl : (path) => String(path || "");
 
   const TEMPLATE_GENERATED_OBJECT_CONFIG = Object.freeze({
     barcode: Object.freeze({
@@ -39,123 +35,146 @@
       .replace(/>/g, "&gt;");
   }
 
-  function getTemplateGeneratedObjectConfig(objectType) {
-    return TEMPLATE_GENERATED_OBJECT_CONFIG[String(objectType || "").trim().toLowerCase()] || null;
-  }
+  function createTemplateGeneratedObjectController({
+    buildApiUrl = defaultBuildApiUrl,
+    objectSourceKey = "examineeNo",
+    getObjectValue = null,
+  } = {}) {
+    const resolveObjectValue = (examinee) => {
+      if (typeof getObjectValue === "function") {
+        const customValue = String(getObjectValue(examinee) ?? "").trim();
+        return customValue || "-";
+      }
 
-  function getTemplateGeneratedObjectValue(examinee) {
-    const examineeNo = String(examinee?.examineeNo ?? "").trim();
-    return examineeNo || "-";
-  }
+      const value = String(examinee?.[objectSourceKey] ?? "").trim();
+      return value || "-";
+    };
 
-  function resolveTemplateGeneratedObjectExaminee(examinee = null, getPreviewExaminee = null) {
-    if (examinee && typeof examinee === "object") {
-      return examinee;
+    function getTemplateGeneratedObjectConfig(objectType) {
+      return TEMPLATE_GENERATED_OBJECT_CONFIG[String(objectType || "").trim().toLowerCase()] || null;
     }
 
-    if (typeof getPreviewExaminee === "function") {
-      return getPreviewExaminee() || {};
+    function getTemplateGeneratedObjectValue(examinee) {
+      return resolveObjectValue(examinee);
     }
 
-    return {};
-  }
+    function resolveTemplateGeneratedObjectExaminee(examinee = null, getPreviewExaminee = null) {
+      if (examinee && typeof examinee === "object") {
+        return examinee;
+      }
 
-  function buildTemplateGeneratedObjectPreviewUrl(objectType, examinee) {
-    const objectConfig = getTemplateGeneratedObjectConfig(objectType);
+      if (typeof getPreviewExaminee === "function") {
+        return getPreviewExaminee() || {};
+      }
 
-    if (!objectConfig) {
-      return "";
+      return {};
     }
 
-    const value = getTemplateGeneratedObjectValue(examinee);
-    const query = new URLSearchParams({ value }).toString();
-    return buildApiUrl(`/api/template-objects/${encodeURIComponent(objectType)}.svg?${query}`);
-  }
+    function buildTemplateGeneratedObjectPreviewUrl(objectType, examinee) {
+      const objectConfig = getTemplateGeneratedObjectConfig(objectType);
 
-  function decorateTemplateGeneratedObjectImage(imageElement, { examinee = null, getPreviewExaminee = null } = {}) {
-    if (!(imageElement instanceof HTMLImageElement)) {
-      return false;
+      if (!objectConfig) {
+        return "";
+      }
+
+      const value = getTemplateGeneratedObjectValue(examinee);
+      const query = new URLSearchParams({ value }).toString();
+      return buildApiUrl(`/api/template-objects/${encodeURIComponent(objectType)}.svg?${query}`);
     }
 
-    const objectType = String(imageElement.dataset.templateObjectType || "").trim().toLowerCase();
-    const objectConfig = getTemplateGeneratedObjectConfig(objectType);
+    function decorateTemplateGeneratedObjectImage(imageElement, { examinee = null, getPreviewExaminee = null } = {}) {
+      if (!(imageElement instanceof HTMLImageElement)) {
+        return false;
+      }
 
-    imageElement.classList.remove(
-      "template-generated-object",
-      TEMPLATE_GENERATED_OBJECT_CONFIG.barcode.className,
-      TEMPLATE_GENERATED_OBJECT_CONFIG.qrcode.className,
-    );
+      const objectType = String(imageElement.dataset.templateObjectType || "").trim().toLowerCase();
+      const objectConfig = getTemplateGeneratedObjectConfig(objectType);
 
-    if (!objectConfig) {
-      imageElement.removeAttribute("data-template-object-source");
-      return false;
+      imageElement.classList.remove(
+        "template-generated-object",
+        TEMPLATE_GENERATED_OBJECT_CONFIG.barcode.className,
+        TEMPLATE_GENERATED_OBJECT_CONFIG.qrcode.className,
+      );
+
+      if (!objectConfig) {
+        imageElement.removeAttribute("data-template-object-source");
+        return false;
+      }
+
+      const resolvedExaminee = resolveTemplateGeneratedObjectExaminee(examinee, getPreviewExaminee);
+      const value = getTemplateGeneratedObjectValue(resolvedExaminee);
+      const previewUrl = buildTemplateGeneratedObjectPreviewUrl(objectType, resolvedExaminee);
+
+      imageElement.classList.add("template-generated-object", objectConfig.className);
+      imageElement.dataset.templateObjectSource = objectSourceKey;
+      imageElement.alt = `${value} ${objectConfig.altSuffix}`;
+      imageElement.title = objectConfig.label;
+
+      if (!String(imageElement.style.width || "").trim() && !imageElement.getAttribute("width")) {
+        imageElement.style.width = `${objectConfig.width}px`;
+      }
+
+      if (!String(imageElement.style.height || "").trim() && !imageElement.getAttribute("height")) {
+        imageElement.style.height = `${objectConfig.height}px`;
+      }
+
+      if (previewUrl) {
+        imageElement.src = previewUrl;
+      }
+
+      return true;
     }
 
-    const resolvedExaminee = resolveTemplateGeneratedObjectExaminee(examinee, getPreviewExaminee);
-    const value = getTemplateGeneratedObjectValue(resolvedExaminee);
-    const previewUrl = buildTemplateGeneratedObjectPreviewUrl(objectType, resolvedExaminee);
+    function buildTemplateGeneratedObjectMarkup(objectType, { previewExaminee = null, getPreviewExaminee = null } = {}) {
+      const objectConfig = getTemplateGeneratedObjectConfig(objectType);
 
-    imageElement.classList.add("template-generated-object", objectConfig.className);
-    imageElement.dataset.templateObjectSource = "examineeNo";
-    imageElement.alt = `${value} ${objectConfig.altSuffix}`;
-    imageElement.title = objectConfig.label;
+      if (!objectConfig) {
+        return "";
+      }
 
-    if (!String(imageElement.style.width || "").trim() && !imageElement.getAttribute("width")) {
-      imageElement.style.width = `${objectConfig.width}px`;
+      const resolvedExaminee = resolveTemplateGeneratedObjectExaminee(previewExaminee, getPreviewExaminee);
+      const previewUrl = buildTemplateGeneratedObjectPreviewUrl(objectType, resolvedExaminee);
+      const objectValue = getTemplateGeneratedObjectValue(resolvedExaminee);
+
+      return `
+        <img
+          class="template-generated-object ${objectConfig.className}"
+          data-template-object-type="${escapeAttribute(objectType)}"
+          data-template-object-source="${escapeAttribute(objectSourceKey)}"
+          src="${escapeAttribute(previewUrl)}"
+          alt="${escapeAttribute(`${objectValue} ${objectConfig.altSuffix}`)}"
+          title="${escapeAttribute(objectConfig.label)}"
+          style="width: ${objectConfig.width}px; height: ${objectConfig.height}px;"
+        />
+      `;
     }
 
-    if (!String(imageElement.style.height || "").trim() && !imageElement.getAttribute("height")) {
-      imageElement.style.height = `${objectConfig.height}px`;
+    function applyTemplateRenderedObjects(rootElement, examinee = null, { getPreviewExaminee = null } = {}) {
+      if (!rootElement?.querySelectorAll) {
+        return;
+      }
+
+      rootElement.querySelectorAll("img[data-template-object-type]").forEach((imageElement) => {
+        decorateTemplateGeneratedObjectImage(imageElement, { examinee, getPreviewExaminee });
+      });
     }
 
-    if (previewUrl) {
-      imageElement.src = previewUrl;
-    }
-
-    return true;
-  }
-
-  function buildTemplateGeneratedObjectMarkup(objectType, { previewExaminee = null, getPreviewExaminee = null } = {}) {
-    const objectConfig = getTemplateGeneratedObjectConfig(objectType);
-
-    if (!objectConfig) {
-      return "";
-    }
-
-    const resolvedExaminee = resolveTemplateGeneratedObjectExaminee(previewExaminee, getPreviewExaminee);
-    const previewUrl = buildTemplateGeneratedObjectPreviewUrl(objectType, resolvedExaminee);
-    const objectValue = getTemplateGeneratedObjectValue(resolvedExaminee);
-
-    return `
-      <img
-        class="template-generated-object ${objectConfig.className}"
-        data-template-object-type="${escapeAttribute(objectType)}"
-        data-template-object-source="examineeNo"
-        src="${escapeAttribute(previewUrl)}"
-        alt="${escapeAttribute(`${objectValue} ${objectConfig.altSuffix}`)}"
-        title="${escapeAttribute(objectConfig.label)}"
-        style="width: ${objectConfig.width}px; height: ${objectConfig.height}px;"
-      />
-    `;
-  }
-
-  function applyTemplateRenderedObjects(rootElement, examinee = null, { getPreviewExaminee = null } = {}) {
-    if (!rootElement?.querySelectorAll) {
-      return;
-    }
-
-    rootElement.querySelectorAll("img[data-template-object-type]").forEach((imageElement) => {
-      decorateTemplateGeneratedObjectImage(imageElement, { examinee, getPreviewExaminee });
+    return Object.freeze({
+      TEMPLATE_GENERATED_OBJECT_CONFIG,
+      applyTemplateRenderedObjects,
+      buildTemplateGeneratedObjectMarkup,
+      buildTemplateGeneratedObjectPreviewUrl,
+      decorateTemplateGeneratedObjectImage,
+      getTemplateGeneratedObjectConfig,
+      getTemplateGeneratedObjectValue,
     });
   }
 
+  const defaultController = createTemplateGeneratedObjectController();
+
   return Object.freeze({
     TEMPLATE_GENERATED_OBJECT_CONFIG,
-    applyTemplateRenderedObjects,
-    buildTemplateGeneratedObjectMarkup,
-    buildTemplateGeneratedObjectPreviewUrl,
-    decorateTemplateGeneratedObjectImage,
-    getTemplateGeneratedObjectConfig,
-    getTemplateGeneratedObjectValue,
+    ...defaultController,
+    createTemplateGeneratedObjectController,
   });
 });

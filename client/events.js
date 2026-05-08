@@ -622,6 +622,7 @@ const examineeDetailEventHandlers = createExamineeDetailEventHandlers({
 
 const templateEditorEventHandlers = createTemplateEditorEventHandlers({
   addTemplateCard,
+  applyEditorToolbarBorderSelectOption,
   applyTemplateCard,
   applyTemplateEditorCommand,
   applyTemplateEditorFontFamily,
@@ -640,9 +641,11 @@ const templateEditorEventHandlers = createTemplateEditorEventHandlers({
   getTemplateEditorModal: () => templateEditorModal,
   getTemplateEditorSurface: () => templateEditorSurface,
   getTemplateEditorTableInsertPanel: () => templateEditorTableInsertPanel,
+  getEditorToolbarBorderSelectElements,
   handleTemplateEditorInsert,
   handleTemplateEditorTablePointerDown,
   handleTemplateEditorTokenDeletion,
+  handleTemplatePageSettingChange,
   handleTemplateTableAction,
   insertTemplateImage,
   insertTemplateTag,
@@ -655,6 +658,7 @@ const templateEditorEventHandlers = createTemplateEditorEventHandlers({
   saveTemplateEditor,
   saveTemplateEditorSelection,
   selectTemplateEditorImage,
+  setEditorToolbarBorderSelectMenuVisibility,
   setEditorToolbarFontSizeMenuVisibility,
   setTemplateEditorCellSplitPanelVisibility,
   setTemplateEditorTableInsertPanelVisibility,
@@ -672,6 +676,7 @@ const templateEditorEventHandlers = createTemplateEditorEventHandlers({
 });
 
 const appDocumentEventHandlers = createAppDocumentEventHandlers({
+  applyEditorToolbarBorderSelectOption,
   applyEditorToolbarColorTrigger,
   applyLoginNoticeEditorCommand,
   batchPrintSelectedExaminees,
@@ -683,6 +688,7 @@ const appDocumentEventHandlers = createAppDocumentEventHandlers({
   clearGridFilter,
   clearHeaderFilters,
   clampPage,
+  closeAllEditorToolbarBorderSelectMenus,
   closeAllEditorToolbarColorPanels,
   closeAllEditorToolbarFontSizeMenus,
   closeAllEditorToolbarTableInsertPanels,
@@ -703,6 +709,7 @@ const appDocumentEventHandlers = createAppDocumentEventHandlers({
   downloadPrintHistoryGridWorkbook,
   examineeDetailEventHandlers,
   filterGridFilterOptionValues,
+  getEditorToolbarBorderSelectElements,
   getEditorToolbarColorPickerElements,
   getGridFilterOptionValues,
   getGridFilterSelectionState,
@@ -748,6 +755,7 @@ const appDocumentEventHandlers = createAppDocumentEventHandlers({
   saveSystemSettings,
   setAccountCreateError,
   setExamineeUploadMode,
+  setEditorToolbarBorderSelectMenuVisibility,
   setEditorToolbarColorPanelVisibility,
   setEditorToolbarFontSizeMenuVisibility,
   setGridFilterValues,

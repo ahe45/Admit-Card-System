@@ -7,12 +7,16 @@
   globalScope.AdmitCardEditorToolbarDocumentEvents = factory();
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   function createEditorToolbarDocumentEventHandlers({
+    applyEditorToolbarBorderSelectOption,
     applyEditorToolbarColorTrigger,
     applyLoginNoticeEditorCommand,
+    closeAllEditorToolbarBorderSelectMenus,
     closeAllEditorToolbarColorPanels,
     closeAllEditorToolbarFontSizeMenus,
     closeAllEditorToolbarTableInsertPanels,
+    getEditorToolbarBorderSelectElements,
     getEditorToolbarColorPickerElements,
+    setEditorToolbarBorderSelectMenuVisibility,
     setEditorToolbarColorPanelVisibility,
     setEditorToolbarFontSizeMenuVisibility,
   }) {
@@ -21,6 +25,7 @@
       const tableInsertPopoverTrigger = target?.closest(".template-toolbar-table-insert-popover") || null;
       const fontSizeComboTrigger = target?.closest(".template-toolbar-font-size-combo") || null;
       const colorPickerTrigger = target?.closest(".template-toolbar-color-picker") || null;
+      const borderSelectTrigger = target?.closest(".template-toolbar-icon-select") || null;
 
       if (!tableInsertPopoverTrigger) {
         closeAllEditorToolbarTableInsertPanels();
@@ -33,12 +38,18 @@
       if (!colorPickerTrigger) {
         closeAllEditorToolbarColorPanels();
       }
+
+      if (!borderSelectTrigger) {
+        closeAllEditorToolbarBorderSelectMenus?.();
+      }
     }
 
     function handleClick(event) {
       const target = event.target instanceof Element ? event.target : null;
       const fontSizeToggleTrigger = target?.closest("[data-editor-font-size-toggle]") || null;
       const fontSizeOptionTrigger = target?.closest("[data-editor-font-size-option]") || null;
+      const borderSelectToggleTrigger = target?.closest("[data-editor-border-select-toggle]") || null;
+      const borderSelectOptionTrigger = target?.closest("[data-editor-border-select-option]") || null;
       const colorToggleTrigger = target?.closest("[data-editor-color-toggle]") || null;
       const colorDirectTrigger = target?.closest("[data-editor-color-direct]") || null;
       const colorPresetTrigger = target?.closest("[data-editor-color-preset]") || null;
@@ -77,6 +88,28 @@
         return true;
       }
 
+      if (borderSelectToggleTrigger) {
+        const inputId = borderSelectToggleTrigger.dataset.editorBorderSelectToggle || "";
+        const { menuElement } = getEditorToolbarBorderSelectElements?.(inputId) || {};
+        const nextOpen = menuElement?.classList.contains("hidden") ?? true;
+
+        setEditorToolbarBorderSelectMenuVisibility?.(inputId, nextOpen);
+        return true;
+      }
+
+      if (borderSelectOptionTrigger) {
+        const comboMenu = borderSelectOptionTrigger.closest(".template-toolbar-icon-select-menu");
+        const inputId = comboMenu?.dataset.editorBorderSelectMenuFor || "";
+        const value = borderSelectOptionTrigger.dataset.editorBorderSelectOption || "";
+
+        if (inputId && value) {
+          applyEditorToolbarBorderSelectOption?.(inputId, value);
+        }
+
+        setEditorToolbarBorderSelectMenuVisibility?.(inputId, false);
+        return true;
+      }
+
       if (colorToggleTrigger) {
         const inputId = colorToggleTrigger.dataset.editorColorToggle || "";
         const { panelElement } = getEditorToolbarColorPickerElements(inputId);
@@ -110,6 +143,7 @@
 
     function handleEscape() {
       return (
+        closeAllEditorToolbarBorderSelectMenus?.() ||
         closeAllEditorToolbarFontSizeMenus() ||
         closeAllEditorToolbarColorPanels() ||
         closeAllEditorToolbarTableInsertPanels()

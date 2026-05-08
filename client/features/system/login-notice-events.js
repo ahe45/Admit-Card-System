@@ -175,7 +175,7 @@
         ".login-notice-editor-shell [data-editor-font-size-toggle], .login-notice-editor-shell [data-editor-font-size-option]",
       );
       const noticeToolbarSelectionControl = event.target.closest(
-        "#loginNoticeFontFamily, #loginNoticeFontSize, #loginNoticeTextColor, #loginNoticeTextShading, #loginNoticeCellShading, #loginNoticeTableRows, #loginNoticeTableColumns, #loginNoticeCellSplitPanel",
+        "#loginNoticeFontFamily, #loginNoticeFontSize, #loginNoticeTextColor, #loginNoticeTextShading, #loginNoticeCellShading, #loginNoticeBorderTarget, #loginNoticeBorderStyle, #loginNoticeBorderWidth, #loginNoticeBorderColor, #loginNoticeTableRows, #loginNoticeTableColumns, #loginNoticeCellSplitPanel",
       );
 
       if (noticeToolbarTrigger || noticeFontSizeTrigger) {

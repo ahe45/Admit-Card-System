@@ -18,6 +18,7 @@
 
   function createTemplateEditorEventHandlers({
     addTemplateCard,
+    applyEditorToolbarBorderSelectOption,
     applyTemplateCard,
     applyTemplateEditorCommand,
     applyTemplateEditorFontFamily,
@@ -36,9 +37,11 @@
     getTemplateEditorModal,
     getTemplateEditorSurface,
     getTemplateEditorTableInsertPanel,
+    getEditorToolbarBorderSelectElements,
     handleTemplateEditorInsert,
     handleTemplateEditorTablePointerDown,
     handleTemplateEditorTokenDeletion,
+    handleTemplatePageSettingChange,
     handleTemplateTableAction,
     insertTemplateImage,
     insertTemplateTag,
@@ -51,6 +54,7 @@
     saveTemplateEditor,
     saveTemplateEditorSelection,
     selectTemplateEditorImage,
+    setEditorToolbarBorderSelectMenuVisibility,
     setEditorToolbarFontSizeMenuVisibility,
     setTemplateEditorCellSplitPanelVisibility,
     setTemplateEditorTableInsertPanelVisibility,
@@ -69,6 +73,8 @@
     function handleClick(event) {
       const fontSizeToggleTrigger = event.target.closest("#templateEditorModal [data-editor-font-size-toggle]");
       const fontSizeOptionTrigger = event.target.closest("#templateEditorModal [data-editor-font-size-option]");
+      const borderSelectToggleTrigger = event.target.closest("#templateEditorModal [data-editor-border-select-toggle]");
+      const borderSelectOptionTrigger = event.target.closest("#templateEditorModal [data-editor-border-select-option]");
       const addTemplateTrigger = event.target.closest("[data-add-template]");
       const templatePreviewTrigger = event.target.closest("[data-template-preview]");
       const templateCardEditTrigger = event.target.closest("[data-template-card-edit]");
@@ -120,6 +126,28 @@
         }
 
         setEditorToolbarFontSizeMenuVisibility(inputId, false);
+        return true;
+      }
+
+      if (borderSelectToggleTrigger) {
+        const inputId = borderSelectToggleTrigger.dataset.editorBorderSelectToggle || "";
+        const { menuElement } = getEditorToolbarBorderSelectElements?.(inputId) || {};
+        const nextOpen = menuElement?.classList.contains("hidden") ?? true;
+
+        setEditorToolbarBorderSelectMenuVisibility?.(inputId, nextOpen);
+        return true;
+      }
+
+      if (borderSelectOptionTrigger) {
+        const comboMenu = borderSelectOptionTrigger.closest(".template-toolbar-icon-select-menu");
+        const inputId = comboMenu?.dataset.editorBorderSelectMenuFor || "";
+        const value = borderSelectOptionTrigger.dataset.editorBorderSelectOption || "";
+
+        if (inputId && value) {
+          applyEditorToolbarBorderSelectOption?.(inputId, value);
+        }
+
+        setEditorToolbarBorderSelectMenuVisibility?.(inputId, false);
         return true;
       }
 
@@ -357,13 +385,13 @@
       }
 
       const toolbarTrigger = event.target.closest(
-        "[data-template-command], [data-template-table-action], [data-template-cell-split-step], [data-template-cell-split-toggle], [data-template-cell-split-confirm], [data-template-insert], [data-template-open-image], [data-template-tag], [data-save-template-editor], [data-editor-color-preset], [data-editor-color-apply], [data-editor-color-toggle], [data-editor-color-direct]",
+        "[data-template-command], [data-template-table-action], [data-template-cell-split-step], [data-template-cell-split-toggle], [data-template-cell-split-confirm], [data-template-insert], [data-template-open-image], [data-template-tag], [data-save-template-editor], [data-editor-color-preset], [data-editor-color-apply], [data-editor-color-toggle], [data-editor-color-direct], [data-editor-border-select-toggle], [data-editor-border-select-option]",
       );
       const templateFontSizeTrigger = event.target.closest(
         "#templateEditorModal [data-editor-font-size-toggle], #templateEditorModal [data-editor-font-size-option]",
       );
       const toolbarSelectionControl = event.target.closest(
-        "#templateEditorBlockType, #templateEditorFontFamily, #templateEditorFontSize, #templateEditorTextColor, #templateEditorTextShading, #templateEditorCellShading, #templateEditorTableRows, #templateEditorTableColumns, #templateEditorCellSplitPanel",
+        "#templateEditorBlockType, #templateEditorFontFamily, #templateEditorFontSize, #templateEditorTextColor, #templateEditorTextShading, #templateEditorCellShading, #templateEditorBorderTarget, #templateEditorBorderStyle, #templateEditorBorderWidth, #templateEditorBorderColor, #templateEditorTableRows, #templateEditorTableColumns, #templateEditorCellSplitPanel, #templatePagePropertiesPanel [data-template-page-setting]",
       );
 
       if (toolbarTrigger || templateFontSizeTrigger) {
@@ -413,6 +441,10 @@
     }
 
     function handleChange(event) {
+      if (handleTemplatePageSettingChange?.(event)) {
+        return true;
+      }
+
       if (event.target.id === "templateEditorImageInput") {
         insertTemplateImage(event.target.files?.[0]);
         event.target.value = "";
@@ -438,6 +470,10 @@
     }
 
     function handleInput(event) {
+      if (event.target?.matches?.(".template-toolbar-border-width")) {
+        event.target.dataset.editorBorderUserValue = "true";
+      }
+
       if (event.target.id === "templateEditorFontSize") {
         syncEditorToolbarFontSizeMenuSelection(event.target, event.target.value);
         return true;

@@ -29,6 +29,7 @@
   const { createGridDocumentEventHandlers } = gridDocumentEventsModule;
 
   function createAppDocumentEventHandlers({
+    applyEditorToolbarBorderSelectOption,
     applyEditorToolbarColorTrigger,
     applyLoginNoticeEditorCommand,
     batchPrintSelectedExaminees,
@@ -40,6 +41,7 @@
     clearGridFilter,
     clearHeaderFilters,
     clampPage,
+    closeAllEditorToolbarBorderSelectMenus,
     closeAllEditorToolbarColorPanels,
     closeAllEditorToolbarFontSizeMenus,
     closeAllEditorToolbarTableInsertPanels,
@@ -62,6 +64,7 @@
     getGridFilterSelectionState,
     getGridPage,
     getGridRows,
+    getEditorToolbarBorderSelectElements,
     getEditorToolbarColorPickerElements,
     getHeaderComboElement,
     getSidebar,
@@ -105,6 +108,7 @@
     saveSystemSettings,
     setAccountCreateError,
     setExamineeUploadMode,
+    setEditorToolbarBorderSelectMenuVisibility,
     setEditorToolbarColorPanelVisibility,
     setEditorToolbarFontSizeMenuVisibility,
     setGridFilterValues,
@@ -234,12 +238,16 @@
       selectSystemBackupRestoreFile,
     });
     const editorToolbarDocumentEventHandlers = createEditorToolbarDocumentEventHandlers({
+      applyEditorToolbarBorderSelectOption,
       applyEditorToolbarColorTrigger,
       applyLoginNoticeEditorCommand,
+      closeAllEditorToolbarBorderSelectMenus,
       closeAllEditorToolbarColorPanels,
       closeAllEditorToolbarFontSizeMenus,
       closeAllEditorToolbarTableInsertPanels,
+      getEditorToolbarBorderSelectElements,
       getEditorToolbarColorPickerElements,
+      setEditorToolbarBorderSelectMenuVisibility,
       setEditorToolbarColorPanelVisibility,
       setEditorToolbarFontSizeMenuVisibility,
     });

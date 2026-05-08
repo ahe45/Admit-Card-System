@@ -6,6 +6,8 @@
 
   globalScope.AdmitCardTemplateCardPreview = factory();
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
+  const pageSettingsModule = globalThis.AdmitCardTemplateEditorPageSettings;
+
   function createTemplateCardPreviewService({
     getDefaultTemplateContent,
     getTemplatePreviewExaminee,
@@ -51,7 +53,9 @@
         });
 
         return `
-          <article class="template-render-sheet template-card-thumbnail-sheet" aria-hidden="true">
+          <article class="template-render-sheet template-card-thumbnail-sheet" ${pageSettingsModule?.getTemplatePageRenderAttributes?.(
+            pageSettingsModule?.getTemplatePageSettingsFromHtml?.(renderedHtml),
+          ) || ""} aria-hidden="true">
             ${thumbnailContainer.innerHTML}
           </article>
         `;

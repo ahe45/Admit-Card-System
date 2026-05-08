@@ -1690,6 +1690,10 @@
       cellSplitAxisName: "loginNoticeCellSplitAxis",
       cellSplitAxisRowId: "loginNoticeCellSplitAxisRow",
       cellSplitAxisColumnId: "loginNoticeCellSplitAxisColumn",
+      borderTargetId: "loginNoticeBorderTarget",
+      borderStyleId: "loginNoticeBorderStyle",
+      borderWidthId: "loginNoticeBorderWidth",
+      borderColorId: "loginNoticeBorderColor",
       imageInputId: "loginNoticeImageInput",
     });
   }

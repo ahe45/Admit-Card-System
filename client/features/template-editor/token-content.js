@@ -6,6 +6,8 @@
 
   globalScope.AdmitCardTemplateEditorTokenContent = factory();
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
+  const pageSettingsModule = globalThis.AdmitCardTemplateEditorPageSettings;
+
   function createTemplateEditorTokenContentController({
     decorateTemplateEditorImages,
     getTemplateEditorSurface,
@@ -79,6 +81,17 @@
       meaningfulTextNodes.slice(1).forEach((textNode) => textNode.remove());
     }
 
+    function applyTemplateTokenObjectAttributes(tokenElement) {
+      if (!(tokenElement instanceof HTMLElement)) {
+        return;
+      }
+
+      tokenElement.classList.add("template-token");
+      tokenElement.setAttribute("contenteditable", "false");
+      tokenElement.setAttribute("data-template-token", "true");
+      tokenElement.setAttribute("spellcheck", "false");
+    }
+
     function buildTemplateTokenHtml(rawTag) {
       const normalizedTag = normalizeTemplateTag(rawTag);
       const editorTagText = getTemplateEditorTagText(normalizedTag);
@@ -87,7 +100,7 @@
         return "";
       }
 
-      return `<span class="template-token" data-template-tag-value="${escapeAttribute(normalizedTag)}">${escapeHtml(
+      return `<span class="template-token" contenteditable="false" data-template-token="true" spellcheck="false" data-template-tag-value="${escapeAttribute(normalizedTag)}">${escapeHtml(
         editorTagText,
       )}</span>`;
     }
@@ -100,6 +113,7 @@
       tokenElement.className = "template-token";
       tokenElement.dataset.templateTagValue = normalizedTag;
       tokenElement.textContent = editorTagText;
+      applyTemplateTokenObjectAttributes(tokenElement);
       return tokenElement;
     }
 
@@ -159,8 +173,8 @@
       rootElement.querySelectorAll("[data-template-tag-value]").forEach((tokenElement) => {
         const normalizedTag = normalizeTemplateTag(tokenElement.dataset.templateTagValue || tokenElement.textContent || "");
         tokenElement.classList.remove("template-data-fit");
-        tokenElement.classList.add("template-token");
         tokenElement.dataset.templateTagValue = normalizedTag;
+        applyTemplateTokenObjectAttributes(tokenElement);
         setTemplateTokenTextPreservingMarkup(tokenElement, getTemplateEditorTagText(normalizedTag));
       });
 
@@ -225,6 +239,8 @@
         container.append(wrapper);
       }
 
+      pageSettingsModule?.normalizeTemplatePageDocumentSettings?.(container.querySelector(".template-doc"));
+
       decorateTemplateEditorImages(container);
 
       return container.innerHTML;
@@ -241,8 +257,8 @@
       clone.querySelectorAll("[data-template-tag-value]").forEach((tokenElement) => {
         const normalizedTag = normalizeTemplateTag(tokenElement.dataset.templateTagValue || tokenElement.textContent || "");
         tokenElement.classList.remove("template-data-fit");
-        tokenElement.classList.add("template-token");
         tokenElement.dataset.templateTagValue = normalizedTag;
+        applyTemplateTokenObjectAttributes(tokenElement);
         setTemplateTokenTextPreservingMarkup(tokenElement, getTemplateEditorTagText(normalizedTag));
       });
       stripTemplateEditorTransientState(clone);

@@ -412,6 +412,10 @@ const {
   viewRoot,
 } = domElementRegistry;
 let templateEditorBlockType = null;
+let templateEditorBorderColor = null;
+let templateEditorBorderStyle = null;
+let templateEditorBorderTarget = null;
+let templateEditorBorderWidth = null;
 let templateEditorCellSplitCount = null;
 let templateEditorCellSplitPanel = null;
 let templateEditorCellShading = null;
@@ -442,6 +446,10 @@ const accountGridColumns = getAccountGridColumns();
 function refreshTemplateEditorToolbarElements() {
   ({
     templateEditorBlockType,
+    templateEditorBorderColor,
+    templateEditorBorderStyle,
+    templateEditorBorderTarget,
+    templateEditorBorderWidth,
     templateEditorCellSplitCount,
     templateEditorCellSplitPanel,
     templateEditorCellShading,

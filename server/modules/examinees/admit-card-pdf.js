@@ -5,6 +5,8 @@ const AdmZip = require("adm-zip");
 const { PDFDocument } = require("pdf-lib");
 const puppeteer = require("puppeteer-core");
 
+const templatePageSettings = require("../../../client/features/template-editor/page-settings");
+
 const PRINT_PAGE_WIDTH_PX = 794;
 const PRINT_PAGE_HEIGHT_PX = 1123;
 const PDF_RENDER_TIMEOUT_MS = 60000;
@@ -190,6 +192,7 @@ function createAdmitCardPdfService({
         min-height: 1123px;
         margin: 0;
         padding: 44px 46px;
+        border-radius: 0;
         background: #ffffff;
       }
       .template-render-sheet:not(:last-child) {
@@ -368,13 +371,16 @@ function createAdmitCardPdfService({
 
   function buildAdmitCardDocumentSheetMarkup(renderedSheets) {
     return (Array.isArray(renderedSheets) ? renderedSheets : [renderedSheets])
-      .map(
-        (renderedHtml) => `
-          <article class="template-render-sheet">
+      .map((renderedHtml) => {
+        const pageSettings = templatePageSettings.getTemplatePageSettingsFromHtml(renderedHtml);
+        const renderAttributes = templatePageSettings.getTemplatePageRenderAttributes(pageSettings);
+
+        return `
+          <article class="template-render-sheet" ${renderAttributes}>
             ${renderedHtml}
           </article>
-        `,
-      )
+        `;
+      })
       .join("");
   }
 
@@ -395,11 +401,20 @@ function createAdmitCardPdfService({
     `;
   }
 
-  function getPdfPageOptions() {
+  function getPdfPageOptions(pageDimensions = null) {
+    const normalizedDimensions =
+      pageDimensions && Number(pageDimensions.width) > 0 && Number(pageDimensions.height) > 0
+        ? {
+            width: `${Math.round(Number(pageDimensions.width))}px`,
+            height: `${Math.round(Number(pageDimensions.height))}px`,
+          }
+        : null;
+
     return {
       printBackground: true,
-      preferCSSPageSize: true,
+      preferCSSPageSize: !normalizedDimensions,
       displayHeaderFooter: false,
+      ...(normalizedDimensions || {}),
       margin: {
         top: "0",
         right: "0",
@@ -510,8 +525,9 @@ function createAdmitCardPdfService({
   }
 
   async function measureRenderedSheetPageCounts(page) {
-    return page.evaluate((pageHeightPx) => {
+    return page.evaluate((fallbackPageHeightPx) => {
       return Array.from(document.querySelectorAll(".template-render-sheet")).map((sheet) => {
+        const pageHeightPx = Math.max(1, Math.round(Number(sheet.dataset.templatePageHeightPx || fallbackPageHeightPx)));
         const sheetHeight = Math.max(
           Number(sheet.scrollHeight || 0),
           Number(sheet.offsetHeight || 0),
@@ -522,6 +538,25 @@ function createAdmitCardPdfService({
         return Math.max(1, Math.ceil(sheetHeight / pageHeightPx));
       });
     }, PRINT_PAGE_HEIGHT_PX);
+  }
+
+  async function getRenderedPdfPageDimensions(page) {
+    return page.evaluate(
+      ({ fallbackWidth, fallbackHeight }) => {
+        const sheet = document.querySelector(".template-render-sheet");
+        const width = Math.round(Number(sheet?.dataset?.templatePageWidthPx || fallbackWidth));
+        const height = Math.round(Number(sheet?.dataset?.templatePageHeightPx || fallbackHeight));
+
+        return {
+          width: Number.isFinite(width) && width > 0 ? width : fallbackWidth,
+          height: Number.isFinite(height) && height > 0 ? height : fallbackHeight,
+        };
+      },
+      {
+        fallbackWidth: PRINT_PAGE_WIDTH_PX,
+        fallbackHeight: PRINT_PAGE_HEIGHT_PX,
+      },
+    );
   }
 
   function countPdfPages(pdfBuffer) {
@@ -651,7 +686,7 @@ function createAdmitCardPdfService({
     });
 
     throwIfBatchAdmitCardCancelled(options);
-    const pdfBuffer = Buffer.from(await page.pdf(getPdfPageOptions()));
+    const pdfBuffer = Buffer.from(await page.pdf(getPdfPageOptions(await getRenderedPdfPageDimensions(page))));
     const parsedPageCount = options.skipBufferPageCount ? 0 : countPdfPages(pdfBuffer);
 
     throwIfBatchAdmitCardCancelled(options);

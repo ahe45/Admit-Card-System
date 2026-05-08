@@ -384,7 +384,17 @@
 }
 
 .template-editor-modal-sheet {
-  width: min(95vw, 1600px);
+  --template-editor-canvas-width: 794px;
+  --template-editor-modal-toolbar-width: var(--editor-toolbar-column-width);
+  --template-editor-modal-side-column-width: 252px;
+  --template-editor-modal-chrome-width: 68px;
+  width: min(
+    calc(100vw - 16px),
+    calc(
+      var(--template-editor-modal-toolbar-width) + var(--template-editor-modal-side-column-width) +
+        var(--template-editor-canvas-width) + var(--template-editor-modal-chrome-width)
+    )
+  );
   height: min(92vh, 1020px);
   max-height: min(92vh, 1020px);
 }

@@ -298,16 +298,21 @@ const editorToolbarUiController = editorToolbarUiModule.createEditorToolbarUiCon
   normalizeEditorToolbarColorValue,
 });
 const {
+  applyEditorToolbarBorderSelectOption,
+  closeAllEditorToolbarBorderSelectMenus,
   closeAllEditorToolbarColorPanels,
   closeAllEditorToolbarFontSizeMenus,
   closeAllEditorToolbarTableInsertPanels,
+  getEditorToolbarBorderSelectElements,
   getEditorToolbarColorPickerElements,
   getEditorToolbarFontSizeComboElements,
   getEditorToolbarFontSizeMenuElement,
   getEditorToolbarTableInsertPopoverElements,
+  setEditorToolbarBorderSelectMenuVisibility,
   setEditorToolbarColorPanelVisibility,
   setEditorToolbarFontSizeMenuVisibility,
   setEditorToolbarTableInsertPanelVisibility,
+  syncEditorToolbarBorderSelectControl,
   syncEditorToolbarColorControls,
   syncEditorToolbarFontSizeControls,
   syncEditorToolbarFontSizeMenuSelection,
@@ -350,6 +355,10 @@ function getEditorToolbarColorFallback(command = "", tableAction = "") {
     return "#ffffff";
   }
 
+  if (String(tableAction || "").trim() === "apply-cell-border") {
+    return "#000000";
+  }
+
   if (String(command || "").trim() === "foreColor") {
     return EDITOR_TOOLBAR_DEFAULT_TEXT_COLOR;
   }
@@ -379,3 +388,38 @@ const editorFormattingStateController = createEditorToolbarFormattingStateContro
   syncEditorToolbarFontSizeControls,
 });
 const { updateEditorToolbarFormattingState } = editorFormattingStateController;
+
+globalThis.AdmitCardEditorToolbar = Object.freeze({
+  EDITOR_TOOLBAR_DEFAULT_TEXT_COLOR,
+  EDITOR_TOOLBAR_FONT_OPTIONS,
+  EDITOR_TOOLBAR_FONT_SIZE_OPTIONS,
+  EDITOR_TOOLBAR_ICON_MARKUP,
+  EDITOR_TOOLBAR_TEXT_COLOR_PRESETS,
+  applyEditorToolbarBorderSelectOption,
+  applySharedEditorCommand,
+  applySharedEditorFontFamily,
+  applySharedEditorFontSize,
+  closeAllEditorToolbarBorderSelectMenus,
+  closeAllEditorToolbarColorPanels,
+  closeAllEditorToolbarFontSizeMenus,
+  closeAllEditorToolbarTableInsertPanels,
+  getEditorToolbarColorFallback,
+  getEditorToolbarBorderSelectElements,
+  getEditorToolbarColorPickerElements,
+  getEditorToolbarFontSizeComboElements,
+  getEditorToolbarFontSizeMenuElement,
+  getEditorToolbarTableInsertPopoverElements,
+  isEditorToolbarPresetFontSize,
+  normalizeEditorToolbarColorValue,
+  renderEditorToolbar,
+  renderEditorToolbarInner,
+  setEditorToolbarBorderSelectMenuVisibility,
+  setEditorToolbarColorPanelVisibility,
+  setEditorToolbarFontSizeMenuVisibility,
+  setEditorToolbarTableInsertPanelVisibility,
+  syncEditorToolbarBorderSelectControl,
+  syncEditorToolbarColorControls,
+  syncEditorToolbarFontSizeControls,
+  syncEditorToolbarFontSizeMenuSelection,
+  updateEditorToolbarFormattingState,
+});
